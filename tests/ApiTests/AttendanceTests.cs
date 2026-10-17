@@ -200,6 +200,68 @@ public sealed class AttendanceTests(TestApplication app) : IClassFixture<TestApp
     }
 
     [Fact]
+    public async Task Failed_session_with_large_backlog_does_not_starve_another_session()
+    {
+        var handler = new IsolatedFailureHandler();
+        await using var deliveryApp = new TestApplication { ClassroomChangeHandler = handler };
+        await deliveryApp.InitializeAsync();
+        var (failedClient, failedClassId, studentId) = await Setup(deliveryApp);
+        var (healthyClient, healthyClassId, _) = await Setup(deliveryApp);
+        using (failedClient) using (healthyClient)
+        {
+            handler.FailedClassId = failedClassId;
+            handler.HealthyClassId = healthyClassId;
+            var path = $"/api/classes/{failedClassId}";
+            var session = await (await TestApplication.Post(failedClient, $"{path}/sessions", new { date = "2026-10-05", startTime = "18:00:00", endTime = "19:00:00", kind = "regular" })).Content.ReadFromJsonAsync<JsonElement>();
+            var id = session.GetProperty("id").GetString();
+            Assert.Equal(HttpStatusCode.OK, (await Put(failedClient, $"{path}/sessions/{id}", new { status = "held", version = 1 })).StatusCode);
+            for (var version = 0; version < 101; version++)
+                Assert.Equal(HttpStatusCode.OK, (await Put(failedClient, $"{path}/sessions/{id}/attendance/{studentId}", new { status = "present", version })).StatusCode);
+            Assert.Equal(103, (await failedClient.GetFromJsonAsync<JsonElement>($"{path}/sessions/{id}/history")).GetArrayLength());
+            // Ensure the healthy event is later than the failed backlog, independent of version sorting.
+            deliveryApp.Clock.Advance(TimeSpan.FromMinutes(1));
+            var healthy = await TestApplication.Post(healthyClient, $"/api/classes/{healthyClassId}/sessions", new { date = "2026-10-06", startTime = "18:00:00", endTime = "19:00:00", kind = "regular" });
+            Assert.Equal(HttpStatusCode.Created, healthy.StatusCode);
+            var delivered = await handler.Healthy.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(healthyClassId, delivered.ClassId.ToString());
+        }
+    }
+    private sealed class IsolatedFailureHandler : IClassroomChangeHandler
+    {
+        public bool FailAllChanges { get; init; }
+        public string? FailedClassId { get; set; }
+        public string? HealthyClassId { get; set; }
+        public TaskCompletionSource<ClassroomChange> Healthy { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task HandleAsync(ClassroomChange change, CancellationToken cancellationToken)
+        {
+            if (change.ClassId.ToString() == FailedClassId && (FailAllChanges || change.Kind == "attendance.changed")) throw new InvalidOperationException("This session's subscriber remains unavailable");
+            if (change.ClassId.ToString() == HealthyClassId) Healthy.TrySetResult(change);
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task A_full_batch_of_failed_sessions_does_not_starve_a_later_healthy_session()
+    {
+        var handler = new IsolatedFailureHandler { FailAllChanges = true };
+        await using var deliveryApp = new TestApplication { ClassroomChangeHandler = handler };
+        await deliveryApp.InitializeAsync();
+        var (failedClient, failedClassId, _) = await Setup(deliveryApp);
+        var (healthyClient, healthyClassId, _) = await Setup(deliveryApp);
+        using (failedClient) using (healthyClient)
+        {
+            handler.FailedClassId = failedClassId;
+            handler.HealthyClassId = healthyClassId;
+            for (var offset = 0; offset < 100; offset++)
+                Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(failedClient, $"/api/classes/{failedClassId}/sessions", new { date = new DateOnly(2026, 10, 1).AddDays(offset).ToString("yyyy-MM-dd"), startTime = "18:00:00", endTime = "19:00:00", kind = "regular" })).StatusCode);
+            deliveryApp.Clock.Advance(TimeSpan.FromMinutes(1));
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(healthyClient, $"/api/classes/{healthyClassId}/sessions", new { date = "2026-10-06", startTime = "18:00:00", endTime = "19:00:00", kind = "regular" })).StatusCode);
+            var delivered = await handler.Healthy.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(healthyClassId, delivered.ClassId.ToString());
+        }
+    }
+
+    [Fact]
     public async Task Weekly_schedule_generates_multiple_days_and_keeps_existing_sessions_when_changed()
     {
         var (client, classId, studentId) = await Setup();
