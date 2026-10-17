@@ -24,9 +24,22 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     private readonly string adminConnection = Environment.GetEnvironmentVariable("TEST_DATABASE_CONNECTION")
         ?? throw new InvalidOperationException("TEST_DATABASE_CONNECTION must point to a real PostgreSQL test server with CREATEDB permission.");
     private readonly string database = "ekt_test_" + Guid.NewGuid().ToString("N");
+    private readonly bool reuseDatabase;
+    private readonly bool ownsDatabase = true;
+    public TestApplication() { }
+    private TestApplication(TestApplication original, IClassroomChangeHandler? classroomHandler, ITuitionChangeHandler? tuitionHandler)
+    {
+        database = original.database; adminConnection = original.adminConnection; Clock = original.Clock;
+        reuseDatabase = true; ownsDatabase = false; ProductionCookies = original.ProductionCookies;
+        ClassroomChangeHandler = classroomHandler; TuitionChangeHandler = tuitionHandler;
+    }
+    public Task StopHostAsync() => base.DisposeAsync().AsTask();
+    public TestApplication Reopen(IClassroomChangeHandler? classroomHandler = null, ITuitionChangeHandler? tuitionHandler = null) => new(this, classroomHandler, tuitionHandler);
     public TestClock Clock { get; } = new();
     public bool ProductionCookies { get; init; }
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
+    public bool ClassroomHandlerFirst { get; init; }
+    public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -36,7 +49,14 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
-            if (ClassroomChangeHandler is not null) services.AddSingleton(ClassroomChangeHandler);
+            if (ClassroomChangeHandler is not null)
+            {
+                var existing = ClassroomHandlerFirst ? services.Where(x => x.ServiceType == typeof(IClassroomChangeHandler)).ToArray() : [];
+                foreach (var descriptor in existing) services.Remove(descriptor);
+                services.AddSingleton(ClassroomChangeHandler);
+                foreach (var descriptor in existing) services.Add(descriptor);
+            }
+            if (TuitionChangeHandler is not null) services.AddSingleton(TuitionChangeHandler);
         });
     }
 
@@ -45,16 +65,18 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         await using var connection = new NpgsqlConnection(adminConnection);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand($"CREATE DATABASE {database}", connection);
-        await command.ExecuteNonQueryAsync();
+        if (!reuseDatabase) await command.ExecuteNonQueryAsync();
         using var scope = Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<IdentityDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Classroom.Infrastructure.ClassroomDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>().Database.MigrateAsync();
     }
 
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
+        if (!ownsDatabase) return;
         NpgsqlConnection.ClearAllPools();
         await using var connection = new NpgsqlConnection(adminConnection);
         await connection.OpenAsync();

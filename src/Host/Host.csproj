@@ -11,6 +11,7 @@
     <ProjectReference Include="../Modules/Identity/Identity.csproj" />
     <ProjectReference Include="../Modules/Classroom/Classroom.csproj" />
     <ProjectReference Include="../Modules/ServiceAccess/ServiceAccess.csproj" />
+    <ProjectReference Include="../Modules/Billing/Billing.csproj" />
   </ItemGroup>
 
 </Project>

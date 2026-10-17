@@ -10,6 +10,7 @@ import { Login } from "./Login";
 import { CreateClass } from "./CreateClass";
 import { Roster } from "./Roster";
 import { Sessions } from "./Sessions";
+import { Tuition } from "./Tuition";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
   const [error, setError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [resume, setResume] = useState(false);
+  const [tuitionRefresh, setTuitionRefresh] = useState(0);
   const [selectedId, setSelectedId] = useState(() =>
     window.location.hash.slice(1),
   );
@@ -199,7 +201,12 @@ export function App() {
           .map((item) => (
             <div key={item.id}>
               <Roster classroom={item} me={me} />
-              <Sessions classroom={item} me={me} />
+              <Sessions
+                classroom={item}
+                me={me}
+                onChanged={() => setTuitionRefresh((value) => value + 1)}
+              />
+              <Tuition classroom={item} me={me} refreshToken={tuitionRefresh} />
             </div>
           ))}
       </main>

@@ -61,3 +61,12 @@ _Avoid_: Tình trạng theo học, kết quả học tập
 **Tình trạng theo học**:
 Trạng thái đang học, nghỉ có phép hoặc dừng học của đăng ký lớp; khác với điểm danh của từng buổi.
 
+**Đơn giá hiệu lực**:
+Số tiền học phí mỗi buổi áp dụng từ một ngày xác định; đơn giá mới không tự thay đổi căn cứ của buổi cũ.
+
+**Phí từng buổi**:
+Khoản học phí của một học sinh cho một buổi đã diễn ra có mặt, theo đơn giá áp dụng của buổi đó.
+
+**Bảng phí tháng**:
+Bảng đối chiếu học phí phát sinh trong tháng với các buổi học làm căn cứ; khác với tiền đã nhận hoặc dư nợ.
+

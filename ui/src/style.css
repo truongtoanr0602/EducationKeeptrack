@@ -430,6 +430,34 @@ dialog::backdrop {
 .checkbox-label input {
   width: auto;
 }
+.tuition-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.tuition-students {
+  display: grid;
+  gap: 1rem;
+}
+.tuition-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+.tuition-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tuition-table-wrap th,
+.tuition-table-wrap td {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid #d8dce5;
+  overflow-wrap: anywhere;
+}
+.tuition-workspace .class-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 760px) {
   .session-range > *,
   .session-status-form > * {

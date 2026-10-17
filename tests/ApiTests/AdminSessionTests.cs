@@ -38,6 +38,8 @@ public sealed class AdminSessionTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/students")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/classes/{Guid.NewGuid()}/enrollments")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/classes/{Guid.NewGuid()}/schedule")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/billing/classes/{Guid.NewGuid()}/rates")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/billing/classes/{Guid.NewGuid()}/tuition?month=2026-10")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/classes/{Guid.NewGuid()}/sessions?from=2026-10-01&to=2026-10-31")).StatusCode);
         if (keepActive)
         {

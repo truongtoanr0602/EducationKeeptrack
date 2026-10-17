@@ -27,9 +27,11 @@ function monthRange(): DateRange {
 export function Sessions({
   classroom,
   me,
+  onChanged,
 }: {
   classroom: TeacherClass;
   me: Me;
+  onChanged?: () => void;
 }) {
   const initialRange = useMemo(monthRange, []);
   const [range, setRange] = useState(initialRange);
@@ -106,6 +108,7 @@ export function Sessions({
         scheduleVersion: schedule.version,
       });
       await load(range);
+      onChanged?.();
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -122,6 +125,7 @@ export function Sessions({
   function saved() {
     setForm(null);
     void load(appliedRange);
+    onChanged?.();
   }
   async function resume() {
     const user = await api<Me>("/auth/me");
@@ -304,7 +308,10 @@ export function Sessions({
               classId={classroom.id}
               session={selected}
               canWrite={access.canWrite}
-              onSaved={() => void load(appliedRange)}
+              onSaved={() => {
+                void load(appliedRange);
+                onChanged?.();
+              }}
               onDenied={denied}
             />
             {selected.status === "cancelled" && (
@@ -320,7 +327,10 @@ export function Sessions({
               classId={classroom.id}
               session={selected}
               canWrite={access.canWrite}
-              onChanged={() => void load(appliedRange)}
+              onChanged={() => {
+                void load(appliedRange);
+                onChanged?.();
+              }}
               onDenied={denied}
             />
           </section>

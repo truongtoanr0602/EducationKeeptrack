@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/src/Modules/">
     <Project Path="src/Modules/Classroom/Classroom.csproj" />
+    <Project Path="src/Modules/Billing/Billing.csproj" />
     <Project Path="src/Modules/Identity/Identity.csproj" />
     <Project Path="src/Modules/ServiceAccess/ServiceAccess.csproj" />
   </Folder>
