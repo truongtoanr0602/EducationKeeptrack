@@ -10,3 +10,4 @@
 .local/
 .agents/
 *.user
+*.tsbuildinfo

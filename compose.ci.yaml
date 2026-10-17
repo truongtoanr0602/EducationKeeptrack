@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ekt_ci
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Jenkins credential required}
+    ports: ["127.0.0.1::5432"]
+    tmpfs: [/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ekt_ci"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

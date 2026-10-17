@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: education_keeptrack
+      POSTGRES_USER: education_keeptrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U education_keeptrack -d education_keeptrack"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    build: .
+    command: ["--migrate"]
+    environment:
+      ConnectionStrings__Database: Host=db;Database=education_keeptrack;Username=education_keeptrack;Password=${POSTGRES_PASSWORD}
+    depends_on:
+      db: { condition: service_healthy }
+  backend:
+    build: .
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${APP_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: Host=db;Database=education_keeptrack;Username=education_keeptrack;Password=${POSTGRES_PASSWORD}
+      DataProtection__KeyPath: /keys
+      ReverseProxy__KnownProxy: 172.30.110.3
+    volumes:
+      - session-keys:/keys
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+  ui:
+    build: ./ui
+    ports: ["127.0.0.1:${UI_PORT:-8088}:80"]
+    depends_on: [backend]
+    networks:
+      default: { ipv4_address: 172.30.110.3 }
+networks:
+  default:
+    ipam:
+      config: [{ subnet: 172.30.110.0/24, ip_range: 172.30.110.128/25 }]
+volumes:
+  postgres-data:
+  session-keys:
