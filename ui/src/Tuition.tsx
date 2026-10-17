@@ -3,6 +3,7 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { today } from "./roster-api";
 import { Login } from "./Login";
 import { RateForm } from "./RateForm";
+import { Payments } from "./Payments";
 import {
   money,
   feeBasis,
@@ -268,6 +269,14 @@ export function Tuition({
             </div>
           </>
         )}
+        <Payments
+          key={classroom.id}
+          classId={classroom.id}
+          month={appliedMonth}
+          refreshToken={`${refreshToken}:${report?.version ?? 0}`}
+          canWrite={access.canWrite && !sessionExpired}
+          onDenied={denied}
+        />
       </div>
       {!access.canRead && !sessionExpired && (
         <p className="error" role="alert">

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 namespace ApiTests;
 
-public sealed class TuitionTests(TestApplication app) : IClassFixture<TestApplication>
+public sealed partial class TuitionTests(TestApplication app) : IClassFixture<TestApplication>
 {
     private static async Task<HttpResponseMessage> Put(HttpClient client, string path, object body)
     {

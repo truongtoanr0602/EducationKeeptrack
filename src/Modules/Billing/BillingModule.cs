@@ -16,6 +16,7 @@ public static class BillingModule
     {
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
+        services.AddScoped<PaymentService>();
         services.AddScoped<IClassroomChangeHandler, BillingClassroomHandler>(); services.AddHostedService<BillingWorker>();
         return services;
     }
@@ -36,6 +37,12 @@ public static class BillingModule
             return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/rates", result.Value) : Respond(result);
         });
         group.MapGet("/tuition", async (Guid classId, string month, HttpContext http, BillingService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
+        group.MapGet("/payments", async (Guid classId, string month, HttpContext http, PaymentService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
+        group.MapPost("/payments", async (Guid classId, ReceiptInput input, HttpContext http, PaymentService service) =>
+        {
+            var result = await service.RecordAsync(Owner(http), classId, input, http.RequestAborted);
+            return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/payments", result.Value) : Respond(result);
+        });
     }
     private static string Owner(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     private static IResult Respond<T>(BillingResult<T> result) where T : class => result.Failure switch

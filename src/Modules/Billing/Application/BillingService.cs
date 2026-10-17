@@ -10,19 +10,23 @@ public record RatePlanView(int Version, IReadOnlyList<RateView> Rates);
 public record TuitionLine(Guid SessionId, DateOnly Date, TimeOnly StartTime, string Kind, string SessionStatus, string AttendanceStatus, string? UnitPriceVnd, string? AmountVnd, Guid? RateId, int SourceVersion);
 public record StudentTuition(Guid StudentId, string Name, string TotalVnd, IReadOnlyList<TuitionLine> Lines);
 public record TuitionReport(string Month, long Version, int RateVersion, string Status, string TotalVnd, IReadOnlyList<StudentTuition> Students);
-public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions);
+public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions, IReadOnlyList<Receipt> Receipts, IReadOnlyList<PaymentReview> PaymentReviews);
 public record ProjectionComplete;
 
 public interface IBillingRepository
 {
     Task<TuitionLedger?> LedgerAsync(string owner, Guid classId, CancellationToken ct);
     Task<IReadOnlyList<SessionCharge>> ChargesAsync(string owner, Guid classId, CancellationToken ct);
+    Task<IReadOnlyList<Receipt>> ReceiptsAsync(string owner, Guid classId, CancellationToken ct);
+    Task<IReadOnlyList<PaymentReview>> PaymentReviewsAsync(string owner, Guid classId, CancellationToken ct);
     Task<bool> ProcessedAsync(Guid eventId, CancellationToken ct);
     Task<BillingSnapshot> SnapshotAsync(string owner, Guid classId, CancellationToken ct);
     void Add(TuitionLedger ledger);
     void Add(SessionCharge charge);
     void Add(BillingInbox inbox);
     void Add(BillingOutbox change);
+    void Add(Receipt receipt);
+    void Add(PaymentReview review);
     Task SaveAsync(CancellationToken ct);
     Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class;
 }
@@ -48,15 +52,16 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
             // Freeze already-held sessions using the existing plan even if event delivery is delayed.
             var source = await classroom.ReadClassAsync(owner, classId, ct);
             if (source is null) return new(null, BillingFailure.NotFound);
-            var charges = await repository.ChargesAsync(owner, classId, ct);
+            var charges = (await repository.ChargesAsync(owner, classId, ct)).ToList();
             var nextDate = ledger.Rates.Where(x => x.EffectiveFrom > input.EffectiveFrom).OrderBy(x => x.EffectiveFrom).Select(x => (DateOnly?)x.EffectiveFrom).FirstOrDefault();
             bool Affected(DateOnly date) => date >= input.EffectiveFrom && (nextDate is null || date < nextDate);
             if (charges.Any(x => x.UnitPriceVnd is not null && Affected(x.Date))
                 || source.Sessions.Any(x => x.Status == "held" && ledger.RateOn(x.Date) is not null && Affected(x.Date)))
                 return new(null, BillingFailure.Conflict, "Đơn giá mới sẽ thay đổi căn cứ của buổi đã diễn ra. Vui lòng chọn ngày hiệu lực sau các buổi đó; điều chỉnh lịch sử phải thực hiện riêng có lý do.");
-            foreach (var session in source.Sessions) Apply(ledger, charges.SingleOrDefault(x => x.SessionId == session.Id), session);
+            foreach (var session in source.Sessions) Apply(ledger, charges, session);
             ledger.AddRate(input, clock.GetUtcNow());
             repository.Add(new BillingOutbox(ledger, "rate.changed", clock.GetUtcNow()));
+            await HoldExcessAsync(ledger, charges, ct);
             await repository.SaveAsync(ct);
             return new(RatesView(ledger));
         }, ct);
@@ -69,9 +74,10 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
         {
             if (await repository.ProcessedAsync(change.EventId, ct)) return new(new ProjectionComplete());
             var ledger = await GetOrCreateAsync(change.OwnerId, change.ClassId, ct);
-            var charges = await repository.ChargesAsync(change.OwnerId, change.ClassId, ct);
-            Apply(ledger, charges.SingleOrDefault(x => x.SessionId == source.Id), source);
+            var charges = (await repository.ChargesAsync(change.OwnerId, change.ClassId, ct)).ToList();
+            Apply(ledger, charges, source);
             repository.Add(new BillingInbox(change.EventId, clock.GetUtcNow()));
+            await HoldExcessAsync(ledger, charges, ct);
             await repository.SaveAsync(ct);
             return new(new ProjectionComplete());
         }, ct);
@@ -83,8 +89,9 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
         await repository.WithClassLockAsync<ProjectionComplete>(classId, async () =>
         {
             var ledger = await GetOrCreateAsync(owner, classId, ct);
-            var charges = await repository.ChargesAsync(owner, classId, ct);
-            foreach (var session in source.Sessions) Apply(ledger, charges.SingleOrDefault(x => x.SessionId == session.Id), session);
+            var charges = (await repository.ChargesAsync(owner, classId, ct)).ToList();
+            foreach (var session in source.Sessions) Apply(ledger, charges, session);
+            await HoldExcessAsync(ledger, charges, ct);
             ledger.Refreshed(); await repository.SaveAsync(ct);
             return new(new ProjectionComplete());
         }, ct);
@@ -95,12 +102,27 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
         if (ledger is null) { ledger = new TuitionLedger(owner, classId); repository.Add(ledger); }
         return ledger;
     }
-    private void Apply(TuitionLedger ledger, SessionCharge? charge, BillingSessionSource source)
+    private async Task HoldExcessAsync(TuitionLedger ledger, IReadOnlyList<SessionCharge> charges, CancellationToken ct)
     {
+        var receipts = await repository.ReceiptsAsync(ledger.OwnerId, ledger.ClassId, ct);
+        if (receipts.Count == 0) return;
+        var reviews = await repository.PaymentReviewsAsync(ledger.OwnerId, ledger.ClassId, ct);
+        foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews))
+        {
+            var excess = period.Allocated - period.Fees;
+            if (excess <= 0) continue;
+            var review = reviews.SingleOrDefault(x => x.StudentId == period.StudentId && x.Period == period.Period);
+            if (review is null) repository.Add(new PaymentReview(ledger.OwnerId, ledger.ClassId, period.StudentId, period.Period, excess, clock.GetUtcNow()));
+            else review.Hold(excess);
+        }
+    }
+    private void Apply(TuitionLedger ledger, List<SessionCharge> charges, BillingSessionSource source)
+    {
+        var charge = charges.SingleOrDefault(x => x.SessionId == source.Id);
         var isNew = charge is null;
         charge ??= new SessionCharge(ledger.OwnerId, ledger.ClassId, source.Id);
         if (!charge.Apply(source, ledger.RateOn(source.Date))) return;
-        if (isNew) repository.Add(charge);
+        if (isNew) { repository.Add(charge); charges.Add(charge); }
         ledger.RecordProjection(); repository.Add(new BillingOutbox(ledger, "tuition.changed", clock.GetUtcNow()));
     }
     public async Task<BillingResult<TuitionReport>> ReportAsync(string owner, Guid classId, string month, CancellationToken ct)

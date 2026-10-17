@@ -10,6 +10,8 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
     public DbSet<SessionCharge> Charges => Set<SessionCharge>();
     public DbSet<BillingInbox> Inbox => Set<BillingInbox>();
     public DbSet<BillingOutbox> Outbox => Set<BillingOutbox>();
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+    public DbSet<PaymentReview> PaymentReviews => Set<PaymentReview>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("billing");
@@ -27,10 +29,33 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         var inbox = model.Entity<BillingInbox>(); inbox.HasKey(x => x.EventId); inbox.Property(x => x.EventId).ValueGeneratedNever();
         var outbox = model.Entity<BillingOutbox>(); outbox.HasKey(x => x.Id); outbox.Property(x => x.OwnerId).HasMaxLength(450); outbox.Property(x => x.Kind).HasMaxLength(40);
         outbox.HasIndex(x => new { x.ClassId, x.Version }).IsUnique(); outbox.HasIndex(x => x.DispatchedAt);
+        var receipt = model.Entity<Receipt>(); receipt.HasKey(x => x.Id); receipt.Property(x => x.Id).ValueGeneratedNever();
+        receipt.Property(x => x.OwnerId).HasMaxLength(450); receipt.Property(x => x.Note).HasMaxLength(1000);
+        receipt.Property(x => x.AmountVnd).HasPrecision(18, 0); receipt.Property(x => x.UnallocatedVnd).HasPrecision(18, 0);
+        receipt.HasIndex(x => new { x.ClassId, x.IdempotencyKey }).IsUnique();
+        receipt.HasIndex(x => new { x.ClassId, x.StudentId, x.ReceivedOn });
+        receipt.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        receipt.HasMany(x => x.Allocations).WithOne().HasForeignKey(x => x.ReceiptId).OnDelete(DeleteBehavior.Restrict);
+        receipt.ToTable("Receipts", table =>
+        {
+            table.HasCheckConstraint("CK_Receipt_Amount", "\"AmountVnd\" > 0");
+            table.HasCheckConstraint("CK_Receipt_Unallocated", "\"UnallocatedVnd\" >= 0 AND \"UnallocatedVnd\" <= \"AmountVnd\"");
+        });
+        var allocation = model.Entity<ReceiptAllocation>(); allocation.HasKey(x => new { x.ReceiptId, x.Period });
+        allocation.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        allocation.ToTable("ReceiptAllocation", table => table.HasCheckConstraint("CK_Allocation_Amount", "\"AmountVnd\" > 0"));
+        var review = model.Entity<PaymentReview>(); review.HasKey(x => new { x.ClassId, x.StudentId, x.Period });
+        review.Property(x => x.OwnerId).HasMaxLength(450); review.Property(x => x.AmountVnd).HasPrecision(28, 0);
+        review.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        review.ToTable("PaymentReviews", table => table.HasCheckConstraint("CK_PaymentReview_Amount", "\"AmountVnd\" > 0"));
     }
 }
 public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
 {
+    public async Task<IReadOnlyList<Receipt>> ReceiptsAsync(string owner, Guid classId, CancellationToken ct) => await db.Receipts.Include(x => x.Allocations).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+    public void Add(Receipt receipt) => db.Receipts.Add(receipt);
+    public async Task<IReadOnlyList<PaymentReview>> PaymentReviewsAsync(string owner, Guid classId, CancellationToken ct) => await db.PaymentReviews.Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+    public void Add(PaymentReview review) => db.PaymentReviews.Add(review);
     public Task<TuitionLedger?> LedgerAsync(string owner, Guid classId, CancellationToken ct) => db.Ledgers.Include(x => x.Rates).SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId, ct);
     public async Task<IReadOnlyList<SessionCharge>> ChargesAsync(string owner, Guid classId, CancellationToken ct) => await db.Charges.Include(x => x.Fees).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
     public Task<bool> ProcessedAsync(Guid eventId, CancellationToken ct) => db.Inbox.AnyAsync(x => x.EventId == eventId, ct);
@@ -44,7 +69,9 @@ public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
         var ledger = await db.Ledgers.AsNoTracking().Include(x => x.Rates).SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId, ct);
         var charges = await db.Charges.AsNoTracking().Include(x => x.Fees).Where(x => x.OwnerId == owner && x.ClassId == classId).OrderBy(x => x.Date).ThenBy(x => x.StartTime).ToListAsync(ct);
-        await transaction.CommitAsync(ct); return new(ledger, charges);
+        var receipts = await db.Receipts.AsNoTracking().Include(x => x.Allocations).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+        var reviews = await db.PaymentReviews.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+        await transaction.CommitAsync(ct); return new(ledger, charges, receipts, reviews);
     }
     public async Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class
     {

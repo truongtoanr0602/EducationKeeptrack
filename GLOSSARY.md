@@ -79,3 +79,19 @@ Khoản học phí của một học sinh cho một buổi đã diễn ra có m�
 **Bảng phí tháng**:
 Bảng đối chiếu học phí phát sinh trong tháng với các buổi học làm căn cứ; khác với tiền đã nhận hoặc dư nợ.
 
+**Giao dịch nhận tiền**:
+Một khoản học phí giáo viên thực nhận của một học sinh trong một lớp, có số tiền, ngày nhận và ghi chú; khác với phí phát sinh.
+
+**Phân bổ thanh toán**:
+Phần của một giao dịch nhận tiền dùng trả nghĩa vụ của một kỳ học phí, mặc định kỳ cũ nhất còn nợ trước.
+
+**Dư nợ kỳ**:
+Phần nghĩa vụ học phí của một kỳ còn phải trả sau các khoản phân bổ, điều chỉnh và bảo lưu đã sử dụng; không âm.
+
+**Tiền chưa phân bổ**:
+Phần tiền đã nhận chưa dùng trả nghĩa vụ học phí, được theo dõi riêng và chưa tự áp dụng cho kỳ sau hoặc hoàn trả.
+_Avoid_: Tiền bảo lưu, tiền mới thu
+
+**Tiền giữ để đối chiếu**:
+Phần tiền đã phân bổ vượt nghĩa vụ sau khi phí giảm, được giữ riêng để xử lý rõ ràng; chưa được dùng lại, bảo lưu hoặc hoàn trả tự động.
+

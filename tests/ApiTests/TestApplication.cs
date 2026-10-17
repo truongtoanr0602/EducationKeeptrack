@@ -41,6 +41,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public Func<IClassroomChangeHandler, IClassroomChangeHandler>? DecorateBillingHandler { get; init; }
     public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
     public ILearningResultChangeHandler? LearningResultChangeHandler { get; init; }
+    public Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? BillingInterceptor { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -50,6 +51,8 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
+            if (BillingInterceptor is not null)
+                services.ConfigureDbContext<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>(options => options.AddInterceptors(BillingInterceptor));
             if (ClassroomChangeHandler is not null)
             {
                 services.AddSingleton(ClassroomChangeHandler);

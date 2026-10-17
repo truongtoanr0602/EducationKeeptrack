@@ -74,6 +74,109 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Outbox", "billing");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentReview", b =>
+                {
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Period")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(28)
+                        .HasColumnType("numeric(28,0)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ClassId", "StudentId", "Period");
+
+                    b.ToTable("PaymentReviews", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_PaymentReview_Amount", "\"AmountVnd\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.Receipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateOnly>("ReceivedOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("UnallocatedVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ClassId", "StudentId", "ReceivedOn");
+
+                    b.ToTable("Receipts", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_Receipt_Amount", "\"AmountVnd\" > 0");
+
+                            t.HasCheckConstraint("CK_Receipt_Unallocated", "\"UnallocatedVnd\" >= 0 AND \"UnallocatedVnd\" <= \"AmountVnd\"");
+                        });
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReceiptAllocation", b =>
+                {
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Period")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.HasKey("ReceiptId", "Period");
+
+                    b.ToTable("ReceiptAllocation", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_Allocation_Amount", "\"AmountVnd\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.SessionCharge", b =>
                 {
                     b.Property<Guid>("SessionId")
@@ -206,6 +309,33 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("TuitionRate", "billing");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentReview", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.Receipt", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReceiptAllocation", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.Receipt", null)
+                        .WithMany("Allocations")
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.SessionCharge", b =>
                 {
                     b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
@@ -236,6 +366,11 @@ namespace Billing.Infrastructure.Migrations
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.Receipt", b =>
+                {
+                    b.Navigation("Allocations");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.SessionCharge", b =>
