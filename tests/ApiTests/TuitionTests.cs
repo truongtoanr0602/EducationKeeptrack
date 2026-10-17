@@ -152,7 +152,7 @@ public sealed class TuitionTests(TestApplication app) : IClassFixture<TestApplic
     public async Task Delayed_delivery_marks_cached_total_pending_then_updates_after_recovery()
     {
         var outage = new TemporaryOutage();
-        await using var delayedApp = new TestApplication { ClassroomChangeHandler = outage, ClassroomHandlerFirst = true };
+        await using var delayedApp = new TestApplication { DecorateBillingHandler = handler => new GatedSubscription(outage, handler) };
         await delayedApp.InitializeAsync();
         var (client, classId, studentId, _) = await Setup(delayedApp);
         using (client)
@@ -171,10 +171,15 @@ public sealed class TuitionTests(TestApplication app) : IClassFixture<TestApplic
             Assert.True(after.GetProperty("version").GetInt64() > before.GetProperty("version").GetInt64());
         }
     }
-    private sealed class TemporaryOutage : IClassroomChangeHandler
+    private sealed class TemporaryOutage
     {
         public volatile bool Fail;
-        public Task HandleAsync(ClassroomChange change, CancellationToken ct) => Fail ? Task.FromException(new InvalidOperationException("Subscriber unavailable before Billing receives the event")) : Task.CompletedTask;
+    }
+    private sealed class GatedSubscription(TemporaryOutage outage, IClassroomChangeHandler subscriber) : IClassroomChangeHandler
+    {
+        public Task HandleAsync(ClassroomChange change, CancellationToken ct) => outage.Fail
+            ? Task.FromException(new InvalidOperationException("Billing subscription unavailable"))
+            : subscriber.HandleAsync(change, ct);
     }
 
     [Fact]

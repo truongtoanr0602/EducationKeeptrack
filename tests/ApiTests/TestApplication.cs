@@ -38,7 +38,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public TestClock Clock { get; } = new();
     public bool ProductionCookies { get; init; }
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
-    public bool ClassroomHandlerFirst { get; init; }
+    public Func<IClassroomChangeHandler, IClassroomChangeHandler>? DecorateBillingHandler { get; init; }
     public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
 
@@ -51,10 +51,16 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
             services.AddSingleton<TimeProvider>(Clock);
             if (ClassroomChangeHandler is not null)
             {
-                var existing = ClassroomHandlerFirst ? services.Where(x => x.ServiceType == typeof(IClassroomChangeHandler)).ToArray() : [];
-                foreach (var descriptor in existing) services.Remove(descriptor);
                 services.AddSingleton(ClassroomChangeHandler);
-                foreach (var descriptor in existing) services.Add(descriptor);
+            }
+            if (DecorateBillingHandler is not null)
+            {
+                var subscription = services.Single(x => x.ServiceType == typeof(IClassroomChangeHandler)
+                    && x.ImplementationType == typeof(EducationKeeptrack.Billing.Application.BillingClassroomHandler));
+                services.Remove(subscription);
+                services.AddScoped<EducationKeeptrack.Billing.Application.BillingClassroomHandler>();
+                services.AddScoped<IClassroomChangeHandler>(provider => DecorateBillingHandler(
+                    provider.GetRequiredService<EducationKeeptrack.Billing.Application.BillingClassroomHandler>()));
             }
             if (TuitionChangeHandler is not null) services.AddSingleton(TuitionChangeHandler);
         });
