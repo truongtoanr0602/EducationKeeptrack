@@ -45,3 +45,19 @@ Quyết định của Admin chặn truy cập, kể cả dữ liệu cũ, và v�
 **Kết quả cuối**:
 Hai mức đánh giá do giáo viên xác nhận, dùng chính thức trong hồ sơ, báo cáo và phân tích.
 
+**Lịch tuần**:
+Các ngày và khung giờ học lặp lại trong tuần của một lớp, áp dụng từ ngày hiệu lực.
+
+**Buổi học**:
+Một lần học của lớp vào ngày và khung giờ cụ thể; có thể dự kiến, đã diễn ra hoặc đã hủy.
+
+**Học bù**:
+Buổi học bổ sung do giáo viên tạo để bù việc học; có thể gắn với buổi đã hủy.
+
+**Điểm danh**:
+Ghi nhận một học sinh chưa được điểm danh, có mặt hoặc vắng ở một buổi học; khi vắng có thể ghi lý do và nghỉ có phép.
+_Avoid_: Tình trạng theo học, kết quả học tập
+
+**Tình trạng theo học**:
+Trạng thái đang học, nghỉ có phép hoặc dừng học của đăng ký lớp; khác với điểm danh của từng buổi.
+

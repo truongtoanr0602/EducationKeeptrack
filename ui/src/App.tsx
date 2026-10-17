@@ -9,6 +9,7 @@ import {
 import { Login } from "./Login";
 import { CreateClass } from "./CreateClass";
 import { Roster } from "./Roster";
+import { Sessions } from "./Sessions";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -196,7 +197,10 @@ export function App() {
         {classes
           .filter((item) => item.id === selectedId)
           .map((item) => (
-            <Roster key={item.id} classroom={item} me={me} />
+            <div key={item.id}>
+              <Roster classroom={item} me={me} />
+              <Sessions classroom={item} me={me} />
+            </div>
           ))}
       </main>
       {creating && (

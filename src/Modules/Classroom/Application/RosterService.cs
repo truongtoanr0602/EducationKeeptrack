@@ -1,8 +1,6 @@
 using EducationKeeptrack.Classroom.Domain;
 namespace EducationKeeptrack.Classroom.Application;
 
-public enum RosterFailure { NotFound, Invalid, Conflict }
-public record RosterResult<T>(T? Value, RosterFailure? Failure = null, string? Message = null, Dictionary<string, string[]>? Errors = null) where T : class;
 public record StudentView(Guid Id, string Name, string? ParentName, string? Phone, string? Email, string? Notes, int Version)
 {
     public static StudentView From(Student student) => new(student.Id, student.Name, student.ParentName, student.Phone, student.Email, student.Notes, student.Version);
@@ -25,7 +23,7 @@ public interface IRosterRepository
     void Add(Student student);
     void Add(Enrollment enrollment);
     Task<bool> TrySaveAsync(CancellationToken ct);
-    Task<RosterResult<EnrollmentView>> WithEnrollmentLockAsync(Guid studentId, Func<Task<RosterResult<EnrollmentView>>> action, CancellationToken ct);
+    Task<ClassroomResult<EnrollmentView>> WithEnrollmentLockAsync(Guid studentId, Func<Task<ClassroomResult<EnrollmentView>>> action, CancellationToken ct);
 }
 
 public sealed class RosterService(IRosterRepository repository, TimeProvider clock)
@@ -37,49 +35,49 @@ public sealed class RosterService(IRosterRepository repository, TimeProvider clo
         var student = await repository.FindStudentAsync(owner, id, ct);
         return student is null ? null : StudentView.From(student);
     }
-    public async Task<RosterResult<StudentView>> SaveStudentAsync(string owner, Guid? id, StudentInput input, CancellationToken ct)
+    public async Task<ClassroomResult<StudentView>> SaveStudentAsync(string owner, Guid? id, StudentInput input, CancellationToken ct)
     {
         var student = id is null ? null : await repository.FindStudentAsync(owner, id.Value, ct);
-        if (id is not null && student is null) return new(null, RosterFailure.NotFound);
+        if (id is not null && student is null) return new(null, ClassroomFailure.NotFound);
         var errors = input.Validate();
-        if (errors.Count > 0) return new(null, RosterFailure.Invalid, Errors: errors);
+        if (errors.Count > 0) return new(null, ClassroomFailure.Invalid, Errors: errors);
         if (student is null)
         {
             student = new Student(owner, input);
             repository.Add(student);
         }
-        else if (!student.TryUpdate(input)) return new(null, RosterFailure.Conflict, "Hồ sơ đã thay đổi. Vui lòng tải lại danh sách trước khi lưu tiếp.");
+        else if (!student.TryUpdate(input)) return new(null, ClassroomFailure.Conflict, "Hồ sơ đã thay đổi. Vui lòng tải lại danh sách trước khi lưu tiếp.");
         return await repository.TrySaveAsync(ct) ? new(StudentView.From(student))
-            : new(null, RosterFailure.Conflict, "Hồ sơ đã thay đổi. Vui lòng tải lại danh sách trước khi lưu tiếp.");
+            : new(null, ClassroomFailure.Conflict, "Hồ sơ đã thay đổi. Vui lòng tải lại danh sách trước khi lưu tiếp.");
     }
-    public async Task<RosterResult<IReadOnlyList<EnrollmentView>>> ListEnrollmentsAsync(string owner, Guid classId, CancellationToken ct)
+    public async Task<ClassroomResult<IReadOnlyList<EnrollmentView>>> ListEnrollmentsAsync(string owner, Guid classId, CancellationToken ct)
     {
-        if (!await repository.ClassExistsAsync(owner, classId, ct)) return new(null, RosterFailure.NotFound);
+        if (!await repository.ClassExistsAsync(owner, classId, ct)) return new(null, ClassroomFailure.NotFound);
         var rows = await repository.ListEnrollmentsAsync(owner, classId, ct);
         return new(rows.Select(x => EnrollmentView.From(x.Enrollment, x.Student)).ToArray());
     }
-    public async Task<RosterResult<EnrollmentView>> EnrollAsync(string owner, Guid classId, EnrollmentInput input, CancellationToken ct)
+    public async Task<ClassroomResult<EnrollmentView>> EnrollAsync(string owner, Guid classId, EnrollmentInput input, CancellationToken ct)
     {
         var student = await repository.FindStudentAsync(owner, input.StudentId, ct);
-        if (student is null || !await repository.ClassExistsAsync(owner, classId, ct)) return new(null, RosterFailure.NotFound);
-        if (input.StartDate == default) return new(null, RosterFailure.Invalid, Errors: new() { ["startDate"] = ["Vui lòng nhập ngày bắt đầu."] });
+        if (student is null || !await repository.ClassExistsAsync(owner, classId, ct)) return new(null, ClassroomFailure.NotFound);
+        if (input.StartDate == default) return new(null, ClassroomFailure.Invalid, Errors: new() { ["startDate"] = ["Vui lòng nhập ngày bắt đầu."] });
         return await repository.WithEnrollmentLockAsync(input.StudentId, async () =>
         {
             if (await repository.HasOverlappingEnrollmentAsync(owner, classId, input.StudentId, input.StartDate, ct))
-                return new(null, RosterFailure.Conflict, "Học sinh đã có đăng ký đang hiệu lực hoặc trùng thời gian trong lớp này.");
+                return new(null, ClassroomFailure.Conflict, "Học sinh đã có đăng ký đang hiệu lực hoặc trùng thời gian trong lớp này.");
             var item = new Enrollment(owner, classId, input.StudentId, input.StartDate, clock.GetUtcNow());
             repository.Add(item);
             return await repository.TrySaveAsync(ct) ? new(EnrollmentView.From(item, student))
-                : new(null, RosterFailure.Conflict, "Đăng ký đã thay đổi hoặc trùng thời gian. Vui lòng tải lại danh sách.");
+                : new(null, ClassroomFailure.Conflict, "Đăng ký đã thay đổi hoặc trùng thời gian. Vui lòng tải lại danh sách.");
         }, ct);
     }
-    public async Task<RosterResult<EnrollmentView>> ChangeStatusAsync(string owner, Guid classId, Guid id, EnrollmentStatusInput input, CancellationToken ct)
+    public async Task<ClassroomResult<EnrollmentView>> ChangeStatusAsync(string owner, Guid classId, Guid id, EnrollmentStatusInput input, CancellationToken ct)
     {
         var item = await repository.FindEnrollmentAsync(owner, classId, id, ct);
-        if (item is null) return new(null, RosterFailure.NotFound);
+        if (item is null) return new(null, ClassroomFailure.NotFound);
         var problem = item.TryChange(input, clock.GetUtcNow());
-        if (problem is not null) return new(null, problem.IsConflict ? RosterFailure.Conflict : RosterFailure.Invalid, problem.Message, problem.Errors);
-        if (!await repository.TrySaveAsync(ct)) return new(null, RosterFailure.Conflict, "Đăng ký đã được thay đổi. Vui lòng tải lại danh sách.");
+        if (problem is not null) return new(null, problem.IsConflict ? ClassroomFailure.Conflict : ClassroomFailure.Invalid, problem.Message, problem.Errors);
+        if (!await repository.TrySaveAsync(ct)) return new(null, ClassroomFailure.Conflict, "Đăng ký đã được thay đổi. Vui lòng tải lại danh sách.");
         var student = await repository.FindStudentAsync(owner, item.StudentId, ct);
         return new(EnrollmentView.From(item, student!));
     }

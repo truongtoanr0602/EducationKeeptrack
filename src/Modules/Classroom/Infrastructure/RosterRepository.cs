@@ -30,7 +30,7 @@ public sealed class RosterRepository(ClassroomDatabase db) : IRosterRepository
         catch (DbUpdateConcurrencyException) { return false; }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_Enrollments_ClassId_StudentId" or "IX_EnrollmentChange_EnrollmentId_Version" }) { return false; }
     }
-    public async Task<RosterResult<EnrollmentView>> WithEnrollmentLockAsync(Guid studentId, Func<Task<RosterResult<EnrollmentView>>> action, CancellationToken ct)
+    public async Task<ClassroomResult<EnrollmentView>> WithEnrollmentLockAsync(Guid studentId, Func<Task<ClassroomResult<EnrollmentView>>> action, CancellationToken ct)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         // Serialize creation for this student's periods across concurrent requests/processes.

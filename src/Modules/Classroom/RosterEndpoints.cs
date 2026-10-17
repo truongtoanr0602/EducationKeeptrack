@@ -45,11 +45,11 @@ public static class RosterEndpoints
         group.MapPut("/classes/{classId:guid}/enrollments/{id:guid}", async (Guid classId, Guid id, EnrollmentStatusInput input, HttpContext http, RosterService roster) =>
             Respond(await roster.ChangeStatusAsync(Owner(http), classId, id, input, http.RequestAborted)));
     }
-    private static IResult Respond<T>(RosterResult<T> result, string? location = null) where T : class => result.Failure switch
+    private static IResult Respond<T>(ClassroomResult<T> result, string? location = null) where T : class => result.Failure switch
     {
-        RosterFailure.NotFound => Results.NotFound(),
-        RosterFailure.Invalid => Results.ValidationProblem(result.Errors!),
-        RosterFailure.Conflict => Results.Conflict(new { message = result.Message }),
+        ClassroomFailure.NotFound => Results.NotFound(),
+        ClassroomFailure.Invalid => Results.ValidationProblem(result.Errors!),
+        ClassroomFailure.Conflict => Results.Conflict(new { message = result.Message }),
         _ => location is null ? Results.Ok(result.Value) : Results.Created(location, result.Value)
     };
     private static string Owner(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;

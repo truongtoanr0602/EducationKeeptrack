@@ -325,6 +325,142 @@ dialog::backdrop {
   background: #eceef2;
   color: #555968;
 }
+.schedule-slot {
+  border: 1px solid #b9becc;
+  border-radius: 8px;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.schedule-slot label,
+.session-range label,
+.session-status-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.session-range,
+.session-status-form {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: end;
+  margin: 1rem 0;
+}
+.sessions-workspace input,
+.sessions-workspace select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #b9becc;
+  border-radius: 6px;
+  font: inherit;
+}
+.session-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.session-list button {
+  text-align: left;
+}
+.session-list [aria-pressed="true"] {
+  outline: 2px solid #243b67;
+}
+.session-list span {
+  padding-left: 0.6rem;
+}
+.selected-session {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #d8dce5;
+  border-radius: 12px;
+}
+.missing-attendance {
+  border-left: 4px solid #9c7928;
+  padding: 0.5rem 1rem;
+  background: #fff8e8;
+  margin: 1rem 0;
+}
+.missing-attendance ul:empty {
+  display: none;
+}
+.attendance-board table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.attendance-board th,
+.attendance-board td {
+  padding: 0.8rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid #c7cbd5;
+}
+.attendance-board td {
+  background: transparent;
+}
+.attendance-board td input:not([type="checkbox"]),
+.attendance-board td select {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+.attendance-row.present {
+  background: #e0f1e7;
+  color: #163b2b;
+}
+.attendance-row.absent {
+  background: #eceef2;
+  color: #30343e;
+}
+.attendance-label {
+  display: block;
+  margin-top: 0.5rem;
+}
+.checkbox-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+.checkbox-label input {
+  width: auto;
+}
+@media (max-width: 760px) {
+  .session-range > *,
+  .session-status-form > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .attendance-board table,
+  .attendance-board tbody {
+    display: block;
+  }
+  .attendance-board thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .attendance-board tr {
+    display: block;
+    border: 1px solid #c7cbd5;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+  }
+  .attendance-board td {
+    display: block;
+    border: 0;
+  }
+  .attendance-board td button {
+    width: 100%;
+  }
+}
 small {
   display: block;
   margin-top: 0.3rem;

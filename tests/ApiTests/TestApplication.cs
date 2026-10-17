@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Npgsql;
+using EducationKeeptrack.Contracts;
 
 namespace ApiTests;
 
@@ -25,13 +26,18 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     private readonly string database = "ekt_test_" + Guid.NewGuid().ToString("N");
     public TestClock Clock { get; } = new();
     public bool ProductionCookies { get; init; }
+    public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(ProductionCookies ? "Production" : "Testing");
         builder.UseSetting("ConnectionStrings:Database", Connection);
-        builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(Clock));
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(Clock);
+            if (ClassroomChangeHandler is not null) services.AddSingleton(ClassroomChangeHandler);
+        });
     }
 
     public async Task InitializeAsync()

@@ -84,6 +84,7 @@ app.Use(async (context, next) =>
 app.MapAuth();
 app.MapClassroom();
 app.MapRoster();
+app.MapSessions();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 

@@ -23,6 +23,114 @@ namespace Classroom.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Attendance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Excused")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("SessionId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("Attendance", "classroom");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.ClassSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTimeOffset>("EndsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ReplacesSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ScheduleVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplacesSessionId")
+                        .IsUnique()
+                        .HasFilter("\"ReplacesSessionId\" IS NOT NULL AND \"Status\" <> 'cancelled'");
+
+                    b.HasIndex("ClassId", "Date", "StartTime")
+                        .IsUnique();
+
+                    b.ToTable("Sessions", "classroom");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Enrollment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -94,6 +202,69 @@ namespace Classroom.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("EnrollmentChange", "classroom");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.SessionChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttendanceStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("AttendanceVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool?>("Excused")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SessionStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("SessionVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DispatchedAt");
+
+                    b.HasIndex("SessionId", "SessionVersion")
+                        .IsUnique();
+
+                    b.ToTable("SessionChanges", "classroom");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Student", b =>
@@ -171,6 +342,66 @@ namespace Classroom.Infrastructure.Migrations
                     b.ToTable("Classes", "classroom");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.WeeklySchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("WeeklySchedules", "classroom");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Attendance", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.ClassSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.ClassSession", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.TeacherClass", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.ClassSession", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacesSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Enrollment", b =>
                 {
                     b.HasOne("EducationKeeptrack.Classroom.Domain.TeacherClass", null)
@@ -193,6 +424,53 @@ namespace Classroom.Infrastructure.Migrations
                         .HasForeignKey("EnrollmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.SessionChange", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.ClassSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.WeeklySchedule", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Classroom.Domain.TeacherClass", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("EducationKeeptrack.Classroom.Domain.WeeklySlot", "Slots", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("DayOfWeek")
+                                .HasColumnType("integer");
+
+                            b1.Property<TimeOnly>("EndTime")
+                                .HasColumnType("time without time zone");
+
+                            b1.Property<TimeOnly>("StartTime")
+                                .HasColumnType("time without time zone");
+
+                            b1.Property<Guid>("WeeklyScheduleId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("WeeklyScheduleId");
+
+                            b1.ToTable("WeeklySlots", "classroom");
+
+                            b1.WithOwner()
+                                .HasForeignKey("WeeklyScheduleId");
+                        });
+
+                    b.Navigation("Slots");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Classroom.Domain.Enrollment", b =>

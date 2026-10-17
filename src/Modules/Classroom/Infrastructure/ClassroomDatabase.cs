@@ -8,6 +8,10 @@ public sealed class ClassroomDatabase(DbContextOptions<ClassroomDatabase> option
     public DbSet<TeacherClass> Classes => Set<TeacherClass>();
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<WeeklySchedule> WeeklySchedules => Set<WeeklySchedule>();
+    public DbSet<ClassSession> Sessions => Set<ClassSession>();
+    public DbSet<Attendance> Attendance => Set<Attendance>();
+    public DbSet<SessionChange> SessionChanges => Set<SessionChange>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("classroom");
@@ -42,6 +46,42 @@ public sealed class ClassroomDatabase(DbContextOptions<ClassroomDatabase> option
         enrollment.HasIndex(x => new { x.ClassId, x.StudentId }).IsUnique().HasFilter("\"Status\" <> 'stopped'");
         enrollment.HasOne<TeacherClass>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
         enrollment.HasOne<Student>().WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Restrict);
+        var schedule = model.Entity<WeeklySchedule>();
+        schedule.HasKey(x => x.Id);
+        schedule.Property(x => x.OwnerId).HasMaxLength(450);
+        schedule.HasIndex(x => new { x.ClassId, x.Version }).IsUnique();
+        schedule.HasOne<TeacherClass>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        schedule.OwnsMany(x => x.Slots, slot => { slot.ToTable("WeeklySlots"); slot.HasKey(x => x.Id); slot.Property(x => x.Id).ValueGeneratedNever(); });
+        var session = model.Entity<ClassSession>();
+        session.HasKey(x => x.Id);
+        session.Property(x => x.OwnerId).HasMaxLength(450);
+        session.Property(x => x.Status).HasMaxLength(20);
+        session.Property(x => x.Kind).HasMaxLength(20);
+        session.Property(x => x.Reason).HasMaxLength(1000);
+        session.Property(x => x.Version).IsConcurrencyToken();
+        session.HasIndex(x => new { x.ClassId, x.Date, x.StartTime }).IsUnique();
+        session.HasOne<TeacherClass>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        session.HasOne<ClassSession>().WithMany().HasForeignKey(x => x.ReplacesSessionId).OnDelete(DeleteBehavior.Restrict);
+        session.HasIndex(x => x.ReplacesSessionId).IsUnique().HasFilter("\"ReplacesSessionId\" IS NOT NULL AND \"Status\" <> 'cancelled'");
+        var attendance = model.Entity<Attendance>();
+        attendance.HasKey(x => x.Id);
+        attendance.Property(x => x.OwnerId).HasMaxLength(450);
+        attendance.Property(x => x.Status).HasMaxLength(20);
+        attendance.Property(x => x.Reason).HasMaxLength(1000);
+        attendance.Property(x => x.Version).IsConcurrencyToken();
+        attendance.HasIndex(x => new { x.SessionId, x.StudentId }).IsUnique();
+        attendance.HasOne<ClassSession>().WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Restrict);
+        attendance.HasOne<Student>().WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Restrict);
+        var sessionChange = model.Entity<SessionChange>();
+        sessionChange.HasKey(x => x.Id);
+        sessionChange.Property(x => x.OwnerId).HasMaxLength(450);
+        sessionChange.Property(x => x.Kind).HasMaxLength(40);
+        sessionChange.Property(x => x.SessionStatus).HasMaxLength(20);
+        sessionChange.Property(x => x.AttendanceStatus).HasMaxLength(20);
+        sessionChange.Property(x => x.Reason).HasMaxLength(1000);
+        sessionChange.HasIndex(x => new { x.SessionId, x.SessionVersion }).IsUnique();
+        sessionChange.HasIndex(x => x.DispatchedAt);
+        sessionChange.HasOne<ClassSession>().WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
