@@ -567,3 +567,62 @@ small {
     padding: 2.5rem 1rem;
   }
 }
+/* Manual assessment controls remain independent and wrap on small screens. */
+.learning-panel {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: white;
+  border-radius: 1rem;
+}
+.assessment-create {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+.assessment-create label {
+  flex: 1 1 12rem;
+}
+.assessment-submission {
+  border: 1px solid #dbe3e2;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  min-width: 0;
+}
+.assessment-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.assessment-levels {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.assessment-levels legend {
+  margin-bottom: 0.5rem;
+}
+.assessment-levels button {
+  padding: 0.55rem 0.75rem;
+}
+.assessment-levels button[aria-pressed="true"] {
+  background: #186b57;
+  color: white;
+}
+.assessment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.assessment-submission li {
+  overflow-wrap: anywhere;
+  margin-bottom: 0.5rem;
+}

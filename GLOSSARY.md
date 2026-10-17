@@ -4,6 +4,15 @@ Thuật ngữ dùng chung cho quản lý lớp và cung cấp dịch vụ phần
 
 ## Language
 
+**Bài đánh giá**:
+Đề bài dùng chung cho một lượt chấm của lớp vào một ngày xác định.
+
+**Bài nộp**:
+Bài của một học sinh trong một bài đánh giá, có cách chấm và lịch sử đánh giá riêng.
+
+**Bản nháp đánh giá**:
+Hai mức hoặc trạng thái giáo viên đang ghi nhận nhưng chưa xác nhận làm kết quả cuối.
+
 **Giáo viên**:
 Người sử dụng phần mềm để quản lý lớp, học sinh và học phí trong phạm vi dữ liệu riêng.
 

@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using EducationKeeptrack.Billing;
 using EducationKeeptrack.Billing.Infrastructure;
+using EducationKeeptrack.Learning;
+using EducationKeeptrack.Learning.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 var connection = builder.Configuration.GetConnectionString("Database")
@@ -23,6 +25,7 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 32768);
 builder.Services.AddClassroomModule(connection);
 builder.Services.AddServiceAccessModule(connection);
 builder.Services.AddBillingModule(connection);
+builder.Services.AddLearningModule(connection);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
@@ -53,6 +56,7 @@ if (args.Contains("--migrate"))
     await scope.ServiceProvider.GetRequiredService<ClassroomDatabase>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<ServiceAccessDatabase>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<BillingDatabase>().Database.MigrateAsync();
+    await scope.ServiceProvider.GetRequiredService<LearningDatabase>().Database.MigrateAsync();
     return;
 }
 if (args.Contains("--provision-teacher"))
@@ -90,6 +94,7 @@ app.MapClassroom();
 app.MapRoster();
 app.MapSessions();
 app.MapBilling();
+app.MapLearning();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 

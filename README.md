@@ -1,6 +1,6 @@
-# Education Keeptrack — T01 / T02 / T03 / T04
+# Education Keeptrack — T01 / T02 / T03 / T04 / T05
 
-Teacher login/logout, owned classes, roster, attendance and actual tuition. .NET 10 modular monolith, ASP.NET Core Identity, EF Core/Npgsql, PostgreSQL 18, React + TypeScript + Vite. Identity, Classroom, Billing and the minimal ServiceAccess implementation have independent schema, context and migration history. Business modules consume `IAccountAccess`; ServiceAccess consumes Identity's `IAccountState` contract. Billing reads Classroom only through `IClassroomBillingSource` snapshots and `ClassroomChange` events, without cross-schema reads or foreign keys.
+Teacher login/logout, owned classes, roster, attendance, actual tuition and manual assessment. .NET 10 modular monolith, ASP.NET Core Identity, EF Core/Npgsql, PostgreSQL 18, React + TypeScript + Vite. Identity, Classroom, Billing, Learning and the minimal ServiceAccess implementation have independent schema, context and migration history. Business modules consume `IAccountAccess`; ServiceAccess consumes Identity's `IAccountState` contract. Billing reads Classroom only through `IClassroomBillingSource` snapshots and `ClassroomChange` events, without cross-schema reads or foreign keys.
 
 ## Local development
 
@@ -58,6 +58,18 @@ The monthly response is `ready`, `pending`, or `missing-rate`. Pending means Cla
 API: `GET/POST /api/billing/classes/{classId}/rates` and `GET /api/billing/classes/{classId}/tuition?month=YYYY-MM`. POST takes `effectiveFrom` (`YYYY-MM-DD`), `unitPriceVnd` (whole-dong string, up to 18 digits), and the current rate-plan `version` (0 initially). GET rates returns that version and immutable rate entries. Tuition returns an aggregate `version`, `rateVersion`, status, total, students and per-session lines with source versions/rate IDs. Money is stored as PostgreSQL `numeric(18,0)` and returned as decimal integer strings; UI uses `BigInt` formatting, including totals above JavaScript's safe integer range. All writes require CSRF; foreign classes return 404, stale price versions return 409 and invalid input returns Vietnamese validation errors.
 
 Classroom supplies repeatable-read owner-scoped snapshots from its own context. Billing consumes its durable outbox, applies only newer source versions, and commits fees, aggregate version, inbox event ID and `tuition.changed` outbox entry atomically. Pricing commits its `rate.changed` event and durable refresh flag together. Workers resume pending refresh/delivery after restart; duplicate deliveries cannot add a fee twice. Billing's `ITuitionChangeHandler` contract offers at-least-once, ordered-per-class notifications with fair batch rotation; downstream handlers must deduplicate event IDs. No Reporting consumer is registered yet. Tests stop/reopen the real host with the same PostgreSQL database after a subscriber fails before acknowledgment and verify replay, unchanged fees/version and durable rate events.
+
+## Manual assessment (T05)
+
+Select a class and use **Đánh giá học tập** to create an assessment with a date and manual grading default. Learning snapshots the students enrolled on that date, creates one submission per assessment–student, and stores data in its own PostgreSQL schema/context. Classroom supplies the roster through `IClassroomLearningSource`; there are no cross-schema reads or foreign keys. AI is visibly unavailable and rejected by the API until the AI slice is implemented.
+
+Each student has independent **Lượng bài hoàn thành** and **Kết quả làm đúng** button groups (25/50/75/100). **Không làm bài** records 0/0; **Không có câu đúng** records a selected completion level and correctness 0. **Không giao bài** and **Chưa đánh giá** keep null values and are excluded from statistics. Empty selections never become zero. Saving a draft preserves the previous confirmed result; confirmation replaces the official result and retains all revisions. History and the selected assessment survive reload. Expired accounts can read saved assessments but cannot create, edit or confirm them.
+
+API: `GET/POST /api/learning/classes/{classId}/assessments`, `GET .../{assessmentId}`, `PUT .../{assessmentId}/submissions/{studentId}`, and `PUT .../{assessmentId}/submissions/{studentId}/method`. Creation takes `title` (160 characters), `date` and `defaultMethod: "manual"`. Result writes take `status` (`assessed`, `not_done`, `no_correct`, `unassigned`, `unassessed`), nullable `completion`/`correctness`, `version` and `confirm`. Method writes take `method: "manual"` and `version`, and are allowed only before the first result write. All writes require CSRF and current write access. Version conflicts return 409 without partially saving history; the UI retains selections and offers to load the latest version before retrying.
+
+Confirmed revisions also serve as a durable outbox for `ILearningResultChangeHandler`. Notifications carry the teacher, class, assessment, student, revision version and result. Delivery retries failed subscribers, orders confirmations per submission and resumes after restart; consumers must deduplicate the event ID. Drafts emit no confirmation notification. No Reporting/AI consumer is supplied by this ticket.
+
+For a separate local API during browser testing, set `API_PROXY_TARGET` before starting Vite (default `http://127.0.0.1:5080`).
 
 ## Docker Compose
 

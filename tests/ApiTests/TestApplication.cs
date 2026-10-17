@@ -40,6 +40,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
     public Func<IClassroomChangeHandler, IClassroomChangeHandler>? DecorateBillingHandler { get; init; }
     public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
+    public ILearningResultChangeHandler? LearningResultChangeHandler { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -63,6 +64,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
                     provider.GetRequiredService<EducationKeeptrack.Billing.Application.BillingClassroomHandler>()));
             }
             if (TuitionChangeHandler is not null) services.AddSingleton(TuitionChangeHandler);
+            if (LearningResultChangeHandler is not null) services.AddSingleton(LearningResultChangeHandler);
         });
     }
 
@@ -77,6 +79,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Classroom.Infrastructure.ClassroomDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Learning.Infrastructure.LearningDatabase>().Database.MigrateAsync();
     }
 
     public new async Task DisposeAsync()

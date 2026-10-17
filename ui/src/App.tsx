@@ -11,6 +11,7 @@ import { CreateClass } from "./CreateClass";
 import { Roster } from "./Roster";
 import { Sessions } from "./Sessions";
 import { Tuition } from "./Tuition";
+import { Learning } from "./Learning";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -207,6 +208,7 @@ export function App() {
                 onChanged={() => setTuitionRefresh((value) => value + 1)}
               />
               <Tuition classroom={item} me={me} refreshToken={tuitionRefresh} />
+              <Learning classroom={item} me={me} />
             </div>
           ))}
       </main>
