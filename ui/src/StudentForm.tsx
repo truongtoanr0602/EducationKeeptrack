@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today, type Student, type StudentDraft } from "./roster-api";
 
@@ -24,7 +24,10 @@ export function StudentForm({
     email: student?.email ?? "",
     notes: student?.notes ?? "",
   });
-  const [savedId, setSavedId] = useState(student?.id);
+  const [savedProfile, setSavedProfile] = useState(student);
+  useEffect(() => {
+    if (student) setSavedProfile(student);
+  }, [student]);
   const [startDate, setStartDate] = useState(today);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,12 +41,12 @@ export function StudentForm({
     setError("");
     try {
       const saved = await api<Student>(
-        savedId ? `/students/${savedId}` : "/students",
-        savedId ? "PUT" : "POST",
-        draft,
+        savedProfile ? `/students/${savedProfile.id}` : "/students",
+        savedProfile ? "PUT" : "POST",
+        { ...draft, version: savedProfile?.version },
       );
       // A failed enrollment must retry this profile, rather than create a second student.
-      setSavedId(saved.id);
+      setSavedProfile(saved);
       if (!student)
         await api(`/classes/${classId}/enrollments`, "POST", {
           studentId: saved.id,
@@ -81,7 +84,7 @@ export function StudentForm({
   return (
     <form className="roster-form" onSubmit={submit} noValidate aria-busy={busy}>
       <h3>{student ? "Sửa hồ sơ học sinh" : "Thêm học sinh mới"}</h3>
-      {savedId && !student && (
+      {savedProfile && !student && (
         <p className="notice">
           Hồ sơ đã lưu. Tiếp tục lưu để hoàn tất đăng ký lớp.
         </p>

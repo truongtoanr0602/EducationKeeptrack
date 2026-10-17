@@ -5,7 +5,7 @@ export type StudentDraft = {
   email: string;
   notes: string;
 };
-export type Student = { id: string } & {
+export type Student = { id: string; version: number } & {
   [K in keyof StudentDraft]: K extends "name" ? string : string | null;
 };
 export type EnrollmentStatus = "active" | "leave" | "stopped";

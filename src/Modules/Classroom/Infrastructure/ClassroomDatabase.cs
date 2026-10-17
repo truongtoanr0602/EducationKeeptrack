@@ -27,6 +27,7 @@ public sealed class ClassroomDatabase(DbContextOptions<ClassroomDatabase> option
         student.Property(x => x.Phone).HasMaxLength(30);
         student.Property(x => x.Email).HasMaxLength(254);
         student.Property(x => x.Notes).HasMaxLength(1000);
+        student.Property(x => x.Version).IsConcurrencyToken();
         var enrollment = model.Entity<Enrollment>();
         enrollment.HasKey(x => x.Id);
         enrollment.Property(x => x.OwnerId).HasMaxLength(450);

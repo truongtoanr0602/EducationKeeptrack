@@ -70,7 +70,8 @@ public sealed class RosterTests(TestApplication app) : IClassFixture<TestApplica
         var (other, otherClassId, otherStudentId) = await Setup();
         using (client) using (other)
         {
-            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"/api/students/{studentId}", new { name = "An đã sửa", parentName = "Bình", phone = "0901234567" })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"/api/students/{studentId}", new { name = "An đã sửa", parentName = "Bình", phone = "0901234567", version = 1 })).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await Put(client, $"/api/students/{studentId}", new { name = "Stale tab", version = 1 })).StatusCode);
             var profile = await client.GetFromJsonAsync<JsonElement>($"/api/students/{studentId}");
             Assert.Equal("An đã sửa", profile.GetProperty("name").GetString());
             Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/students/{studentId}")).StatusCode);

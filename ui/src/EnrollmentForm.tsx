@@ -77,13 +77,11 @@ export function EnrollmentForm({
             disabled={busy}
             onChange={(e) => setStatus(e.target.value as EnrollmentStatus)}
           >
-            {(Object.keys(statusNames) as EnrollmentStatus[])
-              .filter((s) => s !== item.status)
-              .map((s) => (
-                <option value={s} key={s}>
-                  {statusNames[s]}
-                </option>
-              ))}
+            {(Object.keys(statusNames) as EnrollmentStatus[]).map((s) => (
+              <option value={s} key={s}>
+                {statusNames[s]}
+              </option>
+            ))}
           </select>
         </div>
       ) : (
@@ -133,7 +131,14 @@ export function EnrollmentForm({
         <button type="button" disabled={busy} onClick={onCancel}>
           Hủy
         </button>
-        <button className="primary" disabled={busy || !canWrite}>
+        <button
+          className="primary"
+          disabled={
+            busy ||
+            !canWrite ||
+            (!!item && (item.status === "stopped" || item.status === status))
+          }
+        >
           {busy ? "Đang lưu…" : item ? "Lưu tình trạng" : "Lưu đăng ký"}
         </button>
       </div>

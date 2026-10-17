@@ -45,6 +45,22 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
       ]);
       setItems(roster);
       setStudents(profiles);
+      // Refresh expected versions without remounting the forms or replacing their drafts.
+      setForm((current) => {
+        if (current?.kind === "student" && current.student)
+          return {
+            ...current,
+            student:
+              profiles.find((s) => s.id === current.student?.id) ??
+              current.student,
+          };
+        if (current?.kind === "enrollment" && current.item)
+          return {
+            ...current,
+            item: roster.find((r) => r.id === current.item?.id) ?? current.item,
+          };
+        return current;
+      });
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Không thể tải danh sách học sinh.",

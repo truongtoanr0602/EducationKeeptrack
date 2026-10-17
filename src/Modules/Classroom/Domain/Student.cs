@@ -10,20 +10,28 @@ public sealed class Student
     public string? Phone { get; private set; }
     public string? Email { get; private set; }
     public string? Notes { get; private set; }
+    public int Version { get; private set; }
     private Student() { }
-    public Student(string owner, StudentInput input) { OwnerId = owner; Update(input); }
-    public void Update(StudentInput input)
+    public Student(string owner, StudentInput input) { OwnerId = owner; Apply(input); }
+    public bool TryUpdate(StudentInput input)
+    {
+        if (input.Version != Version) return false;
+        Apply(input);
+        return true;
+    }
+    private void Apply(StudentInput input)
     {
         Name = input.Name.Trim();
         ParentName = Clean(input.ParentName);
         Phone = Clean(input.Phone);
         Email = Clean(input.Email);
         Notes = Clean(input.Notes);
+        Version++;
     }
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-public record StudentInput(string Name, string? ParentName, string? Phone, string? Email, string? Notes)
+public record StudentInput(string Name, string? ParentName, string? Phone, string? Email, string? Notes, int? Version = null)
 {
     public Dictionary<string, string[]> Validate()
     {

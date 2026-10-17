@@ -17,6 +17,8 @@ public static class ClassroomModule
         services.AddDbContext<ClassroomDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "classroom")));
         services.AddScoped<IClassRepository, ClassRepository>();
         services.AddScoped<ClassroomService>();
+        services.AddScoped<IRosterRepository, RosterRepository>();
+        services.AddScoped<RosterService>();
         return services;
     }
 
