@@ -6,6 +6,8 @@ namespace EducationKeeptrack.Classroom.Infrastructure;
 public sealed class ClassroomDatabase(DbContextOptions<ClassroomDatabase> options) : DbContext(options)
 {
     public DbSet<TeacherClass> Classes => Set<TeacherClass>();
+    public DbSet<Student> Students => Set<Student>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("classroom");
@@ -16,6 +18,29 @@ public sealed class ClassroomDatabase(DbContextOptions<ClassroomDatabase> option
         entity.Property(x => x.Name).HasMaxLength(ClassInput.NameLimit);
         entity.Property(x => x.Subject).HasMaxLength(ClassInput.SubjectLimit);
         entity.Property(x => x.Description).HasMaxLength(ClassInput.DescriptionLimit);
+        var student = model.Entity<Student>();
+        student.HasKey(x => x.Id);
+        student.HasIndex(x => x.OwnerId);
+        student.Property(x => x.OwnerId).HasMaxLength(450);
+        student.Property(x => x.Name).HasMaxLength(120);
+        student.Property(x => x.ParentName).HasMaxLength(120);
+        student.Property(x => x.Phone).HasMaxLength(30);
+        student.Property(x => x.Email).HasMaxLength(254);
+        student.Property(x => x.Notes).HasMaxLength(1000);
+        var enrollment = model.Entity<Enrollment>();
+        enrollment.HasKey(x => x.Id);
+        enrollment.Property(x => x.OwnerId).HasMaxLength(450);
+        enrollment.Property(x => x.Status).HasMaxLength(20);
+        enrollment.Property(x => x.Version).IsConcurrencyToken();
+        enrollment.HasMany(x => x.History).WithOne().HasForeignKey(x => x.EnrollmentId).OnDelete(DeleteBehavior.Restrict);
+        var change = model.Entity<EnrollmentChange>();
+        change.HasKey(x => x.Id);
+        change.Property(x => x.Id).ValueGeneratedNever();
+        change.Property(x => x.Status).HasMaxLength(20);
+        change.HasIndex(x => new { x.EnrollmentId, x.Version }).IsUnique();
+        enrollment.HasIndex(x => new { x.ClassId, x.StudentId }).IsUnique().HasFilter("\"Status\" <> 'stopped'");
+        enrollment.HasOne<TeacherClass>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        enrollment.HasOne<Student>().WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

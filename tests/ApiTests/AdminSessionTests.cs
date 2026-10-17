@@ -35,6 +35,8 @@ public sealed class AdminSessionTests
         using var client = app.Client();
         client.DefaultRequestHeaders.Add("Cookie", "ekt.session=" + options.TicketDataFormat.Protect(ticket));
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/classes")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/students")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/classes/{Guid.NewGuid()}/enrollments")).StatusCode);
         if (keepActive)
         {
             for (var i = 0; i < 47; i++)

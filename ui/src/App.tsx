@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { Login } from "./Login";
 import { CreateClass } from "./CreateClass";
+import { Roster } from "./Roster";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -20,6 +21,14 @@ export function App() {
   const [error, setError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [resume, setResume] = useState(false);
+  const [selectedId, setSelectedId] = useState(() =>
+    window.location.hash.slice(1),
+  );
+  useEffect(() => {
+    const change = () => setSelectedId(window.location.hash.slice(1));
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   const load = useCallback(async () => {
     const user = await api<Me>("/auth/me");
     const items = user.access.canRead
@@ -76,6 +85,7 @@ export function App() {
       setCreating(false);
       setResume(false);
       setMessage("");
+      window.location.hash = "";
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setMe(null);
@@ -164,6 +174,13 @@ export function App() {
                 <span className="subject">{item.subject}</span>
                 <h2>{item.name}</h2>
                 {item.description && <p>{item.description}</p>}
+                <button
+                  onClick={() => {
+                    window.location.hash = item.id;
+                  }}
+                >
+                  Danh sách học sinh
+                </button>
               </article>
             ))}
           </section>
@@ -176,6 +193,11 @@ export function App() {
             </section>
           )
         )}
+        {classes
+          .filter((item) => item.id === selectedId)
+          .map((item) => (
+            <Roster key={item.id} classroom={item} me={me} />
+          ))}
       </main>
       {creating && (
         <CreateClass

@@ -264,6 +264,67 @@ dialog::backdrop {
 .hint {
   color: #555968;
 }
+.roster {
+  margin-top: 2rem;
+  border-top: 1px solid #d8dce5;
+  padding-top: 2rem;
+}
+.roster-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.roster-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.roster-form {
+  max-width: 620px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  background: white;
+  border: 1px solid #d8dce5;
+  border-radius: 12px;
+}
+.roster-form input,
+.roster-form select {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.roster-form select {
+  padding: 0.8rem;
+  border: 1px solid #b9becc;
+  border-radius: 6px;
+  font: inherit;
+  background: white;
+}
+.roster .class-card {
+  overflow-wrap: anywhere;
+}
+.roster details {
+  margin-top: 1rem;
+}
+.roster summary {
+  cursor: pointer;
+}
+.enrollment-status {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  background: #e8f2ed;
+  color: #215a3d;
+}
+.enrollment-status.leave {
+  background: #fff3d9;
+  color: #765200;
+}
+.enrollment-status.stopped {
+  background: #eceef2;
+  color: #555968;
+}
 small {
   display: block;
   margin-top: 0.3rem;

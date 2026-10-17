@@ -1,4 +1,4 @@
-# Education Keeptrack — T01
+# Education Keeptrack — T01 / T02
 
 Teacher login/logout and owned class creation/listing. .NET 10 modular monolith, ASP.NET Core Identity, EF Core/Npgsql, PostgreSQL 18, React + TypeScript + Vite. Identity, Classroom and the minimal ServiceAccess implementation have independent schema, context and migration history. Classroom only consumes `IAccountAccess`; ServiceAccess consumes Identity's `IAccountState` contract. Neither reads Identity tables directly.
 
@@ -24,6 +24,14 @@ npm run dev
 ```
 
 Open http://127.0.0.1:5173. Sign in, create a class, reload and sign out. Provisioning is Development-only, explicitly confirms/grants a demo account and refuses to overwrite existing accounts. No account or password is hardcoded; no public registration is exposed.
+
+On a class card, choose **Danh sách học sinh** to create a student with optional parent/contact details or enroll an existing student belonging to the current teacher. The selected class survives reload through the URL fragment. Student profiles are shared across that teacher's classes; editing a profile updates its contact details everywhere. Names are not identity keys, so different students can have the same name.
+
+Enrollment records keep their start date and a versioned history of **Đang học / Nghỉ có phép / Dừng học** changes, including effective dates and server timestamps. A stopped enrollment keeps its end date and cannot reopen; use a new enrollment starting after its end date. Overlapping enrollment periods and concurrent duplicate enrollments in the same class are rejected. History is retained; no balance or reserve transfers occur between classes. A failed enrollment after profile creation retains the created profile ID for retry, rather than creating another student.
+
+T02 uses the existing `IAccountAccess` contract on every roster route. The full production approval/renewal/locking workflow in dependency [#26](https://github.com/truongtoanr0602/EducationKeeptrack/issues/26) is still open; the current ServiceAccess implementation remains the controlled development grant described below. T02 does not implement that separate workflow.
+
+Roster API: `GET/POST /api/students`, `GET/PUT /api/students/{id}`, `GET/POST /api/classes/{classId}/enrollments`, and `PUT /api/classes/{classId}/enrollments/{id}`. Profile fields are `name`, `parentName`, `phone`, `email`, `notes`; enrollment creation takes `studentId`, `startDate` (`YYYY-MM-DD`); status changes take `status` (`active`, `leave`, `stopped`), `effectiveDate`, and the current `version`. A change date cannot precede the start or latest history entry. Stopping uses the effective date as the end date. Stale writes return 409, invalid input 400, and another teacher's references 404. All writes require CSRF. Date input defaults use Vietnam time; dates are calendar dates, while recorded timestamps are UTC.
 
 ## Docker Compose
 
