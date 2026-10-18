@@ -85,6 +85,14 @@ Confirmed revisions also serve as a durable outbox for `ILearningResultChangeHan
 
 For a separate local API during browser testing, set `API_PROXY_TARGET` before starting Vite (default `http://127.0.0.1:5080`).
 
+## Payment QR (T07)
+
+The payments workspace includes teacher-private recipient settings and a recipient preview. `GET/POST /api/billing/recipient` reads/saves `bankBin`, `bankName`, `accountNo`, `accountName`, `version` (0 initially), and optional `staticQrBase64`. Use a six-digit Vietnamese bank BIN, a 6–19 digit account number and an uppercase unaccented recipient name (5–50 characters). This validates input format; it does not look up account ownership at the bank. Static images must decode as PNG, at most 1 MB and 2048×2048 pixels. A null image preserves the existing image only for unchanged recipient details; an empty string removes it. Changing the recipient removes the old static QR unless a replacement is supplied.
+
+`POST /api/billing/classes/{classId}/transfer-request` takes `studentId`, `month`, the current payments `version` and `recipientVersion`. It uses total outstanding debt across periods, including old debt, and a transfer memo containing the month and student identifier. Zero debt and missing recipient configuration return validation errors; stale versions, incomplete fees and changes during QR generation return 409. Creating or scanning a QR never records a receipt.
+
+The server fetches a PNG using [VietQR Quick Link](https://www.vietqr.io/qr-dong), with an eight-second timeout and bounded image size. The bank account, amount and memo are sent to that provider. Provider failures or invalid images fall back to the teacher's static QR, then complete manual transfer details. Amounts beyond the provider's thirteen-digit limit use the same fallback. Static QR requires manually entering the exact amount and memo; the UI labels each mode and warns when manual entry is required. Browser image failures also try the static image before manual instructions. Visible requests are discarded on local context changes and revalidated every five seconds; failed verification hides the QR. All API responses are private/no-store, owner-scoped and subject to existing role, CSRF and service-access policies. Configuration and transfer generation require write access.
+
 ## Docker Compose
 
 Copy `.env.example` to `.env` and set a strong `POSTGRES_PASSWORD`. Run `docker compose up --build -d`. UI: http://127.0.0.1:8088. PostgreSQL and session keys use named volumes. `migrate` applies all module migrations before backend starts. For a local demo, provision using the same environment variables:

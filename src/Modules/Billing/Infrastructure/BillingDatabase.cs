@@ -15,6 +15,11 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("billing");
+        var recipient = model.Entity<PaymentRecipient>(); recipient.HasKey(x => x.OwnerId);
+        recipient.Property(x => x.OwnerId).HasMaxLength(450);
+        recipient.Property(x => x.BankBin).HasMaxLength(6); recipient.Property(x => x.BankName).HasMaxLength(100);
+        recipient.Property(x => x.AccountNo).HasMaxLength(19); recipient.Property(x => x.AccountName).HasMaxLength(50);
+        recipient.Property(x => x.Version).IsConcurrencyToken();
         var ledger = model.Entity<TuitionLedger>(); ledger.HasKey(x => x.ClassId); ledger.Property(x => x.ClassId).ValueGeneratedNever();
         ledger.Property(x => x.OwnerId).HasMaxLength(450); ledger.Property(x => x.Version).IsConcurrencyToken(); ledger.HasIndex(x => x.NeedsRefresh);
         ledger.HasMany(x => x.Rates).WithOne().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);

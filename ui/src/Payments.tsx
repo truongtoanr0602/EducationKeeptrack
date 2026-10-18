@@ -3,6 +3,7 @@ import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import { paymentStatus, type PaymentsReport } from "./payments-api";
 import { ReceiptForm } from "./ReceiptForm";
+import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
 
 export function Payments({
   classId,
@@ -20,6 +21,7 @@ export function Payments({
   const [report, setReport] = useState<PaymentsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recipient, setRecipient] = useState<Recipient | null>(null);
   const request = useRef(0);
   const load = useCallback(async () => {
     const current = ++request.current;
@@ -58,6 +60,11 @@ export function Payments({
   return (
     <section aria-label="Thanh toán và công nợ" className="payments-workspace">
       <h3>Thanh toán và công nợ</h3>
+      <RecipientSettings
+        canWrite={canWrite}
+        onDenied={onDenied}
+        onChanged={setRecipient}
+      />
       <p>
         Trả kỳ nợ cũ nhất trước. Tiền dư được giữ riêng, chưa tự dùng cho kỳ sau
         hoặc hoàn tiền. Quét QR hay ảnh chuyển khoản chưa xác nhận đã nhận tiền.
@@ -117,6 +124,22 @@ export function Payments({
                     </li>
                   ))}
                 </ul>
+                <PaymentQr
+                  classId={classId}
+                  studentId={student.studentId}
+                  month={month}
+                  version={report.version}
+                  recipient={recipient}
+                  enabled={
+                    canWrite &&
+                    !loading &&
+                    !error &&
+                    report.status === "ready" &&
+                    report.month === month &&
+                    student.totalDebtVnd !== "0"
+                  }
+                  onDenied={onDenied}
+                />
                 <ReceiptForm
                   classId={classId}
                   studentId={student.studentId}

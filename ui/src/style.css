@@ -626,3 +626,9 @@ small {
   overflow-wrap: anywhere;
   margin-bottom: 0.5rem;
 }
+.payment-qr {
+  display: block;
+  width: min(100%, 300px);
+  height: auto;
+  margin: 1rem 0;
+}

@@ -74,6 +74,44 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Outbox", "billing");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentRecipient", b =>
+                {
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AccountNo")
+                        .IsRequired()
+                        .HasMaxLength(19)
+                        .HasColumnType("character varying(19)");
+
+                    b.Property<string>("BankBin")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<byte[]>("StaticQr")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("OwnerId");
+
+                    b.ToTable("PaymentRecipient", "billing");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentReview", b =>
                 {
                     b.Property<Guid>("ClassId")
