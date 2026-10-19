@@ -3,6 +3,7 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { today } from "./roster-api";
 import { Login } from "./Login";
 import { RateForm } from "./RateForm";
+import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
 import {
   money,
@@ -134,8 +135,8 @@ export function Tuition({
             <span className="eyebrow">HỌC PHÍ THỰC HỌC</span>
             <h2>Học phí theo buổi · {classroom.name}</h2>
             <p>
-              Chỉ tính buổi đã diễn ra có mặt. Đây là phí phát sinh, chưa gồm
-              thanh toán hoặc công nợ.
+              Tính buổi đã diễn ra có mặt và điều chỉnh có lý do. Tổng học phí
+              chưa trừ thanh toán.
             </p>
           </div>
         </div>
@@ -231,39 +232,79 @@ export function Tuition({
                   >
                     Chi tiết {student.name}
                   </button>
-                  {expanded === student.studentId && (
-                    <div className="tuition-table-wrap">
-                      <table aria-label={`Căn cứ học phí ${student.name}`}>
-                        <thead>
-                          <tr>
-                            <th>Buổi học</th>
-                            <th>Căn cứ</th>
-                            <th>Đơn giá</th>
-                            <th>Phí buổi</th>
+                  <div
+                    className="tuition-table-wrap"
+                    hidden={expanded !== student.studentId}
+                  >
+                    <table aria-label={`Căn cứ học phí ${student.name}`}>
+                      <thead>
+                        <tr>
+                          <th>Buổi học</th>
+                          <th>Căn cứ</th>
+                          <th>Đơn giá</th>
+                          <th>Phí buổi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {student.lines.map((line) => (
+                          <tr key={line.sessionId}>
+                            <td>
+                              {line.date} · {line.startTime.slice(0, 5)}
+                            </td>
+                            <td>{feeBasis(line)}</td>
+                            <td>
+                              {line.unitPriceVnd === null
+                                ? "—"
+                                : money(line.unitPriceVnd)}
+                            </td>
+                            <td>{money(line.amountVnd)}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {student.lines.map((line) => (
-                            <tr key={line.sessionId}>
-                              <td>
-                                {line.date} · {line.startTime.slice(0, 5)}
-                              </td>
-                              <td>{feeBasis(line)}</td>
-                              <td>
-                                {line.unitPriceVnd === null
-                                  ? "—"
-                                  : money(line.unitPriceVnd)}
-                              </td>
-                              <td>{money(line.amountVnd)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {student.lines.length === 0 && (
-                        <p>Không có buổi học trong tháng.</p>
-                      )}
-                    </div>
-                  )}
+                        ))}
+                      </tbody>
+                    </table>
+                    <h4>Lịch sử điều chỉnh</h4>
+                    <ul aria-label="Lịch sử điều chỉnh">
+                      {student.adjustments.map((adjustment) => (
+                        <li key={adjustment.id}>
+                          {adjustment.month} ·{" "}
+                          {adjustment.direction === "increase"
+                            ? "Tăng"
+                            : "Giảm"}{" "}
+                          {money(adjustment.amountVnd)} · {adjustment.reason}
+                          <p>
+                            Người ghi: {adjustment.recordedBy} ·{" "}
+                            {new Date(adjustment.recordedAt).toLocaleString(
+                              "vi-VN",
+                            )}{" "}
+                            · Phiên bản {adjustment.version}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                    {student.adjustments.length === 0 && (
+                      <p>Chưa có điều chỉnh.</p>
+                    )}
+                    <AdjustmentForm
+                      classId={classroom.id}
+                      studentId={student.studentId}
+                      month={report.month}
+                      version={report.version}
+                      canWrite={
+                        access.canWrite &&
+                        !sessionExpired &&
+                        !loading &&
+                        !error &&
+                        report.status === "ready" &&
+                        report.month === appliedMonth
+                      }
+                      canReplay={access.canWrite && !sessionExpired}
+                      onDenied={denied}
+                      onSaved={() => void load(appliedMonth)}
+                    />
+                    {student.lines.length === 0 && (
+                      <p>Không có buổi học trong tháng.</p>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
@@ -276,6 +317,7 @@ export function Tuition({
           refreshToken={`${refreshToken}:${report?.version ?? 0}`}
           canWrite={access.canWrite && !sessionExpired}
           onDenied={denied}
+          onChanged={() => void load(appliedMonth)}
         />
       </div>
       {!access.canRead && !sessionExpired && (

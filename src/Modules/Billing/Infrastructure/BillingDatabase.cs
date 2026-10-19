@@ -10,11 +10,26 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
     public DbSet<SessionCharge> Charges => Set<SessionCharge>();
     public DbSet<BillingInbox> Inbox => Set<BillingInbox>();
     public DbSet<BillingOutbox> Outbox => Set<BillingOutbox>();
+    public DbSet<FeeAdjustment> Adjustments => Set<FeeAdjustment>();
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<PaymentReview> PaymentReviews => Set<PaymentReview>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("billing");
+        var adjustment = model.Entity<FeeAdjustment>(); adjustment.HasKey(x => x.Id); adjustment.Property(x => x.Id).ValueGeneratedNever();
+        adjustment.Ignore(x => x.SignedAmount);
+        adjustment.Property(x => x.OwnerId).HasMaxLength(450); adjustment.Property(x => x.RecordedBy).HasMaxLength(450);
+        adjustment.Property(x => x.Reason).HasMaxLength(1000); adjustment.Property(x => x.Direction).HasMaxLength(8);
+        adjustment.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        adjustment.HasIndex(x => new { x.ClassId, x.IdempotencyKey }).IsUnique();
+        adjustment.HasIndex(x => new { x.ClassId, x.StudentId, x.Period });
+        adjustment.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        adjustment.ToTable("Adjustments", table =>
+        {
+            table.HasCheckConstraint("CK_Adjustment_Amount", "\"AmountVnd\" > 0");
+            table.HasCheckConstraint("CK_Adjustment_Direction", "\"Direction\" IN ('increase', 'decrease')");
+            table.HasCheckConstraint("CK_Adjustment_Reason", "length(btrim(\"Reason\")) > 0");
+        });
         var recipient = model.Entity<PaymentRecipient>(); recipient.HasKey(x => x.OwnerId);
         recipient.Property(x => x.OwnerId).HasMaxLength(450);
         recipient.Property(x => x.BankBin).HasMaxLength(6); recipient.Property(x => x.BankName).HasMaxLength(100);
@@ -57,6 +72,8 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
 }
 public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
 {
+    public async Task<IReadOnlyList<FeeAdjustment>> AdjustmentsAsync(string owner, Guid classId, CancellationToken ct) => await db.Adjustments.Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+    public void Add(FeeAdjustment adjustment) => db.Adjustments.Add(adjustment);
     public async Task<IReadOnlyList<Receipt>> ReceiptsAsync(string owner, Guid classId, CancellationToken ct) => await db.Receipts.Include(x => x.Allocations).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
     public void Add(Receipt receipt) => db.Receipts.Add(receipt);
     public async Task<IReadOnlyList<PaymentReview>> PaymentReviewsAsync(string owner, Guid classId, CancellationToken ct) => await db.PaymentReviews.Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
@@ -76,7 +93,8 @@ public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
         var charges = await db.Charges.AsNoTracking().Include(x => x.Fees).Where(x => x.OwnerId == owner && x.ClassId == classId).OrderBy(x => x.Date).ThenBy(x => x.StartTime).ToListAsync(ct);
         var receipts = await db.Receipts.AsNoTracking().Include(x => x.Allocations).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
         var reviews = await db.PaymentReviews.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
-        await transaction.CommitAsync(ct); return new(ledger, charges, receipts, reviews);
+        var adjustments = await db.Adjustments.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+        await transaction.CommitAsync(ct); return new(ledger, charges, receipts, reviews, adjustments);
     }
     public async Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class
     {

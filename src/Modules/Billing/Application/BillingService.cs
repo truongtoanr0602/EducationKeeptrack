@@ -8,9 +8,9 @@ public record BillingResult<T>(T? Value, BillingFailure? Failure = null, string?
 public record RateView(Guid Id, DateOnly EffectiveFrom, string UnitPriceVnd, int Version);
 public record RatePlanView(int Version, IReadOnlyList<RateView> Rates);
 public record TuitionLine(Guid SessionId, DateOnly Date, TimeOnly StartTime, string Kind, string SessionStatus, string AttendanceStatus, string? UnitPriceVnd, string? AmountVnd, Guid? RateId, int SourceVersion);
-public record StudentTuition(Guid StudentId, string Name, string TotalVnd, IReadOnlyList<TuitionLine> Lines);
+public record StudentTuition(Guid StudentId, string Name, string TotalVnd, IReadOnlyList<TuitionLine> Lines, IReadOnlyList<AdjustmentView> Adjustments);
 public record TuitionReport(string Month, long Version, int RateVersion, string Status, string TotalVnd, IReadOnlyList<StudentTuition> Students);
-public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions, IReadOnlyList<Receipt> Receipts, IReadOnlyList<PaymentReview> PaymentReviews);
+public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions, IReadOnlyList<Receipt> Receipts, IReadOnlyList<PaymentReview> PaymentReviews, IReadOnlyList<FeeAdjustment> Adjustments);
 public record ProjectionComplete;
 
 public interface IBillingRepository
@@ -19,6 +19,8 @@ public interface IBillingRepository
     Task<IReadOnlyList<SessionCharge>> ChargesAsync(string owner, Guid classId, CancellationToken ct);
     Task<IReadOnlyList<Receipt>> ReceiptsAsync(string owner, Guid classId, CancellationToken ct);
     Task<IReadOnlyList<PaymentReview>> PaymentReviewsAsync(string owner, Guid classId, CancellationToken ct);
+    Task<IReadOnlyList<FeeAdjustment>> AdjustmentsAsync(string owner, Guid classId, CancellationToken ct);
+    void Add(FeeAdjustment adjustment);
     Task<bool> ProcessedAsync(Guid eventId, CancellationToken ct);
     Task<BillingSnapshot> SnapshotAsync(string owner, Guid classId, CancellationToken ct);
     void Add(TuitionLedger ledger);
@@ -107,14 +109,9 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
         var receipts = await repository.ReceiptsAsync(ledger.OwnerId, ledger.ClassId, ct);
         if (receipts.Count == 0) return;
         var reviews = await repository.PaymentReviewsAsync(ledger.OwnerId, ledger.ClassId, ct);
-        foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews))
-        {
-            var excess = period.Allocated - period.Fees;
-            if (excess <= 0) continue;
-            var review = reviews.SingleOrDefault(x => x.StudentId == period.StudentId && x.Period == period.Period);
-            if (review is null) repository.Add(new PaymentReview(ledger.OwnerId, ledger.ClassId, period.StudentId, period.Period, excess, clock.GetUtcNow()));
-            else review.Hold(excess);
-        }
+        var adjustments = await repository.AdjustmentsAsync(ledger.OwnerId, ledger.ClassId, ct);
+        var balances = PeriodBalance.Calculate(charges, receipts, reviews, adjustments);
+        foreach (var review in PaymentReview.HoldExcess(ledger, balances, reviews, clock.GetUtcNow())) repository.Add(review);
     }
     private void Apply(TuitionLedger ledger, List<SessionCharge> charges, BillingSessionSource source)
     {
@@ -147,7 +144,9 @@ public sealed class BillingService(IBillingRepository repository, IClassroomBill
                 var amount = fee?.AmountVnd ?? (status == "held" && attendance == "present" ? (decimal?)null : 0m);
                 return new TuitionLine(session.Id, session.Date, session.StartTime, session.Kind, status, attendance, Money(saved?.UnitPriceVnd), Money(amount), saved?.RateId, saved?.SourceVersion ?? 0);
             }).ToArray();
-            return new StudentTuition(student.Id, student.Name, Money(lines.Sum(x => x.AmountVnd is null ? 0m : decimal.Parse(x.AmountVnd, CultureInfo.InvariantCulture)))!, lines);
+            var adjustments = snapshot.Adjustments.Where(x => x.StudentId == student.Id && x.Period == first).OrderBy(x => x.Version).ToArray();
+            var total = lines.Sum(x => x.AmountVnd is null ? 0m : decimal.Parse(x.AmountVnd, CultureInfo.InvariantCulture)) + adjustments.Sum(x => x.SignedAmount);
+            return new StudentTuition(student.Id, student.Name, Money(Math.Max(0, total))!, lines, adjustments.Select(AdjustmentService.View).ToArray());
         }).ToArray();
         var missingRate = rows.Any(x => x.Lines.Any(line => line.AmountVnd is null));
         return new(new TuitionReport(month, snapshot.Ledger?.Version ?? 0, snapshot.Ledger?.RateVersion ?? 0, pending ? "pending" : missingRate ? "missing-rate" : "ready", Money(rows.Sum(x => decimal.Parse(x.TotalVnd, CultureInfo.InvariantCulture)))!, rows));

@@ -16,7 +16,7 @@ public static class BillingModule
     {
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
-        services.AddScoped<PaymentService>();
+        services.AddScoped<PaymentService>(); services.AddScoped<AdjustmentService>();
         services.AddScoped<PaymentQrService>();
         services.AddHttpClient<IVietQrGenerator, VietQrGenerator>(client => client.Timeout = TimeSpan.FromSeconds(8));
         services.AddScoped<IClassroomChangeHandler, BillingClassroomHandler>(); services.AddHostedService<BillingWorker>();
@@ -37,6 +37,11 @@ public static class BillingModule
         {
             var result = await service.AddRateAsync(Owner(http), classId, input, http.RequestAborted);
             return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/rates", result.Value) : Respond(result);
+        });
+        group.MapPost("/adjustments", async (Guid classId, AdjustmentInput input, HttpContext http, AdjustmentService service) =>
+        {
+            var result = await service.AddAsync(Owner(http), classId, input, http.RequestAborted);
+            return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/tuition?month={input.Month}", result.Value) : Respond(result);
         });
         group.MapGet("/tuition", async (Guid classId, string month, HttpContext http, BillingService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
         group.MapGet("/payments", async (Guid classId, string month, HttpContext http, PaymentService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));

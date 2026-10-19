@@ -11,12 +11,14 @@ export function Payments({
   refreshToken,
   canWrite,
   onDenied,
+  onChanged,
 }: {
   classId: string;
   month: string;
   refreshToken: string;
   canWrite: boolean;
   onDenied: (error: ApiError) => void;
+  onChanged: () => void;
 }) {
   const [report, setReport] = useState<PaymentsReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export function Payments({
                 : report.status === "missing-rate"
                   ? "Công nợ chưa đầy đủ vì thiếu đơn giá. Chưa thể nhận tiền."
                   : report.status === "needs-review"
-                    ? "Có tiền phân bổ vượt phí sau thay đổi điểm danh. Khoản này đang giữ để đối chiếu, không tự dùng lại. Chưa thể nhận tiền mới; cần xử lý qua nghiệp vụ điều chỉnh."
+                    ? "Có tiền phân bổ vượt phí sau thay đổi học phí. Khoản này đang giữ để đối chiếu, không tự dùng lại. Chưa thể nhận tiền mới; cần xử lý qua nghiệp vụ điều chỉnh."
                     : "Đã cập nhật công nợ."}
           </p>
           <p>Tổng công nợ các kỳ: {money(report.totalDebtVnd)}</p>
@@ -153,7 +155,10 @@ export function Payments({
                   }
                   onDenied={onDenied}
                   canReplay={canWrite}
-                  onSaved={() => void load()}
+                  onSaved={() => {
+                    void load();
+                    onChanged();
+                  }}
                 />
                 <h4>Lịch sử nhận tiền</h4>
                 {student.receipts.length === 0 && <p>Chưa ghi nhận tiền.</p>}

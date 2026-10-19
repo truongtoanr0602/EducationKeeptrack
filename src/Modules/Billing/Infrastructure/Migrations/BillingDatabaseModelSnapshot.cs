@@ -74,6 +74,70 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Outbox", "billing");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.FeeAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateOnly>("Period")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ClassId", "StudentId", "Period");
+
+                    b.ToTable("Adjustments", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_Adjustment_Amount", "\"AmountVnd\" > 0");
+
+                            t.HasCheckConstraint("CK_Adjustment_Direction", "\"Direction\" IN ('increase', 'decrease')");
+
+                            t.HasCheckConstraint("CK_Adjustment_Reason", "length(btrim(\"Reason\")) > 0");
+                        });
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentRecipient", b =>
                 {
                     b.Property<string>("OwnerId")
@@ -345,6 +409,15 @@ namespace Billing.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TuitionRate", "billing");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.FeeAdjustment", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.PaymentReview", b =>

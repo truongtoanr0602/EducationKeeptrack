@@ -19,11 +19,23 @@ export type TuitionLine = {
   rateId: string | null;
   sourceVersion: number;
 };
+export type Adjustment = {
+  id: string;
+  studentId: string;
+  month: string;
+  direction: "increase" | "decrease";
+  amountVnd: string;
+  reason: string;
+  recordedBy: string;
+  recordedAt: string;
+  version: number;
+};
 export type StudentTuition = {
   studentId: string;
   name: string;
   totalVnd: string;
   lines: TuitionLine[];
+  adjustments: Adjustment[];
 };
 export type TuitionReport = {
   month: string;

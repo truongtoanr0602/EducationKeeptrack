@@ -105,6 +105,22 @@ For HTTPS, set `TLS_CERT_PATH` and `TLS_KEY_PATH` to certificate/key files outsi
 
 ## Verification
 
+Fee adjustments are recorded in Billing with direction, an exact positive VND amount,
+month, reason, teacher and timestamp. Use `POST /api/billing/classes/{classId}/adjustments`
+with `studentId`, `month` (`yyyy-MM`), `direction` (`increase` or `decrease`),
+`amountVnd` (a decimal string), `reason`, `idempotencyKey` (UUID), and the current
+tuition `version`. The tuition report includes adjustment history and adjusted totals;
+its session lines retain their original basis. A reduction cannot exceed that period's
+fee obligation. Any payment allocation exceeding the reduced obligation is held for
+review, never automatically reused, refunded or converted into reserve. An increase
+can create new debt even after full payment. Changes publish a durable
+`adjustment.recorded` tuition-version event in the same transaction.
+
+The tuition details panel provides the adjustment form and history. A transport
+failure retains the exact request for safe retry, including after collapsing details.
+Existing payment/QR version checks consume the updated balance. Apply the Billing
+`FeeAdjustments` migration with the normal `--migrate` command before using this flow.
+
 `TEST_DATABASE_CONNECTION` must identify a dedicated PostgreSQL test server with permission to create databases. Tests create random `ekt_test_*` databases, migrate all modules and drop only their own database afterward. They never use an in-memory substitute. All test credentials are generated fixture data, not application accounts.
 
 ```powershell

@@ -21,7 +21,7 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
         if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first))
             return new(null, BillingFailure.Invalid, Errors: new() { ["month"] = ["Tháng không hợp lệ."] });
         var snapshot = await repository.SnapshotAsync(owner, classId, ct);
-        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews);
+        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments);
         var students = source.Students.Select(student =>
         {
             var receipts = snapshot.Receipts.Where(x => x.StudentId == student.Id).ToArray();
@@ -60,7 +60,7 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
                 return new(null, BillingFailure.Conflict, "Phí chưa đầy đủ hoặc có tiền cần đối chiếu sau thay đổi phí. Vui lòng tải lại công nợ.");
             if (ledger is null) { ledger = new TuitionLedger(owner, classId); repository.Add(ledger); }
             var receipt = new Receipt(owner, classId, input, clock.GetUtcNow());
-            foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews).Where(x => x.StudentId == input.StudentId))
+            foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews, await repository.AdjustmentsAsync(owner, classId, ct)).Where(x => x.StudentId == input.StudentId))
                 receipt.Allocate(period.Period, period.Debt);
             repository.Add(receipt); ledger.RecordProjection();
             repository.Add(new BillingOutbox(ledger, "receipt.recorded", clock.GetUtcNow()));
@@ -69,7 +69,7 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
         }, ct);
     }
 
-    private static string Status(BillingClassSource source, TuitionLedger? ledger, IReadOnlyList<SessionCharge> charges, IReadOnlyList<PaymentReview> reviews)
+    internal static string Status(BillingClassSource source, TuitionLedger? ledger, IReadOnlyList<SessionCharge> charges, IReadOnlyList<PaymentReview> reviews)
     {
         if ((ledger?.NeedsRefresh == true && source.Sessions.Count > 0)
             || source.Sessions.Any(s => charges.SingleOrDefault(x => x.SessionId == s.Id)?.SourceVersion != s.Version)) return "pending";
