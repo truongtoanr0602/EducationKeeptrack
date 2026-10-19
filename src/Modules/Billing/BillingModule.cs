@@ -45,6 +45,8 @@ public static class BillingModule
         });
         group.MapGet("/tuition", async (Guid classId, string month, HttpContext http, BillingService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
         group.MapGet("/payments", async (Guid classId, string month, HttpContext http, PaymentService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
+        group.MapPost("/payments/{receiptId:guid}/corrections", async (Guid classId, Guid receiptId, ReceiptCorrectionInput input, HttpContext http, PaymentService service) =>
+            Respond(await service.CorrectAsync(Owner(http), classId, receiptId, input, http.RequestAborted)));
         group.MapPost("/transfer-request", async (Guid classId, TransferInput input, HttpContext http, PaymentQrService service) => Respond(await service.CreateAsync(Owner(http), classId, input, http.RequestAborted)));
         var recipient = endpoints.MapGroup("/api/billing/recipient").RequireAuthorization(policy => policy.RequireRole("Teacher"));
         recipient.AddEndpointFilter(async (context, next) =>

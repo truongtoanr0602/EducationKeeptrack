@@ -33,6 +33,13 @@ public sealed class Receipt
     public DateTimeOffset RecordedAt { get; private set; }
     public decimal UnallocatedVnd { get; private set; }
     public List<ReceiptAllocation> Allocations { get; private set; } = [];
+    public string Status { get; private set; } = "active";
+    public Guid? CorrectionKey { get; private set; }
+    public string? CorrectionReason { get; private set; }
+    public DateTimeOffset? CorrectedAt { get; private set; }
+    public Guid? ReplacementId { get; private set; }
+    public string? CorrectionRequest { get; private set; }
+    public string? CorrectionResult { get; private set; }
     private Receipt() { }
     public Receipt(string owner, Guid classId, ReceiptInput input, DateTimeOffset now)
     {
@@ -48,6 +55,24 @@ public sealed class Receipt
         if (amount <= 0) return;
         Allocations.Add(new ReceiptAllocation(Id, period, amount)); UnallocatedVnd -= amount;
     }
+    public void Correct(string action, Guid key, string reason, DateTimeOffset now, Guid? replacementId, string request)
+    {
+        Status = action == "cancel" ? "cancelled" : "replaced";
+        CorrectionKey = key; CorrectionReason = reason; CorrectedAt = now;
+        ReplacementId = replacementId; CorrectionRequest = request;
+    }
+    public void SaveCorrectionResult(string result) => CorrectionResult = result;
+    public void Reallocate(IReadOnlyDictionary<DateOnly, decimal> amounts)
+    {
+        Allocations.RemoveAll(x => !amounts.ContainsKey(x.Period));
+        foreach (var (period, amount) in amounts)
+        {
+            var existing = Allocations.SingleOrDefault(x => x.Period == period);
+            if (existing is null) Allocations.Add(new ReceiptAllocation(Id, period, amount));
+            else existing.SetAmount(amount);
+        }
+        UnallocatedVnd = AmountVnd - amounts.Values.Sum();
+    }
 }
 
 public sealed class ReceiptAllocation
@@ -57,4 +82,5 @@ public sealed class ReceiptAllocation
     public decimal AmountVnd { get; private set; }
     private ReceiptAllocation() { }
     public ReceiptAllocation(Guid receiptId, DateOnly period, decimal amount) { ReceiptId = receiptId; Period = period; AmountVnd = amount; }
+    public void SetAmount(decimal amount) => AmountVnd = amount;
 }

@@ -3,6 +3,7 @@ import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import { paymentStatus, type PaymentsReport } from "./payments-api";
 import { ReceiptForm } from "./ReceiptForm";
+import { ReceiptCorrection } from "./ReceiptCorrection";
 import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
 
 export function Payments({
@@ -178,6 +179,25 @@ export function Payments({
                               .join("; ")}
                       </p>
                       <p>Chưa phân bổ: {money(receipt.unallocatedVnd)}</p>
+                      <ReceiptCorrection
+                        receipt={receipt}
+                        classId={classId}
+                        version={report.version}
+                        canWrite={
+                          canWrite &&
+                          !loading &&
+                          !error &&
+                          report.month === month &&
+                          (report.status === "ready" ||
+                            report.status === "needs-review")
+                        }
+                        canReplay={canWrite}
+                        onDenied={onDenied}
+                        onSaved={() => {
+                          void load();
+                          onChanged();
+                        }}
+                      />
                     </li>
                   ))}
                 </ul>

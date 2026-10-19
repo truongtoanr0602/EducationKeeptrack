@@ -65,7 +65,30 @@ The tuition workspace includes **Thanh toán và công nợ**. Each student show
 
 API: `GET /api/billing/classes/{classId}/payments?month=YYYY-MM` returns the aggregate `version`, projection `status`, total debt and student periods/receipts. `POST /api/billing/classes/{classId}/payments` takes `studentId`, `amountVnd` (positive integer string, up to 18 digits), `receivedOn` (`YYYY-MM-DD`, Vietnam calendar date), optional `note` (1000 characters), a UUID `idempotencyKey`, and the current aggregate `version`. The authenticated teacher is recorded as the actor, separately from the actual receipt date and UTC entry timestamp. Only students belonging to that teacher's class can receive payments; no cross-class balances are transferred. All writes require CSRF and current service write access; expired teachers can still read history.
 
-Receipt, oldest-first allocations, aggregate version and `receipt.recorded` outbox entry commit together under the same PostgreSQL class lock used by pricing and fee projections. A stale version returns 409 without changing balances. An identical idempotency key/payload returns the original receipt even with an old version; reusing the key for different data returns 409. Pending projections or missing prices block new receipts across the class's full history, so allocations never silently use known stale/partial fees. Money stays exact in storage and JSON strings. Excess stays on the receipt as `unallocatedVnd`; it is not automatically applied to later fees, refunded or turned into approved reserve. Receipt correction, financial adjustments and prepaid/reserve policy belong to their own tickets.
+Receipt, oldest-first allocations, aggregate version and `receipt.recorded` outbox entry commit together under the same PostgreSQL class lock used by pricing and fee projections. A stale version returns 409 without changing balances. An identical idempotency key/payload returns the original receipt even with an old version; reusing the key for different data returns 409. Pending projections or missing prices block new receipts across the class's full history, so allocations never silently use known stale/partial fees. Money stays exact in storage and JSON strings. Excess stays on the receipt as `unallocatedVnd`; it is not automatically applied to later fees, refunded or turned into approved reserve. Prepaid/reserve policy belongs to its own tickets.
+
+`POST /api/billing/classes/{classId}/payments/{receiptId}/corrections` accepts
+`action` (`cancel` or `replace`), required `reason` (up to 1000 characters),
+`idempotencyKey` and the current payment `version`. Replacement also takes a positive
+`amountVnd`, `receivedOn` and optional `note`. The original receipt remains with
+`cancelled` or `replaced` status, its original amount/date/allocations, and a correction
+containing teacher, edit timestamp, replacement ID and before/after receipt snapshots.
+Replacement creates a new active receipt; it can subsequently be corrected itself.
+The actual receipt date is independent of the edit timestamp.
+
+Corrections atomically replay the student's active allocations in actual receipt-date
+order (entry timestamp and ID break ties), paying the oldest debt first. Existing
+unallocated credit stays separate, including a replacement's original surplus (capped
+by its corrected amount). Existing period holds remain backed by surviving
+historical allocations, up to the remaining backing amount; corrections never silently
+spend held money. The correction, allocation changes, version and durable
+`receipt.corrected` outbox event commit together. Retries return the saved correction
+result even after later changes; conflicting payloads or stale versions return 409.
+Pending/missing fees block corrections; `needs-review` permits reversing mistakes
+while retaining other holds. Updated versions invalidate old transfer requests and
+provide a change signal for future report refresh handling. PDF generation is not yet
+implemented. The UI exposes required reasons, before/after history and exact-request
+retry after an uncertain response; after reload, check history before entering again.
 
 The UI preserves drafts on validation/conflict/expiry. **Tải lại công nợ** obtains the latest version for a conflict retry. If a server/network failure leaves the save outcome uncertain, the form locks its values and **Thử lại khoản nhận tiền** resends the exact request with its original key/version; an automatic retry never creates a new receipt. This pending request exists only in the current tab; after closing/reloading, inspect receipt history before recording again. QR scans or transfer images never mark tuition paid.
 

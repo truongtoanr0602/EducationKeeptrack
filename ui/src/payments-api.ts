@@ -7,7 +7,25 @@ export type Receipt = {
   recordedAt: string;
   unallocatedVnd: string;
   allocations: { month: string; amountVnd: string }[];
+  status: "active" | "cancelled" | "replaced";
+  correction: {
+    reason: string;
+    recordedAt: string;
+    recordedBy: string;
+    replacementId: string | null;
+    changes: { version: number; before: ReceiptState[]; after: ReceiptState[] };
+  } | null;
 };
+export type ReceiptState = Pick<
+  Receipt,
+  | "id"
+  | "amountVnd"
+  | "receivedOn"
+  | "note"
+  | "status"
+  | "unallocatedVnd"
+  | "allocations"
+>;
 export type StudentPayments = {
   studentId: string;
   name: string;

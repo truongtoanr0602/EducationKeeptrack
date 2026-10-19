@@ -6,13 +6,13 @@ namespace EducationKeeptrack.Billing.Application;
 
 public record AllocationView(string Month, string AmountVnd);
 public record ReceiptView(Guid Id, Guid StudentId, string AmountVnd, DateOnly ReceivedOn, string? Note,
-    DateTimeOffset RecordedAt, string UnallocatedVnd, IReadOnlyList<AllocationView> Allocations);
+    DateTimeOffset RecordedAt, string UnallocatedVnd, IReadOnlyList<AllocationView> Allocations, string Status, ReceiptCorrectionView? Correction);
 public record PeriodDebtView(string Month, string FeesVnd, string PaidVnd, string DebtVnd, string Status, string AllocationExcessVnd);
 public record StudentPaymentsView(Guid StudentId, string Name, string OldDebtVnd, string CurrentDebtVnd,
     string TotalDebtVnd, string UnallocatedVnd, string AllocationExcessVnd, IReadOnlyList<PeriodDebtView> Periods, IReadOnlyList<ReceiptView> Receipts);
 public record PaymentsView(string Month, long Version, string Status, string TotalDebtVnd, IReadOnlyList<StudentPaymentsView> Students);
 
-public sealed class PaymentService(IBillingRepository repository, IClassroomBillingSource classroom, TimeProvider clock)
+public sealed partial class PaymentService(IBillingRepository repository, IClassroomBillingSource classroom, TimeProvider clock)
 {
     public async Task<BillingResult<PaymentsView>> ReportAsync(string owner, Guid classId, string month, CancellationToken ct)
     {
@@ -29,7 +29,7 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
             return new StudentPaymentsView(student.Id, student.Name,
                 Money(periods.Where(x => x.Period < first).Sum(x => x.Debt)),
                 Money(periods.Where(x => x.Period == first).Sum(x => x.Debt)),
-                Money(periods.Sum(x => x.Debt)), Money(receipts.Sum(x => x.UnallocatedVnd)), Money(periods.Sum(x => x.Held)),
+                Money(periods.Sum(x => x.Debt)), Money(receipts.Where(x => x.Status == "active").Sum(x => x.UnallocatedVnd)), Money(periods.Sum(x => x.Held)),
                 periods.Select(x => new PeriodDebtView(Month(x.Period), Money(x.Fees), Money(x.Paid), Money(x.Debt),
                     x.Debt == 0 ? "paid" : x.Paid > 0 ? "partial" : "unpaid", Money(x.Held))).ToArray(),
                 receipts.OrderByDescending(x => x.ReceivedOn).ThenByDescending(x => x.RecordedAt).ThenBy(x => x.Id).Select(View).ToArray());
@@ -46,6 +46,8 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
         return await repository.WithClassLockAsync<ReceiptView>(classId, async () =>
         {
             var receipts = await repository.ReceiptsAsync(owner, classId, ct);
+            if (receipts.Any(x => x.CorrectionKey == input.IdempotencyKey))
+                return new(null, BillingFailure.Conflict, "Khóa chống lặp đã dùng cho sửa/hủy khoản nhận tiền.");
             var existing = receipts.SingleOrDefault(x => x.IdempotencyKey == input.IdempotencyKey);
             // A retry after a lost response returns the original receipt, even with a stale expected version.
             if (existing is not null) return existing.Matches(input) ? new(View(existing))
@@ -76,8 +78,10 @@ public sealed class PaymentService(IBillingRepository repository, IClassroomBill
         if (charges.Any(x => x.Fees.Any(f => f.AmountVnd is null))) return "missing-rate";
         return reviews.Count > 0 ? "needs-review" : "ready";
     }
-    private static ReceiptView View(Receipt receipt) => new(receipt.Id, receipt.StudentId, Money(receipt.AmountVnd), receipt.ReceivedOn,
-        receipt.Note, receipt.RecordedAt, Money(receipt.UnallocatedVnd), receipt.Allocations.OrderBy(x => x.Period).Select(x => new AllocationView(Month(x.Period), Money(x.AmountVnd))).ToArray());
+    internal static ReceiptView View(Receipt receipt) => new(receipt.Id, receipt.StudentId, Money(receipt.AmountVnd), receipt.ReceivedOn,
+        receipt.Note, receipt.RecordedAt, Money(receipt.UnallocatedVnd), receipt.Allocations.OrderBy(x => x.Period).Select(x => new AllocationView(Month(x.Period), Money(x.AmountVnd))).ToArray(), receipt.Status,
+        receipt.CorrectionKey is null ? null : new(receipt.CorrectionReason!, receipt.CorrectedAt!.Value, receipt.OwnerId, receipt.ReplacementId,
+            System.Text.Json.JsonSerializer.Deserialize<CorrectionResult>(receipt.CorrectionResult!)!));
     private static string Month(DateOnly date) => date.ToString("yyyy-MM", CultureInfo.InvariantCulture);
     private static string Money(decimal amount) => amount.ToString("0", CultureInfo.InvariantCulture);
 }

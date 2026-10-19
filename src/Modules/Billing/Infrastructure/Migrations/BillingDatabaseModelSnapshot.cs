@@ -219,6 +219,22 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<Guid>("ClassId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("CorrectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CorrectionKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("CorrectionRequest")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CorrectionResult")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("IdempotencyKey")
                         .HasColumnType("uuid");
 
@@ -237,6 +253,16 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("RecordedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("ReplacementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasDefaultValue("active");
+
                     b.Property<Guid>("StudentId")
                         .HasColumnType("uuid");
 
@@ -245,6 +271,9 @@ namespace Billing.Infrastructure.Migrations
                         .HasColumnType("numeric(18,0)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "CorrectionKey")
+                        .IsUnique();
 
                     b.HasIndex("ClassId", "IdempotencyKey")
                         .IsUnique();
@@ -443,7 +472,7 @@ namespace Billing.Infrastructure.Migrations
                     b.HasOne("EducationKeeptrack.Billing.Domain.Receipt", null)
                         .WithMany("Allocations")
                         .HasForeignKey("ReceiptId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
