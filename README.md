@@ -116,6 +116,38 @@ The payments workspace includes teacher-private recipient settings and a recipie
 
 The server fetches a PNG using [VietQR Quick Link](https://www.vietqr.io/qr-dong), with an eight-second timeout and bounded image size. The bank account, amount and memo are sent to that provider. Provider failures or invalid images fall back to the teacher's static QR, then complete manual transfer details. Amounts beyond the provider's thirteen-digit limit use the same fallback. Static QR requires manually entering the exact amount and memo; the UI labels each mode and warns when manual entry is required. Browser image failures also try the static image before manual instructions. Visible requests are discarded on local context changes and revalidated every five seconds; failed verification hides the QR. All API responses are private/no-store, owner-scoped and subject to existing role, CSRF and service-access policies. Configuration and transfer generation require write access.
 
+## Cashflow and obligation-period statistics (T10)
+
+Each class's tuition workspace includes **Thống kê thu tiền và công nợ** with two
+separate views. **Thực thu theo ngày nhận** filters an inclusive range of actual
+Vietnam calendar dates. **Công nợ theo kỳ học** filters the obligation month,
+regardless of when payment was received. Receiving 500,000 VND on November 5 for
+October debt increases November cashflow by 500,000 and reduces October debt by
+500,000; allocation detail is not counted as a second receipt.
+
+`GET /api/billing/classes/{classId}/cashflow?from=yyyy-MM-dd&to=yyyy-MM-dd` returns
+active receipt details, total received and unallocated amounts, `timeZone`
+(`Asia/Ho_Chi_Minh`), source `version` and projection `status`.
+`GET /api/billing/classes/{classId}/period-balances?month=yyyy-MM` returns adjusted
+fees, paid amounts, held amounts and outstanding debt for that exact month, with
+per-student allocations linking to their receipt IDs and actual receipt dates.
+Gross allocated amounts include held funds; paid amounts exclude those holds.
+
+Both reports use one repeatable-read Billing snapshot per request and existing
+durable receipts, allocations, adjustments, holds and ledger versions. No new
+schema or separate cached aggregate is needed. Replaced/cancelled receipts are
+excluded from current totals; their history remains in the payment workspace.
+Only active receipt amounts contribute to cashflow, so adjustments, allocations
+and eventual reserve redemption cannot count as newly received money. Reserve
+redemption itself is a later ticket.
+
+The UI shows applied filters, version and incomplete/held-data notices, remembers
+successful filters across reload, and opens receipt/period reconciliation detail.
+Reloading or local source changes obtain current statistics; another tab's changes
+are visible on manual reload. Failed loads hide unverified totals and preserve
+filter inputs. Statistics use the existing teacher ownership/read-access policy,
+including read access after service expiry; Admin has no default student access.
+
 ## Docker Compose
 
 Copy `.env.example` to `.env` and set a strong `POSTGRES_PASSWORD`. Run `docker compose up --build -d`. UI: http://127.0.0.1:8088. PostgreSQL and session keys use named volumes. `migrate` applies all module migrations before backend starts. For a local demo, provision using the same environment variables:

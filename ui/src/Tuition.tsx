@@ -5,6 +5,7 @@ import { Login } from "./Login";
 import { RateForm } from "./RateForm";
 import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
+import { CashflowStatistics } from "./CashflowStatistics";
 import {
   money,
   feeBasis,
@@ -310,6 +311,13 @@ export function Tuition({
             </div>
           </>
         )}
+        <CashflowStatistics
+          key={`statistics:${classroom.id}`}
+          classId={classroom.id}
+          month={appliedMonth}
+          refreshToken={`${refreshToken}:${report?.version ?? 0}`}
+          onDenied={denied}
+        />
         <Payments
           key={classroom.id}
           classId={classroom.id}

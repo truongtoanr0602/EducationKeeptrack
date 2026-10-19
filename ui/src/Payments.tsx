@@ -165,7 +165,7 @@ export function Payments({
                 {student.receipts.length === 0 && <p>Chưa ghi nhận tiền.</p>}
                 <ul aria-label="Lịch sử nhận tiền">
                   {student.receipts.map((receipt) => (
-                    <li key={receipt.id}>
+                    <li key={receipt.id} id={`receipt-${receipt.id}`}>
                       <p>
                         {receipt.receivedOn} · Nhận {money(receipt.amountVnd)}
                         {receipt.note && ` · ${receipt.note}`}

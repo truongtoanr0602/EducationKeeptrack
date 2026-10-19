@@ -17,6 +17,7 @@ public static class BillingModule
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
         services.AddScoped<PaymentService>(); services.AddScoped<AdjustmentService>();
+        services.AddScoped<StatisticsService>();
         services.AddScoped<PaymentQrService>();
         services.AddHttpClient<IVietQrGenerator, VietQrGenerator>(client => client.Timeout = TimeSpan.FromSeconds(8));
         services.AddScoped<IClassroomChangeHandler, BillingClassroomHandler>(); services.AddHostedService<BillingWorker>();
@@ -45,6 +46,10 @@ public static class BillingModule
         });
         group.MapGet("/tuition", async (Guid classId, string month, HttpContext http, BillingService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
         group.MapGet("/payments", async (Guid classId, string month, HttpContext http, PaymentService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
+        group.MapGet("/cashflow", async (Guid classId, string from, string to, HttpContext http, StatisticsService service) =>
+            Respond(await service.CashflowAsync(Owner(http), classId, from, to, http.RequestAborted)));
+        group.MapGet("/period-balances", async (Guid classId, string month, HttpContext http, StatisticsService service) =>
+            Respond(await service.PeriodAsync(Owner(http), classId, month, http.RequestAborted)));
         group.MapPost("/payments/{receiptId:guid}/corrections", async (Guid classId, Guid receiptId, ReceiptCorrectionInput input, HttpContext http, PaymentService service) =>
             Respond(await service.CorrectAsync(Owner(http), classId, receiptId, input, http.RequestAborted)));
         group.MapPost("/transfer-request", async (Guid classId, TransferInput input, HttpContext http, PaymentQrService service) => Respond(await service.CreateAsync(Owner(http), classId, input, http.RequestAborted)));
