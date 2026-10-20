@@ -7,9 +7,14 @@ public sealed class ReportingDatabase(DbContextOptions<ReportingDatabase> option
 {
     public DbSet<MonthlyReportDraft> Drafts => Set<MonthlyReportDraft>();
     public DbSet<ReportPreview> Previews => Set<ReportPreview>();
+    public DbSet<ReportExport> Exports => Set<ReportExport>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("reporting");
+        var export = model.Entity<ReportExport>(); export.HasKey(x => x.Id); export.Property(x => x.Id).ValueGeneratedNever();
+        export.Property(x => x.OwnerId).HasMaxLength(450); export.Property(x => x.Fingerprint).HasMaxLength(64); export.Property(x => x.Sha256).HasMaxLength(64);
+        export.Property(x => x.State).HasMaxLength(16); export.Property(x => x.ObjectKey).HasMaxLength(300); export.Property(x => x.ContentType).HasMaxLength(40); export.Property(x => x.TemplateVersion).HasMaxLength(40);
+        export.HasIndex(x => new { x.OwnerId, x.IdempotencyKey }).IsUnique(); export.HasIndex(x => new { x.OwnerId, x.ClassId, x.StudentId, x.Month });
         var preview = model.Entity<ReportPreview>(); preview.HasKey(x => x.Id); preview.Property(x => x.Id).ValueGeneratedNever();
         preview.Property(x => x.OwnerId).HasMaxLength(450); preview.HasIndex(x => x.ExpiresAt);
         var draft = model.Entity<MonthlyReportDraft>(); draft.HasKey(x => x.Id); draft.Property(x => x.Id).ValueGeneratedNever();

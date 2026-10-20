@@ -9,15 +9,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace EducationKeeptrack.Reporting;
 
 public static class ReportingModule
 {
-    public static IServiceCollection AddReportingModule(this IServiceCollection services, string connection)
+    public static IServiceCollection AddReportingModule(this IServiceCollection services, string connection, IConfiguration config)
     {
         services.AddDbContext<ReportingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "reporting")));
-        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); return services;
+        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); services.AddScoped<ExportService>();
+        services.Configure<ReportingOptions>(config.GetSection("Reporting"));
+        services.AddSingleton<IReportHtmlTemplate, ReportHtmlTemplate>(); services.AddSingleton<IReportPdfRenderer, ChromiumPdfRenderer>(); services.AddSingleton<IReportObjectStore, S3ReportStore>();
+        return services;
     }
     public static void MapReporting(this IEndpointRouteBuilder endpoints)
     {
@@ -32,6 +36,22 @@ public static class ReportingModule
             if (!access.CanRead || (HttpMethods.IsPut(http.Request.Method) && !access.CanWrite))
                 return Results.Json(new { message = "Tài khoản không được thực hiện thao tác này.", status = access.Status }, statusCode: 403);
             return await next(context);
+        });
+        group.MapPost("/exports", async (Guid classId, Guid studentId, string month, ExportInput input, HttpContext http, ExportService service) => Respond(await service.ExportAsync(Scope(http, classId, studentId, month), input, http.RequestAborted)));
+        group.MapGet("/exports", async (Guid classId, Guid studentId, string month, HttpContext http, IReportingRepository repo) =>
+        {
+            var scope = Scope(http, classId, studentId, month); var result = new List<ExportView>();
+            foreach (var export in await repo.ExportsAsync(scope, http.RequestAborted)) { var preview = await repo.PreviewAsync(scope, export.PreviewId, http.RequestAborted); if (preview is not null) result.Add(ExportService.View(export, preview)); }
+            return Results.Ok(result);
+        });
+        group.MapGet("/previews/{previewId:guid}/html", async (Guid classId, Guid studentId, string month, Guid previewId, HttpContext http, IReportingRepository repo, IBillingReportSource billing, IReportHtmlTemplate template, TimeProvider clock) =>
+        {
+            var scope = Scope(http, classId, studentId, month); var preview = await repo.PreviewAsync(scope, previewId, http.RequestAborted);
+            if (preview is null) return Results.NotFound(); if (preview.ExpiresAt <= clock.GetUtcNow()) return Results.StatusCode(410);
+            try { var payment = await billing.PaymentAsync(scope, preview.Content().Sources.Billing, http.RequestAborted);
+                http.Response.Headers.ContentSecurityPolicy = "sandbox; default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'";
+                return Results.Content(template.Render(preview, payment), "text/html; charset=utf-8");
+            } catch (ReportSourceChangedException) { return Results.Conflict(new { message = "Nguon thanh toan da thay doi. Vui long lam moi." }); }
         });
         group.MapPost("/previews", async (Guid classId, Guid studentId, string month, HttpContext http, PreviewService service) => Respond(await service.CreateAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapGet("/draft", async (Guid classId, Guid studentId, string month, HttpContext http, DraftService service) => Respond(await service.ReadAsync(Scope(http, classId, studentId, month), http.RequestAborted)));

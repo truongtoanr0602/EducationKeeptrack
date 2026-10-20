@@ -13,6 +13,11 @@ public interface IReportingRepository
     void Add(MonthlyReportDraft draft);
     void Add(ReportPreview preview);
     Task<ReportPreview?> PreviewAsync(ReportScope scope, Guid id, CancellationToken ct);
+    Task<long> DraftVersionAsync(ReportScope scope, CancellationToken ct);
+    Task<ReportExport?> ExportByKeyAsync(string owner, Guid key, CancellationToken ct);
+    Task<ReportExport?> ExportAsync(ReportScope scope, Guid id, CancellationToken ct);
+    Task<IReadOnlyList<ReportExport>> ExportsAsync(ReportScope scope, CancellationToken ct);
+    void Add(ReportExport export);
     Task SaveAsync(CancellationToken ct);
 }
 

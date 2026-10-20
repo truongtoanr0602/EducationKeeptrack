@@ -19,6 +19,7 @@ using EducationKeeptrack.Billing.Infrastructure;
 using EducationKeeptrack.Learning;
 using EducationKeeptrack.Learning.Infrastructure;
 
+if (args.Contains("--install-report-browser")) { Environment.ExitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]); return; }
 var builder = WebApplication.CreateBuilder(args);
 var connection = builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException("Set ConnectionStrings__Database outside source control.");
@@ -28,7 +29,7 @@ builder.Services.AddClassroomModule(connection);
 builder.Services.AddServiceAccessModule(connection);
 builder.Services.AddBillingModule(connection);
 builder.Services.AddLearningModule(connection);
-builder.Services.AddReportingModule(connection);
+builder.Services.AddReportingModule(connection, builder.Configuration);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedProto;

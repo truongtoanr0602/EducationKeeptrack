@@ -44,11 +44,18 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? BillingInterceptor { get; init; }
     public EducationKeeptrack.Billing.Application.IVietQrGenerator? QrGenerator { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
+    public string ReportBucket => database.Replace('_', '-');
+    private Amazon.S3.AmazonS3Client ReportStore() => new(new Amazon.Runtime.BasicAWSCredentials(Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY"), Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY")),
+        new Amazon.S3.AmazonS3Config { ServiceURL = Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT"), AuthenticationRegion = "us-east-1", ForcePathStyle = true });
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(ProductionCookies ? "Production" : "Testing");
         builder.UseSetting("ConnectionStrings:Database", Connection);
+        builder.UseSetting("Reporting:Endpoint", Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT") ?? "");
+        builder.UseSetting("Reporting:AccessKey", Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY") ?? "");
+        builder.UseSetting("Reporting:SecretKey", Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY") ?? "");
+        builder.UseSetting("Reporting:Bucket", ReportBucket);
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
@@ -86,12 +93,25 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Learning.Infrastructure.LearningDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Reporting.Infrastructure.ReportingDatabase>().Database.MigrateAsync();
+        if (!reuseDatabase && !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT")))
+        { using var s3 = ReportStore(); await s3.PutBucketAsync(new Amazon.S3.Model.PutBucketRequest { BucketName = ReportBucket }); }
     }
 
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
         if (!ownsDatabase) return;
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT")))
+        {
+            using var s3 = ReportStore();
+            try
+            {
+                var objects = await s3.ListObjectsV2Async(new Amazon.S3.Model.ListObjectsV2Request { BucketName = ReportBucket });
+                if (objects.S3Objects is { Count: > 0 }) await s3.DeleteObjectsAsync(new Amazon.S3.Model.DeleteObjectsRequest { BucketName = ReportBucket, Objects = objects.S3Objects.Select(x => new Amazon.S3.Model.KeyVersion { Key = x.Key }).ToList() });
+                await s3.DeleteBucketAsync(ReportBucket);
+            }
+            catch (Amazon.S3.AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound) { }
+        }
         NpgsqlConnection.ClearAllPools();
         await using var connection = new NpgsqlConnection(adminConnection);
         await connection.OpenAsync();
