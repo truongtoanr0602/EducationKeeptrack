@@ -1,3 +1,5 @@
+using EducationKeeptrack.Reporting;
+using EducationKeeptrack.Reporting.Infrastructure;
 using EducationKeeptrack.Identity;
 using EducationKeeptrack.Identity.Endpoints;
 using EducationKeeptrack.Identity.Infrastructure;
@@ -26,6 +28,7 @@ builder.Services.AddClassroomModule(connection);
 builder.Services.AddServiceAccessModule(connection);
 builder.Services.AddBillingModule(connection);
 builder.Services.AddLearningModule(connection);
+builder.Services.AddReportingModule(connection);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
@@ -57,6 +60,7 @@ if (args.Contains("--migrate"))
     await scope.ServiceProvider.GetRequiredService<ServiceAccessDatabase>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<BillingDatabase>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<LearningDatabase>().Database.MigrateAsync();
+    await scope.ServiceProvider.GetRequiredService<ReportingDatabase>().Database.MigrateAsync();
     return;
 }
 if (args.Contains("--provision-teacher"))
@@ -95,6 +99,7 @@ app.MapRoster();
 app.MapSessions();
 app.MapBilling();
 app.MapLearning();
+app.MapReporting();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 

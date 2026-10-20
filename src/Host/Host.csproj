@@ -13,6 +13,7 @@
     <ProjectReference Include="../Modules/ServiceAccess/ServiceAccess.csproj" />
     <ProjectReference Include="../Modules/Billing/Billing.csproj" />
     <ProjectReference Include="../Modules/Learning/Learning.csproj" />
+    <ProjectReference Include="../Modules/Reporting/Reporting.csproj" />
   </ItemGroup>
 
 </Project>

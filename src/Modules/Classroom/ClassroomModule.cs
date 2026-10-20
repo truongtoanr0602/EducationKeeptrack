@@ -23,6 +23,7 @@ public static class ClassroomModule
         services.AddScoped<SessionService>();
         services.AddScoped<IClassroomBillingSource, ClassroomBillingSource>();
         services.AddScoped<IClassroomLearningSource, ClassroomLearningSource>();
+        services.AddScoped<IClassroomReportSource, ClassroomReportSource>();
         services.AddHostedService<ClassroomChangeDispatcher>();
         return services;
     }

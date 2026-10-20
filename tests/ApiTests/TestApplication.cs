@@ -85,6 +85,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Learning.Infrastructure.LearningDatabase>().Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Reporting.Infrastructure.ReportingDatabase>().Database.MigrateAsync();
     }
 
     public new async Task DisposeAsync()
