@@ -1,6 +1,7 @@
 # T11 — Thiết kế báo cáo tháng PDF thủ công
 
-Ngày: 19/10/2026. Trạng thái: chờ người dùng duyệt bản thiết kế viết.
+Ngày: 19/10/2026. Trạng thái: đã được người dùng duyệt trong hội thoại;
+ghi nhận duyệt ngày 20/10/2026.
 
 Nguồn yêu cầu: [issue #12](https://github.com/truongtoanr0602/EducationKeeptrack/issues/12),
 `docs/tickets/education-keeptrack/11-manual-monthly-pdf.md` và hướng thiết kế đã
