@@ -17,6 +17,7 @@ public static class LearningModule
         services.AddDbContext<LearningDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "learning")));
         services.AddScoped<ILearningRepository, LearningRepository>();
         services.AddScoped<LearningService>();
+        services.AddScoped<ILearningReportSource, LearningReportSource>();
         services.AddHostedService<LearningResultDispatcher>();
         return services;
     }

@@ -11,6 +11,8 @@ public interface IReportingRepository
     Task<MonthlyReportDraft?> DraftAsync(ReportScope scope, CancellationToken ct);
     Task<T> WithScopeLockAsync<T>(ReportScope scope, Func<Task<T>> action, CancellationToken ct);
     void Add(MonthlyReportDraft draft);
+    void Add(ReportPreview preview);
+    Task<ReportPreview?> PreviewAsync(ReportScope scope, Guid id, CancellationToken ct);
     Task SaveAsync(CancellationToken ct);
 }
 

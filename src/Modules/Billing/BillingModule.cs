@@ -18,6 +18,7 @@ public static class BillingModule
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
         services.AddScoped<PaymentService>(); services.AddScoped<AdjustmentService>();
         services.AddScoped<StatisticsService>();
+        services.AddScoped<IBillingReportSource, BillingReportSource>();
         services.AddScoped<PaymentQrService>();
         services.AddHttpClient<IVietQrGenerator, VietQrGenerator>(client => client.Timeout = TimeSpan.FromSeconds(8));
         services.AddScoped<IClassroomChangeHandler, BillingClassroomHandler>(); services.AddHostedService<BillingWorker>();

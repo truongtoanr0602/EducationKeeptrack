@@ -6,6 +6,20 @@ namespace ApiTests;
 
 internal static class ReportingFixture
 {
+    public static async Task Session(HttpClient client, Guid classId, Guid studentId, string date)
+    {
+        var path=$"/api/classes/{classId}/sessions";
+        var created=await TestApplication.Post(client,path,new {date,startTime="18:00:00",endTime="19:00:00",kind="regular"});
+        Assert.Equal(HttpStatusCode.Created,created.StatusCode); var id=(await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.OK,(await Put(client,$"{path}/{id}",new{status="held",version=1})).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await Put(client,$"{path}/{id}/attendance/{studentId}",new{status="present",version=0})).StatusCode);
+    }
+    public static async Task<JsonElement> Payments(HttpClient client, Guid classId)
+    {
+        var until=DateTime.UtcNow.AddSeconds(20);
+        while(true) { var value=await client.GetFromJsonAsync<JsonElement>($"/api/billing/classes/{classId}/payments?month=2026-11");
+            if(value.GetProperty("status").GetString()!="pending") return value; Assert.True(DateTime.UtcNow<until,"Billing did not settle"); await Task.Delay(100); }
+    }
     public static async Task<(HttpClient Client, string Path, Guid ClassId, Guid StudentId, string Email)> Setup(TestApplication app)
     {
         var email = $"report-{Guid.NewGuid():N}@example.test";

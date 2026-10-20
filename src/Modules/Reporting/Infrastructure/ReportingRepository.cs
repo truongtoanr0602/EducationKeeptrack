@@ -16,6 +16,8 @@ public sealed class ReportingRepository(ReportingDatabase db) : IReportingReposi
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 11))", ct);
         var result = await action(); await tx.CommitAsync(ct); return result;
     }
+    public void Add(ReportPreview preview) => db.Previews.Add(preview);
+    public Task<ReportPreview?> PreviewAsync(ReportScope scope, Guid id, CancellationToken ct) => db.Previews.SingleOrDefaultAsync(x => x.Id == id && x.OwnerId == scope.OwnerId && x.ClassId == scope.ClassId && x.StudentId == scope.StudentId && x.Month == scope.Month, ct);
     public void Add(MonthlyReportDraft draft) => db.Drafts.Add(draft);
     public async Task SaveAsync(CancellationToken ct) => await db.SaveChangesAsync(ct);
 }

@@ -17,7 +17,7 @@ public static class ReportingModule
     public static IServiceCollection AddReportingModule(this IServiceCollection services, string connection)
     {
         services.AddDbContext<ReportingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "reporting")));
-        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); return services;
+        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); return services;
     }
     public static void MapReporting(this IEndpointRouteBuilder endpoints)
     {
@@ -33,6 +33,7 @@ public static class ReportingModule
                 return Results.Json(new { message = "Tài khoản không được thực hiện thao tác này.", status = access.Status }, statusCode: 403);
             return await next(context);
         });
+        group.MapPost("/previews", async (Guid classId, Guid studentId, string month, HttpContext http, PreviewService service) => Respond(await service.CreateAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapGet("/draft", async (Guid classId, Guid studentId, string month, HttpContext http, DraftService service) => Respond(await service.ReadAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapPut("/draft", async (Guid classId, Guid studentId, string month, DraftInput input, HttpContext http, DraftService service) => Respond(await service.SaveAsync(Scope(http, classId, studentId, month), input, http.RequestAborted)));
     }
