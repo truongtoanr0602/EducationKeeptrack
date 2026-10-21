@@ -11,16 +11,29 @@ public sealed class S3ReportStore(IOptions<ReportingOptions> options) : IReportO
     private readonly Lazy<AmazonS3Client> client = new(() =>
     {
         var config = options.Value;
-        if (string.IsNullOrWhiteSpace(config.Endpoint) || string.IsNullOrWhiteSpace(config.AccessKey) || string.IsNullOrWhiteSpace(config.SecretKey))
+        if (!Uri.TryCreate(config.Endpoint, UriKind.Absolute, out var endpoint) || endpoint.Scheme != Uri.UriSchemeHttps
+            || endpoint.AbsolutePath != "/" || endpoint.Query.Length != 0 || endpoint.Fragment.Length != 0 || endpoint.UserInfo.Length != 0
+            || string.IsNullOrWhiteSpace(config.Bucket) || string.IsNullOrWhiteSpace(config.AccessKey) || string.IsNullOrWhiteSpace(config.SecretKey))
             throw new ReportStorageException("Chưa cấu hình kho PDF riêng tư.");
-        return new(new BasicAWSCredentials(config.AccessKey, config.SecretKey), new AmazonS3Config { ServiceURL = config.Endpoint, AuthenticationRegion = config.Region, ForcePathStyle = config.ForcePathStyle });
+        return new(new BasicAWSCredentials(config.AccessKey, config.SecretKey), new AmazonS3Config
+        {
+            ServiceURL = endpoint.AbsoluteUri, AuthenticationRegion = config.Region, ForcePathStyle = config.ForcePathStyle,
+            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+            MaxErrorRetry = 2, Timeout = TimeSpan.FromSeconds(30)
+        });
     });
     public async Task PutAsync(string key, byte[] pdf, CancellationToken ct)
     {
         try
         {
             using var stream = new MemoryStream(pdf, false);
-            await client.Value.PutObjectAsync(new PutObjectRequest { BucketName = options.Value.Bucket, Key = key, InputStream = stream, ContentType = "application/pdf", UseChunkEncoding = false }, ct);
+            // R2 does not support the SDK's streaming SigV4/checksum trailers. HTTPS is mandatory above.
+            await client.Value.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = options.Value.Bucket, Key = key, InputStream = stream, ContentType = "application/pdf",
+                UseChunkEncoding = false, DisablePayloadSigning = true, DisableDefaultChecksumValidation = true
+            }, ct);
         }
         catch (AmazonS3Exception e) { throw new ReportStorageException("Không thể lưu PDF vào kho riêng tư. Vui lòng thử lại.", e); }
         catch (HttpRequestException e) { throw new ReportStorageException("Kho PDF tạm thời không truy cập được.", e); }

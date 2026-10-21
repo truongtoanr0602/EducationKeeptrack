@@ -1,5 +1,7 @@
 # T11 — Thiết kế báo cáo tháng PDF thủ công
 
+> Cập nhật 21/10/2026: dùng Cloudflare R2 private thay SeaweedFS/MinIO. [Thiết kế R2](../../../doc/cloudflare-r2.md) quy định cấu hình, quyền tải qua backend, kiểm thử và chuyển dữ liệu; thay thế hướng dẫn kho cũ. Ticket #28 chuyển cấu hình và adapter sang R2; nghiệm thu thực tế cần bucket test và credentials. CI và chuyển dữ liệu cũ lần lượt thuộc #29/#30.
+
 Ngày: 19/10/2026. Trạng thái: đã được người dùng duyệt trong hội thoại;
 ghi nhận duyệt ngày 20/10/2026.
 
@@ -16,7 +18,7 @@ chuyên cần, học phí và thanh toán của đúng học sinh, giữ tiếng
 khi nhiều trang.
 
 T11 bổ sung module Reporting, lưu bản nháp và metadata tại PostgreSQL, lưu PDF
-riêng tư trên MinIO/S3. Có API, UI, cấu hình chạy local/Compose và kiểm thử đầy đủ.
+riêng tư trên Cloudflare R2 qua S3 API. Có API, UI, cấu hình chạy local/Compose và kiểm thử đầy đủ.
 Không gọi AI, không tự gửi phụ huynh, không xuất Word/DOCX, không tự quyết định
 chính sách bảo lưu hoặc khóa/mở lại báo cáo đã chốt. T21 sẽ bổ sung quy trình
 nhận biết báo cáo cũ và đối chiếu các bản cập nhật bằng sự kiện.
@@ -153,8 +155,8 @@ lỗi không tạo đường tải thành công; retry đối chiếu object/che
 theo metadata khi retry; không xóa hàng loạt dữ liệu ngoài phạm vi bản xuất.
 
 Cấu hình endpoint/bucket/region/access key/secret ở môi trường, không commit
-credentials. Compose có MinIO và volume riêng; cấu hình test dùng S3 thật và
-bucket/prefix cô lập. Không tự tạo tài nguyên trên tài khoản cloud của người dùng.
+credentials. Compose kết nối R2 ngoài qua HTTPS, không có volume object storage; kiểm thử dùng bucket R2 test riêng và
+prefix ngẫu nhiên mỗi fixture trong bucket test cấp trước. Không tạo/xóa bucket; chỉ dọn object thuộc prefix. Bucket là cấu hình chung cho mọi PDF của deployment, đổi bucket cần chuyển đầy đủ object giữ nguyên key; không thay schema trong #28.
 
 ## 7. Quyền và đường tải
 

@@ -150,7 +150,7 @@ including read access after service expiry; Admin has no default student access.
 
 ## Docker Compose
 
-Copy `.env.example` to `.env` and set a strong `POSTGRES_PASSWORD`. Run `docker compose up --build -d`. UI: http://127.0.0.1:8088. PostgreSQL and session keys use named volumes. `migrate` applies all module migrations before backend starts. For a local demo, provision using the same environment variables:
+Copy `.env.example` to `.env`, set a strong `POSTGRES_PASSWORD`, and configure `R2_ENDPOINT`, `R2_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` for a pre-provisioned private Cloudflare R2 bucket. Use bucket-scoped S3 Object Read & Write credentials and separate dev/test/production buckets. Keep public r2.dev/custom domains disabled. Run `docker compose up --build -d`. UI: http://127.0.0.1:8088. PostgreSQL and session keys use named volumes. `migrate` applies all module migrations before backend starts. R2 is external over HTTPS; Compose does not run object storage. Removing the old service declaration does not delete its existing volume; do not prune/delete it before the separately verified migration in #30. For a local demo, provision using the same environment variables:
 
 ```powershell
 docker compose run --rm -e ASPNETCORE_ENVIRONMENT=Development -e Provision__Email -e Provision__Password -e Provision__Until backend --provision-teacher
@@ -176,7 +176,36 @@ failure retains the exact request for safe retry, including after collapsing det
 Existing payment/QR version checks consume the updated balance. Apply the Billing
 `FeeAdjustments` migration with the normal `--migrate` command before using this flow.
 
-`TEST_DATABASE_CONNECTION` must identify a dedicated PostgreSQL test server with permission to create databases. Tests create random `ekt_test_*` databases, migrate all modules and drop only their own database afterward. They never use an in-memory substitute. All test credentials are generated fixture data, not application accounts.
+`TEST_DATABASE_CONNECTION` must identify a dedicated PostgreSQL test server with permission to create databases. Tests create random `ekt_test_*` databases, migrate all modules and drop only their own database afterward. They never use an in-memory substitute. All test teacher credentials are generated fixture data, not application accounts.
+
+## Private monthly PDFs on Cloudflare R2 (#28)
+
+Reporting keeps the existing S3 adapter and server-authenticated download flow. For direct local hosting, set `Reporting__Endpoint` to the HTTPS S3 API origin, `Reporting__Region=auto`, `Reporting__Bucket`, `Reporting__AccessKey` and `Reporting__SecretKey`; `Reporting__ForcePathStyle` defaults to true. Do not include the bucket in the endpoint URL. Secrets stay on the server. The adapter uses the [Cloudflare .NET SDK settings](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-net/) for non-streaming uploads over HTTPS. Missing/invalid storage configuration is checked lazily: PDF operations fail safely, while other modules remain available.
+
+One configured bucket holds all PDF export keys for a deployment. Export metadata keeps the logical key, content type, byte length and SHA-256; it does not persist the bucket per export. Changing the bucket reroutes **all** existing downloads, so copy and verify all referenced objects at identical keys before switching configuration (#30). Never point the application at an empty new bucket while keeping old export metadata. No database migration is required by #28.
+
+Downloads go through the application API, not public objects or R2 presigned URLs. A download token defaults to five minutes and still requires the current owner session and read permission on each download. Responses are `no-store`; account blocking/revocation denies further downloads. Browser transfers use the same origin, so this flow needs no R2 CORS rules. Retention, backup/cutover and student-photo implementation remain separate work.
+
+### R2 integration tests
+
+Create a **dedicated test bucket in advance**, with bucket-scoped Object Read & Write S3 credentials. Set `TEST_S3_ENDPOINT`, `TEST_S3_ACCESS_KEY`, `TEST_S3_SECRET_KEY`, `TEST_S3_BUCKET` and `TEST_DATABASE_CONNECTION` in the test shell. Tests use signing region auto and random `ekt-tests/<run>/` prefixes; they only list/delete their own objects and never create/delete buckets. Do not configure a production bucket. Missing variables fail storage tests explicitly with “R2 integration has NOT been verified”; unrelated tests can still run without R2. Store secrets in an ignored local file or secret manager, never in tracked configuration or command output.
+
+```powershell
+# Load only these names from an ignored .local/r2-test.env (KEY=value, no quotes).
+$allowedR2Names = @('TEST_S3_ENDPOINT', 'TEST_S3_ACCESS_KEY', 'TEST_S3_SECRET_KEY', 'TEST_S3_BUCKET')
+Get-Content .local/r2-test.env | ForEach-Object {
+  $entry = $_ -split '=', 2
+  if ($entry.Length -eq 2 -and $entry[0].Trim() -in $allowedR2Names) {
+    [Environment]::SetEnvironmentVariable($entry[0].Trim(), $entry[1].Trim(), 'Process')
+  }
+}
+dotnet test tests/ApiTests -c Release --filter FullyQualifiedName~R2StorageTests
+dotnet test tests/ApiTests -c Release --filter 'FullyQualifiedName~ReportExportTests|FullyQualifiedName~ReportDownloadTests'
+```
+
+The first command verifies real Put/Get/Head/Delete through the current SDK; the second renders and downloads real PDFs through the API, including ownership, expiry, blocking, checksum and retry checks. Install the .NET Playwright Chromium browser before PDF tests (`pwsh tests/ApiTests/bin/Release/net10.0/playwright.ps1 install chromium` after build). Run the full API suite once these focused checks pass.
+
+For browser verification, use a dedicated demo PostgreSQL database and test teacher, start the backend with the R2 test settings mapped to `Reporting__*`, and run `npx playwright test e2e/monthly-reports.spec.ts --workers=1` from `ui` against the normal Vite proxy or `E2E_BASE_URL`. These browser exports persist under normal application keys: only use the dedicated test bucket, and retain them for verification or remove the exact recorded keys after stopping the demo. API fixture prefixes do not clean up browser exports. Jenkins integration is tracked separately in #29.
 
 ```powershell
 dotnet test tests/ApiTests

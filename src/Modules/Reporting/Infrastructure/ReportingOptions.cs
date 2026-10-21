@@ -3,8 +3,8 @@ namespace EducationKeeptrack.Reporting.Infrastructure;
 public sealed class ReportingOptions
 {
     public string? Endpoint { get; set; }
-    public string Region { get; set; } = "us-east-1";
-    public string Bucket { get; set; } = "ekt-reports";
+    public string Region { get; set; } = "auto";
+    public string? Bucket { get; set; }
     public string? AccessKey { get; set; }
     public string? SecretKey { get; set; }
     public bool ForcePathStyle { get; set; } = true;

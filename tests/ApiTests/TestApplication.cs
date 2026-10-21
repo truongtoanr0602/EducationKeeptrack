@@ -26,11 +26,13 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     private readonly string database = "ekt_test_" + Guid.NewGuid().ToString("N");
     private readonly bool reuseDatabase;
     private readonly bool ownsDatabase = true;
+    private readonly ReportTestStorage reportStorage = new();
     public TestApplication() { }
     private TestApplication(TestApplication original, IClassroomChangeHandler? classroomHandler, ITuitionChangeHandler? tuitionHandler)
     {
         database = original.database; adminConnection = original.adminConnection; Clock = original.Clock;
         reuseDatabase = true; ownsDatabase = false; ProductionCookies = original.ProductionCookies;
+        reportStorage = original.reportStorage;
         ClassroomChangeHandler = classroomHandler; TuitionChangeHandler = tuitionHandler;
     }
     public Task StopHostAsync() => base.DisposeAsync().AsTask();
@@ -47,9 +49,6 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public EducationKeeptrack.Billing.Application.IVietQrGenerator? QrGenerator { get; init; }
     public Func<EducationKeeptrack.Reporting.Application.IReportObjectStore, EducationKeeptrack.Reporting.Application.IReportObjectStore>? DecorateReportStore { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
-    public string ReportBucket => database.Replace('_', '-');
-    private Amazon.S3.AmazonS3Client ReportStore() => new(new Amazon.Runtime.BasicAWSCredentials(Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY"), Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY")),
-        new Amazon.S3.AmazonS3Config { ServiceURL = Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT"), AuthenticationRegion = "us-east-1", ForcePathStyle = true });
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -58,16 +57,17 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.UseSetting("Reporting:Endpoint", Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT") ?? "");
         builder.UseSetting("Reporting:AccessKey", Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY") ?? "");
         builder.UseSetting("Reporting:SecretKey", Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY") ?? "");
-        builder.UseSetting("Reporting:Bucket", ReportBucket);
+        builder.UseSetting("Reporting:Bucket", Environment.GetEnvironmentVariable("TEST_S3_BUCKET") ?? "");
+        builder.UseSetting("Reporting:Region", "auto");
         builder.UseSetting("Reporting:PreviewMinutes", ReportPreviewMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture));
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
-            if (DecorateReportStore is not null)
+            services.AddSingleton<EducationKeeptrack.Reporting.Application.IReportObjectStore>(_ =>
             {
-                services.AddSingleton<EducationKeeptrack.Reporting.Infrastructure.S3ReportStore>();
-                services.AddSingleton<EducationKeeptrack.Reporting.Application.IReportObjectStore>(p => DecorateReportStore(p.GetRequiredService<EducationKeeptrack.Reporting.Infrastructure.S3ReportStore>()));
-            }
+                var store = reportStorage.CreateStore();
+                return DecorateReportStore?.Invoke(store) ?? store;
+            });
             if (QrGenerator is not null) services.AddSingleton(QrGenerator);
             if (BillingInterceptor is not null)
                 services.ConfigureDbContext<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>(options => options.AddInterceptors(BillingInterceptor));
@@ -104,30 +104,21 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Learning.Infrastructure.LearningDatabase>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<EducationKeeptrack.Reporting.Infrastructure.ReportingDatabase>().Database.MigrateAsync();
-        if (!reuseDatabase && !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT")))
-        { using var s3 = ReportStore(); await s3.PutBucketAsync(new Amazon.S3.Model.PutBucketRequest { BucketName = ReportBucket }); }
     }
 
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
         if (!ownsDatabase) return;
-        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT")))
+        try { await reportStorage.DisposeAsync(); }
+        finally
         {
-            using var s3 = ReportStore();
-            try
-            {
-                var objects = await s3.ListObjectsV2Async(new Amazon.S3.Model.ListObjectsV2Request { BucketName = ReportBucket });
-                if (objects.S3Objects is { Count: > 0 }) await s3.DeleteObjectsAsync(new Amazon.S3.Model.DeleteObjectsRequest { BucketName = ReportBucket, Objects = objects.S3Objects.Select(x => new Amazon.S3.Model.KeyVersion { Key = x.Key }).ToList() });
-                await s3.DeleteBucketAsync(ReportBucket);
-            }
-            catch (Amazon.S3.AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound) { }
+            NpgsqlConnection.ClearAllPools();
+            await using var connection = new NpgsqlConnection(adminConnection);
+            await connection.OpenAsync();
+            await using var command = new NpgsqlCommand($"DROP DATABASE {database} WITH (FORCE)", connection);
+            await command.ExecuteNonQueryAsync();
         }
-        NpgsqlConnection.ClearAllPools();
-        await using var connection = new NpgsqlConnection(adminConnection);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand($"DROP DATABASE {database} WITH (FORCE)", connection);
-        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<string> AddTeacher(string email, bool approved = true, bool confirmed = true)

@@ -27,24 +27,15 @@ services:
       ConnectionStrings__Database: Host=db;Database=education_keeptrack;Username=education_keeptrack;Password=${POSTGRES_PASSWORD}
       DataProtection__KeyPath: /keys
       ReverseProxy__KnownProxy: 172.30.110.3
-      Reporting__Endpoint: http://s3:8333
-      Reporting__Region: us-east-1
-      Reporting__Bucket: ekt-reports
+      Reporting__Endpoint: ${R2_ENDPOINT:?Set R2_ENDPOINT to the HTTPS S3 API endpoint}
+      Reporting__Region: auto
+      Reporting__Bucket: ${R2_BUCKET:?Set R2_BUCKET to a pre-provisioned private bucket}
       Reporting__AccessKey: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
       Reporting__SecretKey: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
     volumes:
       - session-keys:/keys
     depends_on:
       migrate: { condition: service_completed_successfully }
-      s3: { condition: service_started }
-  s3:
-    image: chrislusf/seaweedfs:4.48
-    command: ["mini", "-dir=/data", "-ip=s3", "-ip.bind=0.0.0.0", "-admin.ui=false", "-webdav=false", "-s3.port.iceberg=0", "-s3.port.lance=0"]
-    environment:
-      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
-      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
-      S3_BUCKET: ekt-reports
-    volumes: ["report-objects:/data"]
   ui:
     build: ./ui
     ports: ["127.0.0.1:${UI_PORT:-8088}:80"]
@@ -58,4 +49,3 @@ networks:
 volumes:
   postgres-data:
   session-keys:
-  report-objects:

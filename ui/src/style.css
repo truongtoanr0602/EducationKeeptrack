@@ -632,3 +632,14 @@ small {
   height: auto;
   margin: 1rem 0;
 }
+/* Monthly reports keep the form and preview inside the current class workspace. */
+.monthly-reports { border-top: 1px solid #dce3eb; margin-top: 2rem; padding-top: 1.5rem; min-width: 0; }
+.report-scope { display: flex; flex-wrap: wrap; gap: 1rem; }
+.report-scope label { flex: 1 1 180px; }
+.report-draft fieldset { display: grid; gap: 1rem; min-width: 0; border: 1px solid #dce3eb; border-radius: 12px; margin: 1rem 0; padding: 1rem; }
+.report-draft label { display: grid; gap: .4rem; }
+.report-draft textarea { width: 100%; min-width: 0; resize: vertical; }
+.report-draft input, .report-draft select, .report-scope select, .report-scope input { width: 100%; min-width: 0; }
+.report-preview { min-width: 0; overflow-wrap: anywhere; margin-top: 1rem; }
+.report-preview iframe { display: block; width: 100%; height: 640px; border: 1px solid #dce3eb; background: white; }
+.report-exports article { border-top: 1px solid #dce3eb; padding: 1rem 0; overflow-wrap: anywhere; }

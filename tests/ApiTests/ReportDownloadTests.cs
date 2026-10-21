@@ -101,7 +101,10 @@ public sealed class ReportDownloadTests(TestApplication app) : IClassFixture<Tes
             var file = await client.GetAsync(url); Assert.Equal(HttpStatusCode.OK,file.StatusCode);
             Assert.Equal("application/pdf",file.Content.Headers.ContentType!.MediaType);
             Assert.Contains("no-store",file.Headers.CacheControl!.ToString());
-            using var pdf = PdfDocument.Open(await file.Content.ReadAsByteArrayAsync());
+            var bytes = await file.Content.ReadAsByteArrayAsync();
+            Assert.Equal(export.GetProperty("byteLength").GetInt64(), bytes.LongLength);
+            Assert.Equal(export.GetProperty("sha256").GetString(), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)));
+            using var pdf = PdfDocument.Open(bytes);
             var text = string.Join(" ",pdf.GetPages().Select(p=>p.Text));
             Assert.Contains("Tiến bộ về phân số",text); Assert.Contains("Luyện 10 bài",text);
             Assert.Contains("Tổng cần thu: 0 đồng",text); Assert.DoesNotContain("QR thanh toán",text);
