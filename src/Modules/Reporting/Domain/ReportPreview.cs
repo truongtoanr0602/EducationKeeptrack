@@ -15,10 +15,10 @@ public sealed class ReportPreview
     public string Payload { get; private set; } = "";
     public DateTimeOffset ExpiresAt { get; private set; }
     private ReportPreview() { }
-    public ReportPreview(ReportScope scope, DraftView draft, ReportSourceSnapshot sources, DateTimeOffset now)
+    public ReportPreview(ReportScope scope, DraftView draft, ReportSourceSnapshot sources, DateTimeOffset now, int previewMinutes = 15)
     {
         OwnerId = scope.OwnerId; ClassId = scope.ClassId; StudentId = scope.StudentId; Month = scope.Month; DraftVersion = draft.Version;
-        Payload = JsonSerializer.Serialize(new PreviewPayload(draft, sources)); ExpiresAt = now.AddMinutes(15);
+        Payload = JsonSerializer.Serialize(new PreviewPayload(draft, sources)); ExpiresAt = now.AddMinutes(Math.Clamp(previewMinutes,1,60));
     }
     public PreviewPayload Content() => JsonSerializer.Deserialize<PreviewPayload>(Payload)!;
 }

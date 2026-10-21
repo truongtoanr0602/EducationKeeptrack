@@ -24,7 +24,9 @@ var builder = WebApplication.CreateBuilder(args);
 var connection = builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException("Set ConnectionStrings__Database outside source control.");
 builder.Services.AddSingleton(TimeProvider.System);
-builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 32768);
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 131072);
+// Download tokens are query parameters; never emit the framework's full request URL.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.AddClassroomModule(connection);
 builder.Services.AddServiceAccessModule(connection);
 builder.Services.AddBillingModule(connection);

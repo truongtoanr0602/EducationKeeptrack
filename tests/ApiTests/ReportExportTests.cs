@@ -148,15 +148,42 @@ public sealed class ReportExportTests(TestApplication app) : IClassFixture<TestA
     [Fact]
     public async Task Export_creates_private_pdf_with_vietnamese_confirmed_results_finances_and_fallback()
     {
-        var (client,path,_,_,_)=await ReportingFixture.Setup(app);
+        var (client,path,classId,studentId,_)=await ReportingFixture.Setup(app);
         using(client)
         {
+            var billing=$"/api/billing/classes/{classId}";
+            foreach(var (month,amount,version) in new[]{("10","500000",0),("11","900000",1),("12","300000",2)})
+            {
+                Assert.Equal(HttpStatusCode.Created,(await TestApplication.Post(client,billing+"/rates",new{effectiveFrom=$"2026-{month}-01",unitPriceVnd=amount,version})).StatusCode);
+                await ReportingFixture.Session(client,classId,studentId,$"2026-{month}-02"); await ReportingFixture.Payments(client,classId);
+            }
+            var payments=await ReportingFixture.Payments(client,classId);
+            Assert.Equal(HttpStatusCode.Created,(await TestApplication.Post(client,billing+"/payments",new{studentId,amountVnd="700000",receivedOn="2026-11-05",idempotencyKey=Guid.NewGuid(),version=payments.GetProperty("version").GetInt64()})).StatusCode);
+            path=path.Replace("2026-10","2026-11");
+            var learning=$"/api/learning/classes/{classId}/assessments";
+            foreach(var title in new[]{"Phân số","Không làm","Chưa chấm"})
+            {
+                var assessment=await (await TestApplication.Post(client,learning,new{title,date="2026-11-05",defaultMethod="manual"})).Content.ReadFromJsonAsync<JsonElement>();
+                var submission=$"{learning}/{assessment.GetProperty("id").GetGuid()}/submissions/{studentId}";
+                if(title=="Không làm") Assert.Equal(HttpStatusCode.OK,(await ReportingFixture.Put(client,submission,new{status="not_done",version=1,confirm=true})).StatusCode);
+                if(title=="Phân số")
+                {
+                    Assert.Equal(HttpStatusCode.OK,(await ReportingFixture.Put(client,submission,new{status="assessed",completion=75,correctness=50,version=1,confirm=true})).StatusCode);
+                    Assert.Equal(HttpStatusCode.OK,(await ReportingFixture.Put(client,submission,new{status="assessed",completion=25,correctness=25,version=2,confirm=false})).StatusCode);
+                }
+            }
             Assert.Equal(HttpStatusCode.OK,(await ReportingFixture.Put(client,path+"/draft",ReportingFixture.Draft(emoji:"⭐"))).StatusCode);
             var preview=await (await TestApplication.Post(client,path+"/previews",new{})).Content.ReadFromJsonAsync<JsonElement>();
             var response=await TestApplication.Post(client,path+"/exports",new{previewId=preview.GetProperty("id").GetGuid(),draftVersion=1,idempotencyKey=Guid.NewGuid()});
             Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
             var export=await response.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("ready",export.GetProperty("state").GetString()); Assert.True(export.GetProperty("byteLength").GetInt64()>1000);
             var html=await client.GetStringAsync(path+$"/previews/{preview.GetProperty("id").GetGuid()}/html"); Assert.Contains("Tiến bộ về phân số",WebUtility.HtmlDecode(html)); Assert.Contains("Luyện 10 bài",WebUtility.HtmlDecode(html)); Assert.DoesNotContain("<script",html,StringComparison.OrdinalIgnoreCase);
+            var link=await (await TestApplication.Post(client,path+"/exports/"+export.GetProperty("id").GetGuid()+"/download-link",new{})).Content.ReadFromJsonAsync<JsonElement>();
+            var bytes=await client.GetByteArrayAsync(link.GetProperty("url").GetString());
+            using var pdf=UglyToad.PdfPig.PdfDocument.Open(bytes); var text=string.Join(" ",pdf.GetPages().Select(p=>p.Text));
+            foreach(var expected in new[]{"An báo cáo","Tiến bộ về phân số","75%","50%","0%","Chưa có kết quả xác nhận","700.000 đồng","Chưa cấu hình thông tin thanh toán"}) Assert.Contains(expected,text);
+            Assert.DoesNotContain("25%",text); Assert.DoesNotContain("1.000.000 đồng",text);
+            Assert.Equal(export.GetProperty("sha256").GetString(),Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)));
         }
     }
 }

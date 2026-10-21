@@ -15,7 +15,8 @@ public sealed class ClassroomReportSource(ClassroomDatabase db, IClassroomBillin
         var student = await db.Students.AsNoTracking().SingleOrDefaultAsync(x => x.OwnerId == scope.OwnerId && x.Id == scope.StudentId, ct);
         if (classroom is null || student is null || !await db.Enrollments.AnyAsync(x => x.OwnerId == scope.OwnerId && x.ClassId == scope.ClassId && x.StudentId == scope.StudentId, ct)) return null;
         var end = scope.Month.AddMonths(1);
-        var sessions = await db.Sessions.AsNoTracking().Where(x => x.OwnerId == scope.OwnerId && x.ClassId == scope.ClassId && x.Date >= scope.Month && x.Date < end).OrderBy(x => x.Date).ThenBy(x => x.StartTime).ThenBy(x => x.Id).ToArrayAsync(ct);
+        var eligible = financial.Sessions.Where(s => s.Attendance.Any(a => a.StudentId == scope.StudentId)).Select(s => s.Id).ToArray();
+        var sessions = await db.Sessions.AsNoTracking().Where(x => x.OwnerId == scope.OwnerId && x.ClassId == scope.ClassId && x.Date >= scope.Month && x.Date < end && eligible.Contains(x.Id)).OrderBy(x => x.Date).ThenBy(x => x.StartTime).ThenBy(x => x.Id).ToArrayAsync(ct);
         var ids = sessions.Select(x => x.Id).ToArray();
         var marks = await db.Attendance.AsNoTracking().Where(x => x.OwnerId == scope.OwnerId && x.StudentId == scope.StudentId && ids.Contains(x.SessionId)).ToArrayAsync(ct);
         var rows = sessions.Select(s => { var mark = marks.SingleOrDefault(x => x.SessionId == s.Id); return new ReportSession(s.Id, s.Date, s.StartTime, s.Status, mark?.Status ?? "unmarked", mark?.Excused ?? false); }).ToArray();

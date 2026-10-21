@@ -37,6 +37,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public TestApplication Reopen(IClassroomChangeHandler? classroomHandler = null, ITuitionChangeHandler? tuitionHandler = null) => new(this, classroomHandler, tuitionHandler);
     public TestClock Clock { get; } = new();
     public bool ProductionCookies { get; init; }
+    public int ReportPreviewMinutes { get; init; } = 15;
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
     public Func<IClassroomChangeHandler, IClassroomChangeHandler>? DecorateBillingHandler { get; init; }
     public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
@@ -58,6 +59,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.UseSetting("Reporting:AccessKey", Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY") ?? "");
         builder.UseSetting("Reporting:SecretKey", Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY") ?? "");
         builder.UseSetting("Reporting:Bucket", ReportBucket);
+        builder.UseSetting("Reporting:PreviewMinutes", ReportPreviewMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture));
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);

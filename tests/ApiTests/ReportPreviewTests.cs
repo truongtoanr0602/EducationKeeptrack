@@ -7,6 +7,24 @@ namespace ApiTests;
 public sealed class ReportPreviewTests(TestApplication app) : IClassFixture<TestApplication>
 {
     [Fact]
+    public async Task Preview_respects_configured_expiry_and_only_counts_enrolled_sessions()
+    {
+        await using var isolated=new TestApplication { ReportPreviewMinutes=1 }; await isolated.InitializeAsync();
+        var (client,_,classId,_,_)=await ReportingFixture.Setup(isolated);
+        using(client)
+        {
+            var student=await (await TestApplication.Post(client,"/api/students",new{name="Vào lớp giữa tháng"})).Content.ReadFromJsonAsync<JsonElement>();
+            var id=student.GetProperty("id").GetGuid();
+            await TestApplication.Post(client,$"/api/classes/{classId}/enrollments",new{studentId=id,startDate="2026-10-15"});
+            await TestApplication.Post(client,$"/api/classes/{classId}/sessions",new{date="2026-10-02",startTime="18:00:00",endTime="19:00:00",kind="regular"});
+            await ReportingFixture.Payments(client,classId);
+            var response=await TestApplication.Post(client,$"/api/reporting/classes/{classId}/students/{id}/months/2026-10/previews",new{});
+            Assert.Equal(HttpStatusCode.OK,response.StatusCode); var preview=await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Empty(preview.GetProperty("sources").GetProperty("classroom").GetProperty("sessions").EnumerateArray());
+            Assert.Equal(isolated.Clock.GetUtcNow().AddMinutes(1),preview.GetProperty("expiresAt").GetDateTimeOffset());
+        }
+    }
+    [Fact]
     public async Task Preview_finance_does_not_collect_future_period_and_retains_source_version()
     {
         var (client,path,classId,studentId,_)=await ReportingFixture.Setup(app);
