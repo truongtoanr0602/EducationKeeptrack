@@ -1,0 +1,52 @@
+﻿[
+    {
+        "n":  22,
+        "title":  "Admin đăng nhập hai bước và xem hồ sơ đăng ký",
+        "deps":  [
+                     1
+                 ],
+        "file":  "docs/tickets/education-keeptrack/22-admin-totp.md",
+        "issueNumber":  23,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/23"
+    },
+    {
+        "n":  23,
+        "title":  "Giáo viên đăng ký và Admin đối chiếu thanh toán để cấp quyền",
+        "deps":  [
+                     22
+                 ],
+        "file":  "docs/tickets/education-keeptrack/23-register-approve-service.md",
+        "issueNumber":  24,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/24"
+    },
+    {
+        "n":  24,
+        "title":  "Khôi phục mật khẩu và đổi email có thu hồi phiên",
+        "deps":  [
+                     23
+                 ],
+        "file":  "docs/tickets/education-keeptrack/24-account-recovery.md",
+        "issueNumber":  25,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/25"
+    },
+    {
+        "n":  25,
+        "title":  "Gia hạn, khóa và thực thi quyền sử dụng có hạn",
+        "deps":  [
+                     23
+                 ],
+        "file":  "docs/tickets/education-keeptrack/25-service-periods-lock.md",
+        "issueNumber":  26,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/26"
+    },
+    {
+        "n":  26,
+        "title":  "Admin bật tắt AI và giáo viên xem hạn mức theo kỳ",
+        "deps":  [
+                     25
+                 ],
+        "file":  "docs/tickets/education-keeptrack/26-ai-access-quota.md",
+        "issueNumber":  27,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/27"
+    }
+]

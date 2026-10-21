@@ -1,0 +1,91 @@
+{
+  "projectId": "7871005430122021919",
+  "ticketNumber": 2,
+  "status": "draft-needs-user-review",
+  "screens": [
+    {
+      "resourceName": "projects/7871005430122021919/screens/c7f4efa4627b497c9ab9173a5ef95118",
+      "title": "Đăng nhập — Bản tinh gọn",
+      "deviceType": "DESKTOP",
+      "html": "stitch/ticket-02/c7f4efa4627b497c9ab9173a5ef95118.html",
+      "screenshot": "stitch/ticket-02/c7f4efa4627b497c9ab9173a5ef95118.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "DESKTOP",
+      "hasHtml": true,
+      "hasScreenshot": true
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/55c9e18305074f929063120c7f62b07d",
+      "title": "Tạo lớp học mới — Ticket #2",
+      "deviceType": "DESKTOP",
+      "html": "stitch/ticket-02/55c9e18305074f929063120c7f62b07d.html",
+      "screenshot": "stitch/ticket-02/55c9e18305074f929063120c7f62b07d.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "DESKTOP",
+      "hasHtml": true,
+      "hasScreenshot": true
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/4cd5615371394dfe966ebb79fb4953ff",
+      "title": "Lớp học của tôi — Ticket #2 (Chuẩn hóa)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/ticket-02/4cd5615371394dfe966ebb79fb4953ff.html",
+      "screenshot": "stitch/ticket-02/4cd5615371394dfe966ebb79fb4953ff.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "DESKTOP",
+      "hasHtml": true,
+      "hasScreenshot": true
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/3521c44b24d447a9ae360f70daf9f202",
+      "title": "Đăng nhập — Mobile Ticket #2",
+      "deviceType": "DESKTOP",
+      "html": "stitch/ticket-02/3521c44b24d447a9ae360f70daf9f202.html",
+      "screenshot": "stitch/ticket-02/3521c44b24d447a9ae360f70daf9f202.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "MOBILE",
+      "hasHtml": true,
+      "hasScreenshot": true
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/6df79c7ac54540d2a14554a70b6d39ed",
+      "title": "Tạo lớp — Mobile Ticket #2",
+      "deviceType": "DESKTOP",
+      "html": "stitch/ticket-02/6df79c7ac54540d2a14554a70b6d39ed.html",
+      "screenshot": "stitch/ticket-02/6df79c7ac54540d2a14554a70b6d39ed.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "MOBILE",
+      "hasHtml": true,
+      "hasScreenshot": true
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/187fb6e36da14b63bfbbde4d3ffdfa95",
+      "title": "Lớp học của tôi — Mobile Ticket #2 (Chuẩn hóa)",
+      "deviceType": "MOBILE",
+      "html": "stitch/ticket-02/187fb6e36da14b63bfbbde4d3ffdfa95.html",
+      "screenshot": "stitch/ticket-02/187fb6e36da14b63bfbbde4d3ffdfa95.png",
+      "designStatus": "draft-needs-user-review",
+      "ticketNumbers": [
+        2
+      ],
+      "intendedDevice": "MOBILE",
+      "hasHtml": true,
+      "hasScreenshot": true
+    }
+  ]
+}

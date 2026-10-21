@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Lớp học của tôi — Education Keeptrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Literata', 'serif'],
+            sans: ['Manrope', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              600: '#2563eb',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+            mint: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              700: '#047857',
+              800: '#065f46',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#f8f9ff] text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header Đầu Trang Chuẩn Desktop 1440px -->
+  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+    <div class="max-w-6xl mx-auto px-6 h-18 flex items-center justify-between">
+      
+      <!-- Trái: Logo chữ Keeptrack & Điều hướng Lớp học -->
+      <div class="flex items-center space-x-8">
+        <a href="#" class="flex items-center space-x-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-brand-900 flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+              <path d="M6 10h7"/>
+            </svg>
+          </div>
+          <span class="font-bold text-xl tracking-tight text-brand-900 font-serif">Keeptrack</span>
+        </a>
+
+        <nav class="flex items-center">
+          <a href="#" class="px-4 py-2 rounded-lg text-sm font-semibold text-brand-900 bg-brand-50 border border-brand-100/80 flex items-center space-x-2">
+            <svg class="w-4 h-4 text-brand-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span>Lớp học</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Phải: Tài khoản giáo viên "Thầy Nam" & Đăng xuất -->
+      <div class="relative" id="userMenuContainer">
+        <button id="userMenuBtn" class="flex items-center space-x-3 p-1.5 pl-2.5 rounded-full hover:bg-slate-50 transition border border-transparent hover:border-slate-200">
+          <span class="text-sm font-semibold text-slate-700">Thầy Nam</span>
+          <div class="w-9 h-9 rounded-full bg-brand-900 text-white flex items-center justify-center text-xs font-bold tracking-wider shadow-sm">
+            TN
+          </div>
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <!-- Dropdown menu -->
+        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-40">
+          <div class="px-4 py-2 border-b border-slate-100">
+            <p class="text-xs text-slate-400">Tài khoản giáo viên</p>
+            <p class="text-sm font-medium text-slate-800">Thầy Nam</p>
+          </div>
+          <button id="logoutTrigger" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Khối Nội Dung Chính -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10">
+    
+    <!-- Hàng Tiêu đề & Nút Tạo lớp -->
+    <div class="flex items-end justify-between mb-8 pb-4 border-b border-slate-200/60">
+      <div>
+        <h1 class="text-3xl font-serif font-bold text-slate-900 tracking-tight">Lớp học của tôi</h1>
+        <p class="text-slate-500 text-sm mt-1.5 font-normal">Quản lý các lớp bạn đang giảng dạy.</p>
+      </div>
+
+      <button class="inline-flex items-center space-x-2 bg-brand-900 hover:bg-brand-800 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-sm transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+        </svg>
+        <span>Tạo lớp</span>
+      </button>
+    </div>
+
+    <!-- Lưới 3 Cột Thẻ Lớp Học -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Thẻ Lớp 1: Toán lớp 9A -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-[0_2px_8px_rgba(30,58,138,0.04)] hover:shadow-[0_8px_20px_rgba(30,58,138,0.08)] hover:border-brand-200 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+              Toán học
+            </span>
+          </div>
+          <h2 class="text-xl font-serif font-bold text-slate-900 tracking-tight mb-2 hover:text-brand-900 transition-colors">
+            Toán lớp 9A
+          </h2>
+          <p class="text-slate-600 text-sm leading-relaxed line-clamp-2">
+            Củng cố kiến thức và ôn tập vào lớp 10.
+          </p>
+        </div>
+      </div>
+
+      <!-- Thẻ Lớp 2: Tiếng Anh 8 -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-[0_2px_8px_rgba(30,58,138,0.04)] hover:shadow-[0_8px_20px_rgba(30,58,138,0.08)] hover:border-brand-200 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+              Tiếng Anh
+            </span>
+          </div>
+          <h2 class="text-xl font-serif font-bold text-slate-900 tracking-tight mb-2 hover:text-brand-900 transition-colors">
+            Tiếng Anh 8
+          </h2>
+          <p class="text-slate-600 text-sm leading-relaxed line-clamp-2">
+            Luyện ngữ pháp và kỹ năng đọc hiểu.
+          </p>
+        </div>
+      </div>
+
+      <!-- Thẻ Lớp 3: Vật lý 10 -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-[0_2px_8px_rgba(30,58,138,0.04)] hover:shadow-[0_8px_20px_rgba(30,58,138,0.08)] hover:border-brand-200 transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+              Vật lý
+            </span>
+          </div>
+          <h2 class="text-xl font-serif font-bold text-slate-900 tracking-tight mb-2 hover:text-brand-900 transition-colors">
+            Vật lý 10
+          </h2>
+          <p class="text-slate-600 text-sm leading-relaxed line-clamp-2">
+            Nắm vững kiến thức cơ bản qua bài tập.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal Xác Nhận Đăng Xuất (ẩn mặc định) -->
+  <div id="logoutModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+      <h3 class="text-lg font-serif font-bold text-slate-900 mb-2">Xác nhận đăng xuất</h3>
+      <p class="text-sm text-slate-600 mb-6">Thầy/cô có chắc chắn muốn đăng xuất khỏi tài khoản Education Keeptrack?</p>
+      <div class="flex items-center justify-end space-x-3">
+        <button id="cancelLogout" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition">
+          Hủy
+        </button>
+        <button id="confirmLogout" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition shadow-sm">
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    const logoutTrigger = document.getElementById('logoutTrigger');
+    const logoutModal = document.getElementById('logoutModal');
+    const cancelLogout = document.getElementById('cancelLogout');
+    const confirmLogout = document.getElementById('confirmLogout');
+
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', () => {
+      userDropdown.classList.add('hidden');
+    });
+
+    logoutTrigger.addEventListener('click', () => {
+      userDropdown.classList.add('hidden');
+      logoutModal.classList.remove('hidden');
+    });
+
+    cancelLogout.addEventListener('click', () => {
+      logoutModal.classList.add('hidden');
+    });
+
+    confirmLogout.addEventListener('click', () => {
+      logoutModal.classList.add('hidden');
+      alert('Đã đăng xuất thành công.');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+﻿[
+    {
+        "n":  1,
+        "title":  "Đăng nhập và tạo lớp riêng của giáo viên",
+        "deps":  [
+
+                 ],
+        "file":  "docs/tickets/education-keeptrack/01-teacher-class.md",
+        "issueNumber":  2,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/2"
+    },
+    {
+        "n":  2,
+        "title":  "Thêm học sinh và quản lý danh sách theo học",
+        "deps":  [
+                     1,
+                     25
+                 ],
+        "file":  "docs/tickets/education-keeptrack/02-student-roster.md",
+        "issueNumber":  3,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/3"
+    },
+    {
+        "n":  3,
+        "title":  "Lập lịch và điểm danh buổi học trực quan",
+        "deps":  [
+                     2
+                 ],
+        "file":  "docs/tickets/education-keeptrack/03-attendance-sessions.md",
+        "issueNumber":  4,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/4"
+    },
+    {
+        "n":  4,
+        "title":  "Xem học phí theo buổi thực học và đơn giá hiệu lực",
+        "deps":  [
+                     3
+                 ],
+        "file":  "docs/tickets/education-keeptrack/04-actual-tuition.md",
+        "issueNumber":  5,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/5"
+    },
+    {
+        "n":  5,
+        "title":  "Tự chấm bài bằng hai chỉ số bốn mức",
+        "deps":  [
+                     3
+                 ],
+        "file":  "docs/tickets/education-keeptrack/05-manual-assessment.md",
+        "issueNumber":  6,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/6"
+    },
+    {
+        "n":  6,
+        "title":  "Ghi nhận thanh toán một phần và chuyển nợ cũ",
+        "deps":  [
+                     4
+                 ],
+        "file":  "docs/tickets/education-keeptrack/06-payments-debt.md",
+        "issueNumber":  7,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/7"
+    },
+    {
+        "n":  7,
+        "title":  "Tạo VietQR với QR tĩnh và thông tin chuyển khoản dự phòng",
+        "deps":  [
+                     6
+                 ],
+        "file":  "docs/tickets/education-keeptrack/07-payment-qr.md",
+        "issueNumber":  8,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/8"
+    },
+    {
+        "n":  8,
+        "title":  "Điều chỉnh tăng giảm học phí có lý do",
+        "deps":  [
+                     6
+                 ],
+        "file":  "docs/tickets/education-keeptrack/08-fee-adjustments.md",
+        "issueNumber":  9,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/9"
+    },
+    {
+        "n":  9,
+        "title":  "Sửa hoặc hủy khoản nhận tiền và đối chiếu lịch sử",
+        "deps":  [
+                     6
+                 ],
+        "file":  "docs/tickets/education-keeptrack/09-receipt-corrections.md",
+        "issueNumber":  10,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/10"
+    },
+    {
+        "n":  10,
+        "title":  "Thống kê tiền thực thu và công nợ theo kỳ học",
+        "deps":  [
+                     9
+                 ],
+        "file":  "docs/tickets/education-keeptrack/10-cashflow-statistics.md",
+        "issueNumber":  11,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/11"
+    },
+    {
+        "n":  11,
+        "title":  "Soạn nhận xét và xuất báo cáo tháng PDF",
+        "deps":  [
+                     5,
+                     7
+                 ],
+        "file":  "docs/tickets/education-keeptrack/11-manual-monthly-pdf.md",
+        "issueNumber":  12,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/12"
+    },
+    {
+        "n":  12,
+        "title":  "Chuẩn bị hướng dẫn chấm và tải ảnh bài nộp riêng tư",
+        "deps":  [
+                     5
+                 ],
+        "file":  "docs/tickets/education-keeptrack/12-submission-photos.md",
+        "issueNumber":  13,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/13"
+    },
+    {
+        "n":  13,
+        "title":  "AI chấm bài và giáo viên sửa xác nhận hai mức",
+        "deps":  [
+                     12,
+                     26
+                 ],
+        "file":  "docs/tickets/education-keeptrack/13-ai-grading.md",
+        "issueNumber":  14,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/14"
+    },
+    {
+        "n":  14,
+        "title":  "Thử lại AI lỗi hoặc chuyển bài sang tự chấm an toàn",
+        "deps":  [
+                     13
+                 ],
+        "file":  "docs/tickets/education-keeptrack/14-ai-fallback.md",
+        "issueNumber":  15,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/15"
+    },
+    {
+        "n":  15,
+        "title":  "Sửa hướng dẫn và chủ động chấm lại bài AI",
+        "deps":  [
+                     13
+                 ],
+        "file":  "docs/tickets/education-keeptrack/15-rubric-regrade.md",
+        "issueNumber":  16,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/16"
+    },
+    {
+        "n":  16,
+        "title":  "AI phác thảo nhận xét và lộ trình trên báo cáo tháng",
+        "deps":  [
+                     11,
+                     26
+                 ],
+        "file":  "docs/tickets/education-keeptrack/16-ai-comments.md",
+        "issueNumber":  17,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/17"
+    },
+    {
+        "n":  17,
+        "title":  "Xem biểu đồ hai chỉ số và độ đầy đủ dữ liệu",
+        "deps":  [
+                     5
+                 ],
+        "file":  "docs/tickets/education-keeptrack/17-learning-trends.md",
+        "issueNumber":  18,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/18"
+    },
+    {
+        "n":  18,
+        "title":  "Xem cảnh báo học tập có bằng chứng và ghi hành động hỗ trợ",
+        "deps":  [
+                     17,
+                     11,
+                     26
+                 ],
+        "file":  "docs/tickets/education-keeptrack/18-early-warnings.md",
+        "issueNumber":  19,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/19"
+    },
+    {
+        "n":  19,
+        "title":  "Ghi tiền trả trước và duyệt bảo lưu nghỉ ốm",
+        "deps":  [
+                     6
+                 ],
+        "file":  "docs/tickets/education-keeptrack/19-prepaid-reserve.md",
+        "issueNumber":  20,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/20"
+    },
+    {
+        "n":  20,
+        "title":  "Khấu trừ bảo lưu kỳ sau và thể hiện số dư trên PDF",
+        "deps":  [
+                     19,
+                     11
+                 ],
+        "file":  "docs/tickets/education-keeptrack/20-reserve-redemption.md",
+        "issueNumber":  21,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/21"
+    },
+    {
+        "n":  21,
+        "title":  "Nhận biết PDF lỗi thời và xuất bản cập nhật",
+        "deps":  [
+                     11
+                 ],
+        "file":  "docs/tickets/education-keeptrack/21-report-refresh.md",
+        "issueNumber":  22,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/22"
+    },
+    {
+        "n":  22,
+        "title":  "Admin đăng nhập hai bước và xem hồ sơ đăng ký",
+        "deps":  [
+                     1
+                 ],
+        "file":  "docs/tickets/education-keeptrack/22-admin-totp.md",
+        "issueNumber":  23,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/23"
+    },
+    {
+        "n":  23,
+        "title":  "Giáo viên đăng ký và Admin đối chiếu thanh toán để cấp quyền",
+        "deps":  [
+                     22
+                 ],
+        "file":  "docs/tickets/education-keeptrack/23-register-approve-service.md",
+        "issueNumber":  24,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/24"
+    },
+    {
+        "n":  24,
+        "title":  "Khôi phục mật khẩu và đổi email có thu hồi phiên",
+        "deps":  [
+                     23
+                 ],
+        "file":  "docs/tickets/education-keeptrack/24-account-recovery.md",
+        "issueNumber":  25,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/25"
+    },
+    {
+        "n":  25,
+        "title":  "Gia hạn, khóa và thực thi quyền sử dụng có hạn",
+        "deps":  [
+                     23
+                 ],
+        "file":  "docs/tickets/education-keeptrack/25-service-periods-lock.md",
+        "issueNumber":  26,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/26"
+    },
+    {
+        "n":  26,
+        "title":  "Admin bật tắt AI và giáo viên xem hạn mức theo kỳ",
+        "deps":  [
+                     25
+                 ],
+        "file":  "docs/tickets/education-keeptrack/26-ai-access-quota.md",
+        "issueNumber":  27,
+        "url":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/27"
+    }
+]

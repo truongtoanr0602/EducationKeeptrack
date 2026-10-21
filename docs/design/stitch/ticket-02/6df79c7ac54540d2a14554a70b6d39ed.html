@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Tạo lớp — Mobile Ticket #2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff4ff',
+              100: '#dbeafe',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              950: '#172554',
+            },
+            mint: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              600: '#059669',
+              700: '#047857',
+            }
+          },
+          fontFamily: {
+            serif: ['Literata', 'serif'],
+            sans: ['Manrope', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .min-touch {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- Mobile Top Bar (Clean scope: Keep track logo, Lớp học tab, Thầy Nam, Đăng xuất) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-3.5 py-2.5 shadow-xs">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-brand-900 text-white flex items-center justify-center font-serif font-bold text-base shadow-xs shrink-0">
+          <span class="material-symbols-outlined text-[19px]">school</span>
+        </div>
+        <span class="font-serif font-bold text-slate-900 text-base leading-tight">Keeptrack</span>
+        <span class="px-2 py-0.5 rounded-md bg-brand-50 text-brand-900 font-semibold text-xs border border-brand-100 ml-1">
+          Lớp học
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-100 border border-slate-200">
+          <div class="w-5 h-5 rounded-full bg-brand-900 text-white text-[10px] font-bold flex items-center justify-center">TN</div>
+          <span class="text-xs font-semibold text-slate-700 hidden xs:inline">Thầy Nam</span>
+        </div>
+        <button 
+          type="button" 
+          onclick="openLogoutModal()"
+          class="min-touch px-2 py-1 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 flex items-center gap-1 text-xs font-medium transition"
+          title="Đăng xuất"
+        >
+          <span class="material-symbols-outlined text-[18px]">logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container: Mobile Form Modal / Card -->
+  <main class="w-full max-w-md mx-auto px-4 py-4 flex-1 flex flex-col justify-start">
+
+    <!-- Interactive Create Class Card (Structured as focused mobile card/sheet) -->
+    <div id="createCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-5 relative transition-all">
+      
+      <!-- Card Header -->
+      <div class="flex items-start justify-between pb-3 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-900 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">menu_book</span>
+          </div>
+          <div>
+            <h1 class="font-serif text-lg font-bold text-slate-900 leading-tight">Tạo lớp học mới</h1>
+            <p class="text-[11px] text-slate-500">Nhập thông tin cơ bản để bắt đầu quản lý lớp.</p>
+          </div>
+        </div>
+        <button 
+          type="button" 
+          onclick="handleCancel()" 
+          class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"
+          aria-label="Đóng"
+        >
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- State Message Banner -->
+      <div id="formAlertBanner" class="hidden mb-4 p-3 rounded-xl text-xs font-medium flex items-start gap-2.5">
+        <span id="formAlertIcon" class="material-symbols-outlined text-base shrink-0 mt-0.5"></span>
+        <div id="formAlertText" class="flex-1 leading-relaxed"></div>
+        <button 
+          id="retryBtn" 
+          type="button" 
+          onclick="triggerSaveAction()"
+          class="hidden px-2.5 py-1 bg-rose-700 text-white font-semibold rounded-lg text-[11px] hover:bg-rose-800 transition shrink-0"
+        >
+          Thử lại
+        </button>
+      </div>
+
+      <!-- Success Preview State Container (Hidden by default, shown on 'success') -->
+      <div id="successPreviewBox" class="hidden mb-4 p-4 rounded-xl bg-mint-50 border border-mint-200 text-slate-800">
+        <div class="flex items-center gap-2 text-mint-700 font-bold text-xs mb-2">
+          <span class="material-symbols-outlined text-base">check_circle</span>
+          Lớp học đã được tạo thành công!
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-mint-100 shadow-xs space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span id="previewClassName" class="font-serif font-bold text-sm text-slate-900">Toán Nâng Cao 9A</span>
+            <span id="previewSubject" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-mint-50 text-mint-700 border border-mint-200">Toán học</span>
+          </div>
+          <p id="previewDesc" class="text-xs text-slate-600 leading-relaxed">
+            Lớp học chuyên sâu bồi dưỡng tư duy giải toán hình học và đại số.
+          </p>
+        </div>
+      </div>
+
+      <!-- Create Class Form -->
+      <form id="createClassForm" onsubmit="event.preventDefault(); triggerSaveAction();" class="space-y-4">
+        
+        <!-- Field 1: Tên lớp * -->
+        <div>
+          <label for="inputClassName" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Tên lớp <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            id="inputClassName"
+            type="text"
+            placeholder="VD: Toán Nâng Cao 9A"
+            value="Toán Nâng Cao 9A"
+            class="w-full min-touch px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition"
+          >
+          <p id="errorClassName" class="hidden mt-1 text-[11px] font-semibold text-rose-600">Vui lòng nhập tên lớp học.</p>
+        </div>
+
+        <!-- Field 2: Môn học * -->
+        <div>
+          <label for="inputSubject" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Môn học <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            id="inputSubject"
+            type="text"
+            placeholder="VD: Toán học"
+            value="Toán học"
+            class="w-full min-touch px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition"
+          >
+          <p id="errorSubject" class="hidden mt-1 text-[11px] font-semibold text-rose-600">Vui lòng nhập môn học.</p>
+        </div>
+
+        <!-- Field 3: Mô tả (Không bắt buộc) -->
+        <div>
+          <label for="inputDescription" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            Mô tả <span class="text-slate-400 font-normal lowercase">(không bắt buộc)</span>
+          </label>
+          <textarea 
+            id="inputDescription"
+            rows="3"
+            placeholder="Ghi chú về mục tiêu, lộ trình bài giảng hoặc tài liệu trọng tâm..."
+            class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition"
+          >Lớp học chuyên sâu bồi dưỡng tư duy giải toán hình học và đại số.</textarea>
+        </div>
+
+        <!-- Action Buttons: Hủy & Lưu lớp (>=44px touch target) -->
+        <div class="pt-2 flex items-center gap-3">
+          <button 
+            type="button" 
+            onclick="handleCancel()" 
+            class="flex-1 min-touch py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 active:bg-slate-200 font-semibold text-sm transition"
+          >
+            Hủy
+          </button>
+          <button 
+            type="submit" 
+            id="btnSaveClass"
+            class="flex-1 min-touch py-2.5 px-4 rounded-xl bg-brand-900 hover:bg-brand-950 active:bg-brand-950 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-60"
+          >
+            <span id="saveSpinner" class="hidden animate-spin material-symbols-outlined text-[18px]">progress_activity</span>
+            <span id="saveIcon" class="material-symbols-outlined text-[18px]">check</span>
+            <span id="saveLabel">Lưu lớp</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Collapsible Prototype Review Area Stacked Below -->
+    <div class="border border-slate-200 rounded-2xl bg-white shadow-xs overflow-hidden mb-6">
+      <button 
+        type="button" 
+        onclick="toggleQaCollapse()"
+        class="w-full min-touch px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left transition"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-brand-900 text-[20px]">troubleshoot</span>
+          <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Bảng kiểm thử trạng thái (QA Panel)</span>
+        </div>
+        <span id="qaCaret" class="material-symbols-outlined text-slate-500 text-lg transition-transform duration-200">expand_less</span>
+      </button>
+
+      <div id="qaBody" class="p-4 border-t border-slate-200 bg-white">
+        <p class="text-[11px] text-slate-500 mb-3 leading-normal">
+          Thẩm định các kịch bản tương tác form Tạo lớp học (Ticket #2):
+        </p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-semibold">
+          <button 
+            type="button"
+            onclick="setScenario('default')"
+            id="qa-btn-default"
+            class="qa-control min-touch p-2.5 rounded-xl border border-brand-900 bg-brand-900 text-white text-left flex flex-col justify-between transition"
+          >
+            <span class="text-[10px] opacity-75 font-normal">Kịch bản 1</span>
+            <span>Mặc định (Form trống)</span>
+          </button>
+
+          <button 
+            type="button"
+            onclick="setScenario('validation')"
+            id="qa-btn-validation"
+            class="qa-control min-touch p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left flex flex-col justify-between transition"
+          >
+            <span class="text-[10px] text-rose-600 font-bold">Kịch bản 2</span>
+            <span class="text-rose-700">Lỗi xác thực</span>
+          </button>
+
+          <button 
+            type="button"
+            onclick="setScenario('saving')"
+            id="qa-btn-saving"
+            class="qa-control min-touch p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left flex flex-col justify-between transition"
+          >
+            <span class="text-[10px] text-blue-700 font-bold">Kịch bản 3</span>
+            <span class="text-blue-800">Đang lưu</span>
+          </button>
+
+          <button 
+            type="button"
+            onclick="setScenario('network-error')"
+            id="qa-btn-network-error"
+            class="qa-control min-touch p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left flex flex-col justify-between transition"
+          >
+            <span class="text-[10px] text-rose-700 font-bold">Kịch bản 4</span>
+            <span class="text-rose-800">Lỗi kết nối</span>
+          </button>
+
+          <button 
+            type="button"
+            onclick="setScenario('success')"
+            id="qa-btn-success"
+            class="qa-control min-touch p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left flex flex-col justify-between transition col-span-2 sm:col-span-1"
+          >
+            <span class="text-[10px] text-mint-700 font-bold">Kịch bản 5</span>
+            <span class="text-mint-700">Thành công (Preview)</span>
+          </button>
+        </div>
+
+        <div class="mt-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600">
+          <div class="font-bold text-slate-800 mb-0.5">Tiêu chuẩn Ticket #2:</div>
+          Chỉ gồm 3 trường: Tên lớp *, Môn học *, Mô tả (tùy chọn) và 2 nút Hủy, Lưu lớp. Thẻ xem trước kết quả chỉ chứa Tên lớp, Môn học, Mô tả; không chứa số học sinh hay giáo án.
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Logout Confirmation Modal (Mobile Bottom Sheet / Dialog) -->
+  <div id="logoutModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl border border-slate-100 space-y-3">
+      <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+        <span class="material-symbols-outlined">logout</span>
+      </div>
+      <div class="text-center">
+        <h3 class="font-serif font-bold text-base text-slate-900">Xác nhận đăng xuất?</h3>
+        <p class="text-xs text-slate-500 mt-1">Các dữ liệu chưa lưu trên biểu mẫu sẽ không được đồng bộ.</p>
+      </div>
+      <div class="flex items-center gap-2.5 pt-2">
+        <button 
+          type="button" 
+          onclick="closeLogoutModal()"
+          class="flex-1 min-touch py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Ở lại
+        </button>
+        <button 
+          type="button" 
+          onclick="confirmLogout()"
+          class="flex-1 min-touch py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700"
+        >
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="w-full text-center py-4 text-[11px] text-slate-400 border-t border-slate-200 bg-white">
+    Education Keeptrack • Bản mẫu Mobile Ticket #2
+  </footer>
+
+  <script>
+    let isQaCollapsed = false;
+
+    function toggleQaCollapse() {
+      const qaBody = document.getElementById('qaBody');
+      const qaCaret = document.getElementById('qaCaret');
+      isQaCollapsed = !isQaCollapsed;
+      if (isQaCollapsed) {
+        qaBody.classList.add('hidden');
+        qaCaret.textContent = 'expand_more';
+      } else {
+        qaBody.classList.remove('hidden');
+        qaCaret.textContent = 'expand_less';
+      }
+    }
+
+    function openLogoutModal() {
+      document.getElementById('logoutModal').classList.remove('hidden');
+    }
+
+    function closeLogoutModal() {
+      document.getElementById('logoutModal').classList.add('hidden');
+    }
+
+    function confirmLogout() {
+      closeLogoutModal();
+      alert('Đã đăng xuất khỏi tài khoản Thầy Nam.');
+    }
+
+    function handleCancel() {
+      if (confirm('Hủy các thay đổi và quay lại danh sách lớp?')) {
+        setScenario('default');
+      }
+    }
+
+    function resetFormState() {
+      const banner = document.getElementById('formAlertBanner');
+      const retryBtn = document.getElementById('retryBtn');
+      const nameInput = document.getElementById('inputClassName');
+      const subInput = document.getElementById('inputSubject');
+      const descInput = document.getElementById('inputDescription');
+      const nameErr = document.getElementById('errorClassName');
+      const subErr = document.getElementById('errorSubject');
+      const saveBtn = document.getElementById('btnSaveClass');
+      const spinner = document.getElementById('saveSpinner');
+      const saveIcon = document.getElementById('saveIcon');
+      const saveLabel = document.getElementById('saveLabel');
+      const successBox = document.getElementById('successPreviewBox');
+
+      banner.className = 'hidden mb-4 p-3 rounded-xl text-xs font-medium flex items-start gap-2.5';
+      retryBtn.classList.add('hidden');
+      nameInput.className = 'w-full min-touch px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition';
+      subInput.className = 'w-full min-touch px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition';
+      descInput.className = 'w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 transition';
+      
+      nameErr.classList.add('hidden');
+      subErr.classList.add('hidden');
+
+      saveBtn.disabled = false;
+      spinner.classList.add('hidden');
+      saveIcon.classList.remove('hidden');
+      saveLabel.textContent = 'Lưu lớp';
+
+      nameInput.disabled = false;
+      subInput.disabled = false;
+      descInput.disabled = false;
+
+      successBox.classList.add('hidden');
+    }
+
+    function highlightQaButton(scenario) {
+      document.querySelectorAll('.qa-control').forEach(btn => {
+        btn.className = 'qa-control min-touch p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-left flex flex-col justify-between transition';
+      });
+      const active = document.getElementById('qa-btn-' + scenario);
+      if (active) {
+        active.className = 'qa-control min-touch p-2.5 rounded-xl border border-brand-900 bg-brand-900 text-white text-left flex flex-col justify-between transition';
+      }
+    }
+
+    function setScenario(scenario) {
+      resetFormState();
+      highlightQaButton(scenario);
+
+      const banner = document.getElementById('formAlertBanner');
+      const bannerIcon = document.getElementById('formAlertIcon');
+      const bannerText = document.getElementById('formAlertText');
+      const retryBtn = document.getElementById('retryBtn');
+
+      const nameInput = document.getElementById('inputClassName');
+      const subInput = document.getElementById('inputSubject');
+      const descInput = document.getElementById('inputDescription');
+      const nameErr = document.getElementById('errorClassName');
+      const subErr = document.getElementById('errorSubject');
+
+      const saveBtn = document.getElementById('btnSaveClass');
+      const spinner = document.getElementById('saveSpinner');
+      const saveIcon = document.getElementById('saveIcon');
+      const saveLabel = document.getElementById('saveLabel');
+      const successBox = document.getElementById('successPreviewBox');
+
+      if (scenario === 'default') {
+        nameInput.value = '';
+        subInput.value = '';
+        descInput.value = '';
+      } else if (scenario === 'validation') {
+        nameInput.value = '';
+        subInput.value = '';
+        descInput.value = 'Mô tả lớp thử nghiệm';
+
+        nameInput.className = 'w-full min-touch px-3.5 py-2.5 text-sm bg-rose-50/40 border-2 border-rose-500 rounded-xl text-rose-900 focus:outline-none';
+        subInput.className = 'w-full min-touch px-3.5 py-2.5 text-sm bg-rose-50/40 border-2 border-rose-500 rounded-xl text-rose-900 focus:outline-none';
+        nameErr.classList.remove('hidden');
+        subErr.classList.remove('hidden');
+
+        banner.className = 'mb-4 p-3 rounded-xl text-xs font-semibold flex items-start gap-2.5 bg-rose-50 border border-rose-200 text-rose-800';
+        bannerIcon.textContent = 'warning';
+        bannerText.textContent = 'Vui lòng điền đủ 2 trường bắt buộc: Tên lớp và Môn học.';
+      } else if (scenario === 'saving') {
+        nameInput.value = 'Toán Nâng Cao 9A';
+        subInput.value = 'Toán học';
+        descInput.value = 'Lớp bồi dưỡng giải đề thi trường chuyên.';
+
+        nameInput.disabled = true;
+        subInput.disabled = true;
+        descInput.disabled = true;
+        saveBtn.disabled = true;
+
+        spinner.classList.remove('hidden');
+        saveIcon.classList.add('hidden');
+        saveLabel.textContent = 'Đang lưu lớp...';
+      } else if (scenario === 'network-error') {
+        nameInput.value = 'Toán Nâng Cao 9A';
+        subInput.value = 'Toán học';
+        descInput.value = 'Lớp bồi dưỡng giải đề thi trường chuyên.';
+
+        banner.className = 'mb-4 p-3 rounded-xl text-xs font-semibold flex items-center justify-between gap-2.5 bg-rose-50 border border-rose-300 text-rose-800';
+        bannerIcon.textContent = 'wifi_off';
+        bannerText.textContent = 'Mất kết nối máy chủ khi lưu. Dữ liệu chưa bị mất.';
+        retryBtn.classList.remove('hidden');
+      } else if (scenario === 'success') {
+        nameInput.value = 'Toán Nâng Cao 9A';
+        subInput.value = 'Toán học';
+        descInput.value = 'Lớp học chuyên sâu bồi dưỡng tư duy giải toán hình học và đại số.';
+
+        document.getElementById('previewClassName').textContent = nameInput.value;
+        document.getElementById('previewSubject').textContent = subInput.value;
+        document.getElementById('previewDesc').textContent = descInput.value;
+
+        successBox.classList.remove('hidden');
+      }
+    }
+
+    function triggerSaveAction() {
+      const name = document.getElementById('inputClassName').value.trim();
+      const subject = document.getElementById('inputSubject').value.trim();
+      if (!name || !subject) {
+        setScenario('validation');
+        return;
+      }
+      setScenario('saving');
+      setTimeout(() => {
+        setScenario('success');
+      }, 900);
+    }
+  </script>
+</body>
+</html>

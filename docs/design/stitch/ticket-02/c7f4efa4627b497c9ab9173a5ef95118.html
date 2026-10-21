@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Đăng nhập — Education Keeptrack</title>
+<!-- Fonts: Literata (Headlines) & Manrope (Body/Labels) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-container": "#006f66",
+            "on-error-container": "#93000a",
+            "tertiary-container": "#6c2e00",
+            "tertiary-fixed-dim": "#ffb68e",
+            "inverse-surface": "#233144",
+            "error": "#ba1a1a",
+            "surface-container-low": "#eff4ff",
+            "primary-container": "#1e3a8a",
+            "surface-container-highest": "#d5e3fd",
+            "primary": "#00236f",
+            "on-secondary-fixed": "#00201d",
+            "on-tertiary-container": "#ff8e49",
+            "secondary-fixed": "#89f5e7",
+            "on-tertiary-fixed-variant": "#763300",
+            "on-primary-fixed-variant": "#264191",
+            "surface-dim": "#ccdbf4",
+            "inverse-primary": "#b6c4ff",
+            "inverse-on-surface": "#ebf1ff",
+            "on-tertiary-fixed": "#331200",
+            "on-primary-container": "#90a8ff",
+            "on-surface": "#0d1c2f",
+            "surface-bright": "#f8f9ff",
+            "outline": "#757682",
+            "secondary-fixed-dim": "#6bd8cb",
+            "on-secondary-fixed-variant": "#005049",
+            "outline-variant": "#c5c5d3",
+            "secondary": "#006a61",
+            "on-primary-fixed": "#00164e",
+            "on-surface-variant": "#444651",
+            "on-primary": "#ffffff",
+            "primary-fixed-dim": "#b6c4ff",
+            "primary-fixed": "#dce1ff",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed": "#ffdbca",
+            "surface-container-lowest": "#ffffff",
+            "background": "#f8f9ff",
+            "on-error": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-container-high": "#dde9ff",
+            "tertiary": "#4a1d00",
+            "secondary-container": "#86f2e4",
+            "surface": "#f8f9ff",
+            "on-background": "#0d1c2f",
+            "surface-variant": "#d5e3fd",
+            "on-tertiary": "#ffffff",
+            "surface-tint": "#4059aa",
+            "surface-container": "#e6eeff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1.5rem",
+            "gutter-mobile": "1rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "margin-mobile": "1rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "margin": "2rem"
+          },
+          "fontFamily": {
+            "display-lg-mobile": ["Literata"],
+            "label-sm": ["Manrope"],
+            "title-md": ["Manrope"],
+            "body-lg": ["Manrope"],
+            "label-md": ["Manrope"],
+            "title-lg": ["Manrope"],
+            "body-sm": ["Manrope"],
+            "headline-lg": ["Literata"],
+            "display-lg": ["Literata"],
+            "headline-sm": ["Literata"],
+            "headline-md": ["Literata"],
+            "body-md": ["Manrope"]
+          },
+          "fontSize": {
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "title-lg": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.005em", "fontWeight": "500" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full bg-background text-on-surface antialiased flex flex-col justify-between selection:bg-surface-container-highest selection:text-primary">
+<!-- Header: Pure, Scholarly Minimal Anchor -->
+<header class="w-full px-8 py-6 flex justify-between items-center border-b border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="school">school</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary tracking-tight leading-none">Education Keeptrack</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Mini-CRM Thầy Cô &amp; Gia Sư</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+<span>Hệ thống trực tuyến</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-7xl mx-auto px-6 py-10 flex-1 flex flex-col justify-center">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+<!-- Primary Focused Authentication Form (Main Desktop Card) -->
+<section class="lg:col-span-5 w-full flex flex-col items-center">
+<div class="w-full max-w-md bg-surface-container-lowest border border-[#E2E8F0] rounded-xl p-8 shadow-[0_8px_24px_-4px_rgba(30,58,138,0.06),0_2px_6px_-1px_rgba(30,58,138,0.03)]">
+<div class="text-left mb-7">
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Đăng nhập tài khoản</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1.5">Vui lòng nhập thông tin để truy cập sổ quản lý lớp học.</p>
+</div>
+<!-- Dynamic Alerts container for live preview toggle -->
+<div class="hidden mb-5" id="liveAlertContainer">
+<!-- Dynamically populated via state buttons -->
+</div>
+<form class="space-y-5" id="activeLoginForm" onsubmit="event.preventDefault(); simulateSubmit();">
+<!-- Field: Tài khoản -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1.5" for="usernameInput">
+                Tài khoản
+              </label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border border-[#CBD5E1] rounded-lg px-3.5 py-2.5 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all duration-150" id="usernameInput" name="username" placeholder="Nhập tài khoản của thầy/cô" required="" type="text"/>
+</div>
+</div>
+<!-- Field: Mật khẩu -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1.5" for="passwordInput">
+                Mật khẩu
+              </label>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-lowest border border-[#CBD5E1] rounded-lg pl-3.5 pr-11 py-2.5 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all duration-150" id="passwordInput" name="password" placeholder="Nhập mật khẩu" required="" type="password"/>
+<button aria-label="Hiển thị hoặc ẩn mật khẩu" class="absolute right-2.5 p-1.5 text-on-surface-variant hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary-container/20 rounded" id="togglePasswordBtn" onclick="togglePasswordVisibility('passwordInput', 'eyeIconMain')" title="Hiển thị hoặc ẩn mật khẩu" type="button">
+<span class="material-symbols-outlined text-[20px] align-middle" data-icon="visibility" id="eyeIconMain">visibility</span>
+</button>
+</div>
+</div>
+<!-- Primary Action Button: 44px height, navy blue (#1E3A8A) -->
+<button class="w-full h-11 bg-primary-container hover:bg-primary active:translate-y-[1px] text-on-primary font-title-md text-title-md rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container" id="mainSubmitBtn" type="submit">
+<span id="submitBtnText">Đăng nhập</span>
+<span class="hidden material-symbols-outlined text-[18px] animate-spin" data-icon="progress_activity" id="submitSpinner">progress_activity</span>
+</button>
+</form>
+<div class="mt-6 pt-5 border-t border-surface-container flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="lock">lock</span>
+              Không gian cá nhân hóa
+            </span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">v2.4.0</span>
+</div>
+</div>
+</section>
+<!-- State Showcase & Interactive Validation Preview Ledger -->
+<section class="lg:col-span-7 w-full">
+<div class="bg-surface-container-lowest border border-[#E2E8F0] rounded-xl p-6 lg:p-7 shadow-[0_4px_20px_-4px_rgba(30,58,138,0.04)]">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-surface-container gap-2">
+<div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold mb-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="tune">tune</span>
+                TRỰC QUAN HÓA CÁC TRẠNG THÁI
+              </div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Kiểm thử hành vi xác thực</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Chọn trạng thái để xem trực tiếp phản hồi trên thẻ đăng nhập</p>
+</div>
+<!-- State Selection Grid Tabs -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5 mb-6">
+<button class="state-tab-btn active-state-tab p-3 rounded-lg border text-left transition-all text-primary bg-surface-container-low border-primary-container font-semibold" onclick="setLiveState('default')" type="button">
+<span class="block font-label-sm text-label-sm uppercase tracking-wider text-outline mb-1">Trạng thái 1</span>
+<span class="font-title-md text-title-md block leading-tight">Mặc định</span>
+</button>
+<button class="state-tab-btn p-3 rounded-lg border border-[#E2E8F0] hover:bg-surface-container-low text-left transition-all text-on-surface" onclick="setLiveState('error')" type="button">
+<span class="block font-label-sm text-label-sm uppercase tracking-wider text-outline mb-1">Trạng thái 2</span>
+<span class="font-title-md text-title-md block leading-tight text-error">Lỗi xác thực</span>
+</button>
+<button class="state-tab-btn p-3 rounded-lg border border-[#E2E8F0] hover:bg-surface-container-low text-left transition-all text-on-surface" onclick="setLiveState('expired')" type="button">
+<span class="block font-label-sm text-label-sm uppercase tracking-wider text-outline mb-1">Trạng thái 3</span>
+<span class="font-title-md text-title-md block leading-tight text-amber-700">Hết hạn phiên</span>
+</button>
+<button class="state-tab-btn p-3 rounded-lg border border-[#E2E8F0] hover:bg-surface-container-low text-left transition-all text-on-surface" onclick="setLiveState('loading')" type="button">
+<span class="block font-label-sm text-label-sm uppercase tracking-wider text-outline mb-1">Trạng thái 4</span>
+<span class="font-title-md text-title-md block leading-tight text-primary">Đang xử lý</span>
+</button>
+</div>
+<!-- Micro Showcase Cards: Specification Matrix -->
+<div class="space-y-3.5">
+<!-- Item 1: Default & Focus Specification -->
+<div class="p-4 rounded-lg border border-[#E2E8F0] bg-surface-bright flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="p-2 rounded bg-surface-container text-primary material-symbols-outlined text-[20px]" data-icon="edit_note">edit_note</span>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-title-md text-title-md text-on-surface">1. Trạng thái Form chuẩn &amp; Tiêu điểm</h4>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Standard Field</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Nhãn cố định đúng quy cách 'Tài khoản' &amp; 'Mật khẩu'. Viền xanh Navy mờ khi con trỏ tập trung.</p>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="inline-flex items-center text-secondary font-label-md text-label-md gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+                  Sẵn sàng nhập
+                </span>
+</div>
+</div>
+<!-- Item 2: Authentication Error Specification -->
+<div class="p-4 rounded-lg border border-[#FCA5A5]/60 bg-[#FEF2F2] flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="p-2 rounded bg-error/10 text-error material-symbols-outlined text-[20px]" data-icon="error">error</span>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-title-md text-title-md text-error">2. Lỗi xác thực tài khoản</h4>
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">Tương phản cao</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-error-container mt-0.5">Hiển thị thông báo: <strong>"Tài khoản hoặc mật khẩu chưa đúng"</strong>. Khung viền chuyển sang sắc đỏ rõ rệt.</p>
+</div>
+</div>
+<div class="shrink-0">
+<button class="px-3 py-1.5 rounded border border-[#FCA5A5] bg-surface-container-lowest text-error hover:bg-error-container font-label-md text-label-md transition-colors" onclick="setLiveState('error')" type="button">
+                  Áp dụng mẫu này
+                </button>
+</div>
+</div>
+<!-- Item 3: Session Expired Specification -->
+<div class="p-4 rounded-lg border border-amber-200 bg-[#FFFBEB] flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="p-2 rounded bg-amber-100 text-amber-800 material-symbols-outlined text-[20px]" data-icon="timer">timer</span>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-title-md text-title-md text-amber-900">3. Hết hạn phiên làm việc</h4>
+<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-label-sm text-label-sm font-semibold">Session Timeout</span>
+</div>
+<p class="font-body-sm text-body-sm text-amber-800 mt-0.5">Banner cảnh báo màu vàng amber/cam: <strong>"Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."</strong></p>
+</div>
+</div>
+<div class="shrink-0">
+<button class="px-3 py-1.5 rounded border border-amber-300 bg-surface-container-lowest text-amber-800 hover:bg-amber-100 font-label-md text-label-md transition-colors" onclick="setLiveState('expired')" type="button">
+                  Áp dụng mẫu này
+                </button>
+</div>
+</div>
+<!-- Item 4: Processing / Loading Specification -->
+<div class="p-4 rounded-lg border border-primary-container/20 bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="p-2 rounded bg-primary-container text-on-primary material-symbols-outlined text-[20px] animate-spin" data-icon="progress_activity">progress_activity</span>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-title-md text-title-md text-primary">4. Đang xử lý / Đang xác thực</h4>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-semibold">Loading State</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Vô hiệu hóa form, nút 'Đăng nhập' hiển thị vòng xoay spinner kèm nhãn <strong>"Đang xác thực..."</strong>.</p>
+</div>
+</div>
+<div class="shrink-0">
+<button class="px-3 py-1.5 rounded border border-primary-container text-primary bg-surface-container-lowest hover:bg-surface-container font-label-md text-label-md transition-colors" onclick="setLiveState('loading')" type="button">
+                  Áp dụng mẫu này
+                </button>
+</div>
+</div>
+</div>
+<!-- Academic Principles Footnote -->
+<div class="mt-5 pt-4 border-t border-surface-container flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary" data-icon="verified_user">verified_user</span>
+<span>Thiết kế tuân thủ nghiêm ngặt chuẩn tối giản sư phạm: không quảng cáo, không phân tán tập trung.</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer Anchor -->
+<footer class="w-full px-8 py-5 border-t border-surface-container text-center text-on-surface-variant font-body-sm text-body-sm">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+<p>© Education Keeptrack — Công cụ đồng hành cùng nhà giáo &amp; người dạy học tự do.</p>
+<div class="flex items-center gap-4 text-on-surface-variant font-label-md text-label-md">
+<span>Bảo mật nội bộ</span>
+<span class="text-outline">•</span>
+<span>Chuẩn nghiệp vụ độc lập</span>
+</div>
+</div>
+</footer>
+<!-- Script for interactive toggle and states showcase -->
+<script>
+    function togglePasswordVisibility(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
+      if (!input || !icon) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+      }
+    }
+
+    function setLiveState(state) {
+      const alertContainer = document.getElementById('liveAlertContainer');
+      const submitBtn = document.getElementById('mainSubmitBtn');
+      const submitBtnText = document.getElementById('submitBtnText');
+      const submitSpinner = document.getElementById('submitSpinner');
+      const usernameInput = document.getElementById('usernameInput');
+      const passwordInput = document.getElementById('passwordInput');
+      
+      // Update Tab Styles
+      const tabs = document.querySelectorAll('.state-tab-btn');
+      tabs.forEach(tab => {
+        tab.classList.remove('active-state-tab', 'text-primary', 'bg-surface-container-low', 'border-primary-container', 'font-semibold');
+        tab.classList.add('border-[#E2E8F0]', 'text-on-surface');
+      });
+
+      // Reset Form State
+      usernameInput.disabled = false;
+      passwordInput.disabled = false;
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      submitSpinner.classList.add('hidden');
+      submitBtnText.textContent = 'Đăng nhập';
+      
+      usernameInput.classList.remove('border-error', 'ring-2', 'ring-error/20');
+      passwordInput.classList.remove('border-error', 'ring-2', 'ring-error/20');
+      usernameInput.classList.add('border-[#CBD5E1]');
+      passwordInput.classList.add('border-[#CBD5E1]');
+      
+      alertContainer.innerHTML = '';
+      alertContainer.classList.add('hidden');
+
+      if (state === 'default') {
+        // Tab 1 highlight
+        tabs[0].classList.add('active-state-tab', 'text-primary', 'bg-surface-container-low', 'border-primary-container', 'font-semibold');
+        tabs[0].classList.remove('border-[#E2E8F0]');
+      } else if (state === 'error') {
+        // Tab 2 highlight
+        tabs[1].classList.add('active-state-tab', 'text-error', 'bg-red-50', 'border-error', 'font-semibold');
+        tabs[1].classList.remove('border-[#E2E8F0]');
+
+        // Inject Error Alert
+        alertContainer.classList.remove('hidden');
+        alertContainer.innerHTML = `
+          <div class="p-3.5 rounded-lg bg-[#FEF2F2] border border-[#FCA5A5] flex items-start gap-2.5 text-error">
+            <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5" data-icon="error">error</span>
+            <div class="font-body-md text-body-md font-medium text-error leading-snug">
+              Tài khoản hoặc mật khẩu chưa đúng.
+            </div>
+          </div>
+        `;
+        
+        usernameInput.classList.remove('border-[#CBD5E1]');
+        usernameInput.classList.add('border-error', 'ring-2', 'ring-error/20');
+        passwordInput.classList.remove('border-[#CBD5E1]');
+        passwordInput.classList.add('border-error', 'ring-2', 'ring-error/20');
+
+      } else if (state === 'expired') {
+        // Tab 3 highlight
+        tabs[2].classList.add('active-state-tab', 'text-amber-800', 'bg-amber-50', 'border-amber-400', 'font-semibold');
+        tabs[2].classList.remove('border-[#E2E8F0]');
+
+        // Inject Expired Session Banner
+        alertContainer.classList.remove('hidden');
+        alertContainer.innerHTML = `
+          <div class="p-3.5 rounded-lg bg-[#FFFBEB] border border-amber-300 flex items-start gap-2.5 text-amber-900">
+            <span class="material-symbols-outlined text-[20px] text-amber-700 shrink-0 mt-0.5" data-icon="warning">warning</span>
+            <div class="font-body-md text-body-md font-medium text-amber-900 leading-snug">
+              Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+            </div>
+          </div>
+        `;
+
+      } else if (state === 'loading') {
+        // Tab 4 highlight
+        tabs[3].classList.add('active-state-tab', 'text-primary', 'bg-surface-container-low', 'border-primary-container', 'font-semibold');
+        tabs[3].classList.remove('border-[#E2E8F0]');
+
+        // Disable and spin
+        usernameInput.disabled = true;
+        passwordInput.disabled = true;
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-85', 'cursor-not-allowed');
+        submitSpinner.classList.remove('hidden');
+        submitBtnText.textContent = 'Đang xác thực...';
+      }
+    }
+
+    function simulateSubmit() {
+      // Trigger loading animation for 1.8 seconds then switch to success or prompt
+      setLiveState('loading');
+      setTimeout(() => {
+        setLiveState('error');
+      }, 1600);
+    }
+  </script>
+</body></html>

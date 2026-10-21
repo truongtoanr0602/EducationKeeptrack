@@ -1,0 +1,285 @@
+﻿{
+    "application":  "Education Keeptrack",
+    "projectId":  "7871005430122021919",
+    "projectResourceName":  "projects/7871005430122021919",
+    "projectUrl":  "https://stitch.withgoogle.com/projects/7871005430122021919",
+    "observedTitle":  "Education Keeptrack Login Page",
+    "checkedOn":  "2026-10-16",
+    "timeZone":  "Asia/Ho_Chi_Minh",
+    "selectedByUser":  true,
+    "autoSync":  false,
+    "sourceSpecIssue":  "https://github.com/truongtoanr0602/EducationKeeptrack/issues/1",
+    "auditDocument":  "Stitch_Screen_Audit.md",
+    "screens":  [
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/15a5fb831ea64c77917157b55c0a65e7",
+                        "title":  "Đăng nhập - Education Keeptrack",
+                        "deviceType":  "MOBILE",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true,
+                        "designStatus":  "partial-unapproved",
+                        "ticketNumbers":  [
+                                              2
+                                          ]
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/c7f4efa4627b497c9ab9173a5ef95118",
+                        "title":  "Đăng nhập — Bản tinh gọn",
+                        "deviceType":  "DESKTOP",
+                        "html":  "stitch/ticket-02/c7f4efa4627b497c9ab9173a5ef95118.html",
+                        "screenshot":  "stitch/ticket-02/c7f4efa4627b497c9ab9173a5ef95118.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "DESKTOP",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/55c9e18305074f929063120c7f62b07d",
+                        "title":  "Tạo lớp học mới — Ticket #2",
+                        "deviceType":  "DESKTOP",
+                        "html":  "stitch/ticket-02/55c9e18305074f929063120c7f62b07d.html",
+                        "screenshot":  "stitch/ticket-02/55c9e18305074f929063120c7f62b07d.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "DESKTOP",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/4cd5615371394dfe966ebb79fb4953ff",
+                        "title":  "Lớp học của tôi — Ticket #2 (Chuẩn hóa)",
+                        "deviceType":  "DESKTOP",
+                        "html":  "stitch/ticket-02/4cd5615371394dfe966ebb79fb4953ff.html",
+                        "screenshot":  "stitch/ticket-02/4cd5615371394dfe966ebb79fb4953ff.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "DESKTOP",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/3521c44b24d447a9ae360f70daf9f202",
+                        "title":  "Đăng nhập — Mobile Ticket #2",
+                        "deviceType":  "DESKTOP",
+                        "html":  "stitch/ticket-02/3521c44b24d447a9ae360f70daf9f202.html",
+                        "screenshot":  "stitch/ticket-02/3521c44b24d447a9ae360f70daf9f202.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "MOBILE",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/6df79c7ac54540d2a14554a70b6d39ed",
+                        "title":  "Tạo lớp — Mobile Ticket #2",
+                        "deviceType":  "DESKTOP",
+                        "html":  "stitch/ticket-02/6df79c7ac54540d2a14554a70b6d39ed.html",
+                        "screenshot":  "stitch/ticket-02/6df79c7ac54540d2a14554a70b6d39ed.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "MOBILE",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    },
+                    {
+                        "resourceName":  "projects/7871005430122021919/screens/187fb6e36da14b63bfbbde4d3ffdfa95",
+                        "title":  "Lớp học của tôi — Mobile Ticket #2 (Chuẩn hóa)",
+                        "deviceType":  "MOBILE",
+                        "html":  "stitch/ticket-02/187fb6e36da14b63bfbbde4d3ffdfa95.html",
+                        "screenshot":  "stitch/ticket-02/187fb6e36da14b63bfbbde4d3ffdfa95.png",
+                        "designStatus":  "draft-needs-user-review",
+                        "ticketNumbers":  [
+                                              2
+                                          ],
+                        "intendedDevice":  "MOBILE",
+                        "hasHtml":  true,
+                        "hasScreenshot":  true
+                    }
+                ],
+    "illustrations":  [
+                          {
+                              "resourceName":  "projects/7871005430122021919/screens/a4259a83d5564a30aff5fd5c9bf7f872",
+                              "hasHtml":  false
+                          }
+                      ],
+    "observedDesignSystemAssets":  [
+                                       "assets/c07b5f22908f45b29fe882985c23232c"
+                                   ],
+    "ticketCoverage":  {
+                           "total":  21,
+                           "complete":  0,
+                           "partial":  [
+                                           2
+                                       ],
+                           "notFound":  [
+                                            3,
+                                            4,
+                                            5,
+                                            6,
+                                            7,
+                                            8,
+                                            9,
+                                            10,
+                                            11,
+                                            12,
+                                            13,
+                                            14,
+                                            15,
+                                            16,
+                                            17,
+                                            18,
+                                            19,
+                                            20,
+                                            21,
+                                            22
+                                        ]
+                       },
+    "ticket02Preview":  "Ticket_02_Preview.md",
+    "ticket02DesignStatus":  "draft-needs-user-review",
+    "latestObservedScreens":  [
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/ff2404a1e79e42938b30c864dd5779c7",
+                                      "title":  "Lớp học của tôi — Mobile (Thực tế)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-ticket-02/ff2404a1e79e42938b30c864dd5779c7.html",
+                                      "image":  "stitch/user-review-ticket-02/ff2404a1e79e42938b30c864dd5779c7.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "reviewed-candidate-not-approved"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/ffff15e01e0940c8aa2448386af39732",
+                                      "title":  "Lớp học của tôi — Đang tải (Loading Skeleton)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-ticket-02/ffff15e01e0940c8aa2448386af39732.html",
+                                      "image":  "stitch/user-review-ticket-02/ffff15e01e0940c8aa2448386af39732.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "reviewed-candidate-not-approved"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/15a5fb831ea64c77917157b55c0a65e7",
+                                      "title":  "Đăng nhập - Education Keeptrack",
+                                      "deviceType":  "MOBILE",
+                                      "html":  "stitch/user-review-ticket-02/15a5fb831ea64c77917157b55c0a65e7.html",
+                                      "image":  "stitch/user-review-ticket-02/15a5fb831ea64c77917157b55c0a65e7.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "legacy-login-needs-revision"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/bb1dc84896db4ea1b02ba97764072e58",
+                                      "title":  "Lớp học của tôi — Tải lỗi (Error State)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-ticket-02/bb1dc84896db4ea1b02ba97764072e58.html",
+                                      "image":  "stitch/user-review-ticket-02/bb1dc84896db4ea1b02ba97764072e58.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "reviewed-candidate-not-approved"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/8c8984f6742d429e933e86aaf6c70281",
+                                      "title":  "Lớp học của tôi — Chưa có lớp (Empty State)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-ticket-02/8c8984f6742d429e933e86aaf6c70281.html",
+                                      "image":  "stitch/user-review-ticket-02/8c8984f6742d429e933e86aaf6c70281.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "reviewed-candidate-not-approved"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/879d049abdf14b0abb7c940d008314a0",
+                                      "title":  "Lớp học của tôi — Desktop (Thực tế)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-ticket-02/879d049abdf14b0abb7c940d008314a0.html",
+                                      "image":  "stitch/user-review-ticket-02/879d049abdf14b0abb7c940d008314a0.png",
+                                      "ticketNumbers":  [
+                                                            2
+                                                        ],
+                                      "status":  "reviewed-candidate-not-approved"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/c4a5952b25e648fe8543f1535eb2cdad",
+                                      "title":  "Tạo lớp — Desktop (Lưu lỗi)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-create-class/c4a5952b25e648fe8543f1535eb2cdad.html",
+                                      "image":  "stitch/user-review-create-class/c4a5952b25e648fe8543f1535eb2cdad.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/8f174cc2909146a1bdc0f20f33289124",
+                                      "title":  "Tạo lớp — Mobile (Thiếu thông tin)",
+                                      "deviceType":  "MOBILE",
+                                      "html":  "stitch/user-review-create-class/8f174cc2909146a1bdc0f20f33289124.html",
+                                      "image":  "stitch/user-review-create-class/8f174cc2909146a1bdc0f20f33289124.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/ba6e4734d49044478e75771c5578de53",
+                                      "title":  "Tạo lớp — Desktop (Lưu thành công)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-create-class/ba6e4734d49044478e75771c5578de53.html",
+                                      "image":  "stitch/user-review-create-class/ba6e4734d49044478e75771c5578de53.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/086ee4bacc43495287fad20522ce1ccd",
+                                      "title":  "Tạo lớp — Mobile (Mặc định)",
+                                      "deviceType":  "MOBILE",
+                                      "html":  "stitch/user-review-create-class/086ee4bacc43495287fad20522ce1ccd.html",
+                                      "image":  "stitch/user-review-create-class/086ee4bacc43495287fad20522ce1ccd.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/63bbcd7634b9465a8725e7686898bb46",
+                                      "title":  "Tạo lớp — Mobile (Đang lưu)",
+                                      "deviceType":  "MOBILE",
+                                      "html":  "stitch/user-review-create-class/63bbcd7634b9465a8725e7686898bb46.html",
+                                      "image":  "stitch/user-review-create-class/63bbcd7634b9465a8725e7686898bb46.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/91e3cc7b462046b3afda5c3b37cc2592",
+                                      "title":  "Tạo lớp — Desktop (Đang lưu)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-create-class/91e3cc7b462046b3afda5c3b37cc2592.html",
+                                      "image":  "stitch/user-review-create-class/91e3cc7b462046b3afda5c3b37cc2592.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/0086033406bf4aa78d9619901784cfc7",
+                                      "title":  "Tạo lớp — Desktop (Thiếu thông tin)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-create-class/0086033406bf4aa78d9619901784cfc7.html",
+                                      "image":  "stitch/user-review-create-class/0086033406bf4aa78d9619901784cfc7.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  },
+                                  {
+                                      "resourceName":  "projects/7871005430122021919/screens/07433cf1473b443791e787be23feeade",
+                                      "title":  "Tạo lớp — Desktop (Mặc định)",
+                                      "deviceType":  "DESKTOP",
+                                      "html":  "stitch/user-review-create-class/07433cf1473b443791e787be23feeade.html",
+                                      "image":  "stitch/user-review-create-class/07433cf1473b443791e787be23feeade.png",
+                                      "status":  "reviewed-needs-corrections"
+                                  }
+                              ],
+    "latestReviewDocument":  "Ticket_02_Latest_Review.md",
+    "latestReviewStatus":  "reference-flow-present-implementation-checklist-open",
+    "latestPreview":  "Ticket_02_Latest_Review.md"
+}

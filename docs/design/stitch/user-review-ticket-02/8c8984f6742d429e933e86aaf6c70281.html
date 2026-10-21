@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Lớp học của tôi — Trạng thái Trống</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Literata', 'serif'],
+            sans: ['Manrope', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#f8f9ff] text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+    <div class="max-w-6xl mx-auto px-6 h-18 flex items-center justify-between">
+      <div class="flex items-center space-x-8">
+        <a href="#" class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-900 flex items-center justify-center text-white shadow-sm">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+              <path d="M6 10h7"/>
+            </svg>
+          </div>
+          <span class="font-bold text-xl tracking-tight text-brand-900 font-serif">Keeptrack</span>
+        </a>
+        <nav class="flex items-center">
+          <span class="px-4 py-2 rounded-lg text-sm font-semibold text-brand-900 bg-brand-50 border border-brand-100/80 flex items-center space-x-2">
+            <svg class="w-4 h-4 text-brand-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <span>Lớp học</span>
+          </span>
+        </nav>
+      </div>
+
+      <div class="flex items-center space-x-3 p-1.5 pl-2.5">
+        <span class="text-sm font-semibold text-slate-700">Thầy Nam</span>
+        <div class="w-9 h-9 rounded-full bg-brand-900 text-white flex items-center justify-center text-xs font-bold tracking-wider">
+          TN
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10">
+    <div class="flex items-end justify-between mb-8 pb-4 border-b border-slate-200/60">
+      <div>
+        <h1 class="text-3xl font-serif font-bold text-slate-900 tracking-tight">Lớp học của tôi</h1>
+        <p class="text-slate-500 text-sm mt-1.5 font-normal">Quản lý các lớp bạn đang giảng dạy.</p>
+      </div>
+      <button class="inline-flex items-center space-x-2 bg-brand-900 hover:bg-brand-800 text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-sm transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+        </svg>
+        <span>Tạo lớp</span>
+      </button>
+    </div>
+
+    <!-- Empty State theo đúng câu từ yêu cầu -->
+    <div class="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center max-w-lg mx-auto my-12 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-brand-50 text-brand-900 flex items-center justify-center mx-auto mb-4 border border-brand-100">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+      </div>
+      <h2 class="text-xl font-serif font-bold text-slate-900 mb-1.5">Bạn chưa có lớp học nào.</h2>
+      <p class="text-slate-500 text-sm mb-6 leading-relaxed">Tạo lớp đầu tiên để bắt đầu quản lý.</p>
+      <button class="inline-flex items-center space-x-2 bg-brand-900 hover:bg-brand-800 active:scale-[0.98] text-white px-6 py-3 rounded-xl font-medium text-sm shadow-sm transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+        </svg>
+        <span>Tạo lớp đầu tiên</span>
+      </button>
+    </div>
+  </main>
+
+</body>
+</html>

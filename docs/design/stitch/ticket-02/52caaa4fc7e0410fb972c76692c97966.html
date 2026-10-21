@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=yes" name="viewport"/>
+<title>Lớp học của tôi — Mobile Ticket #2</title>
+<!-- Google Fonts: Literata & Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#1e3a8a',
+              navyDark: '#172554',
+              navyLight: '#eff6ff',
+              mint: '#059669',
+              mintBg: '#ecfdf5',
+              bgLight: '#f8fafc',
+            }
+          },
+          fontFamily: {
+            heading: ['Literata', 'serif'],
+            sans: ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+<!-- Custom Typography & Micro-interactions -->
+<style data-purpose="custom-typography">
+    body {
+      font-family: 'Manrope', sans-serif;
+      background-color: #f8fafc;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1, h2, h3, .font-heading {
+      font-family: 'Literata', serif;
+    }
+    /* iOS smooth scrolling & no side slip */
+    html, body {
+      overflow-x: hidden;
+    }
+    /* Touch Target Helper */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-blue-100 selection:text-blue-900">
+<!-- BEGIN: MainHeader -->
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs" data-purpose="mobile-navbar">
+<div class="max-w-md mx-auto px-4 py-2.5 flex flex-col gap-2">
+<!-- Top Bar: Brand, Teacher & Logout -->
+<div class="flex items-center justify-between">
+<!-- Logo and App Name -->
+<a aria-label="Trang chủ Education Keeptrack" class="flex items-center gap-2 group touch-target focus:outline-hidden" href="#">
+<div class="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white shadow-xs">
+<!-- Academic Hat Icon -->
+<svg aria-hidden="true" class="w-5 h-5 text-white" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18C5 19.94 8.13 22 12 22C15.87 22 19 19.94 19 17.18V13.18L12 17L5 13.18Z"></path>
+</svg>
+</div>
+<span class="font-bold text-base tracking-tight text-slate-900 font-sans">Keeptrack</span>
+</a>
+<!-- User Profile & Logout Action -->
+<div class="flex items-center gap-2">
+<!-- Profile Badge -->
+<div class="flex items-center gap-1.5 bg-slate-100/90 px-2 py-1 rounded-full border border-slate-200/60 text-xs font-medium text-slate-700">
+<span class="w-5 h-5 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center text-[10px]">TN</span>
+<span class="hidden xs:inline">Thầy Nam</span>
+</div>
+<!-- Logout Button (triggers confirmation modal) -->
+<button aria-label="Đăng xuất khỏi tài khoản Thầy Nam" class="touch-target inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 transition-colors" id="btnLogoutModalTrigger" title="Đăng xuất khỏi hệ thống" type="button">
+<svg aria-hidden="true" class="w-4 h-4 mr-1 text-slate-500 hover:text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Đăng xuất</span>
+</button>
+</div>
+</div>
+<!-- Navigation Active Indicator Tab (Lớp học) -->
+<nav aria-label="Điều hướng phân hệ" class="flex items-center pt-1 border-t border-slate-100">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-900 text-xs font-bold rounded-md border border-blue-200/70">
+<svg class="w-3.5 h-3.5 text-blue-900" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+          Lớp học của tôi
+        </span>
+</nav>
+</div>
+</header>
+<!-- END: MainHeader -->
+<!-- BEGIN: MainContent -->
+<main class="max-w-md mx-auto w-full px-4 pt-5 pb-8 flex-1 flex flex-col gap-6" data-purpose="mobile-body">
+<!-- Page Title and Primary Action -->
+<section aria-labelledby="section-title" class="space-y-3">
+<div class="flex items-center justify-between gap-3">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-slate-900 font-heading" id="section-title">
+            Lớp học của tôi
+          </h1>
+<p class="text-xs text-slate-500 mt-0.5">
+            Quản lý tổng quan danh mục lớp giảng dạy cá nhân.
+          </p>
+</div>
+<!-- Create Class Primary Button (44px target) -->
+<button class="touch-target shrink-0 inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-900 text-white text-sm font-semibold shadow-md shadow-blue-900/20 active:scale-95 transition-all hover:bg-blue-800 focus:ring-2 focus:ring-blue-900 focus:ring-offset-2" id="btnCreateClassMain" type="button">
+<svg aria-hidden="true" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 4.5v15m7.5-7.5h-15" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Tạo lớp</span>
+</button>
+</div>
+</section>
+<!-- Dynamic Content Presentation Container -->
+<section aria-live="polite" class="flex flex-col gap-4" data-purpose="interactive-states-container" id="contentViewContainer">
+<!-- ==============================================
+           STATE 1: Danh sách có dữ liệu (Populated State)
+           Strict rules: ONLY Tên lớp, Môn học badge, Mô tả.
+           NO student counts, NO lesson links, NO extra fields.
+           ============================================== -->
+<div class="space-y-3.5" id="statePopulated">
+<!-- Class Card 1 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-blue-200 transition-colors" data-purpose="class-card">
+<div class="flex items-center justify-between gap-2 mb-2.5">
+<!-- Môn học Badge -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+              Toán học
+            </span>
+<span class="text-[11px] font-medium text-slate-400">Niên khóa 2024–2025</span>
+</div>
+<!-- Tên lớp -->
+<h2 class="text-lg font-bold text-slate-900 tracking-tight font-heading">
+            Toán Nâng Cao 9A
+          </h2>
+<!-- Mô tả lớp -->
+<p class="text-xs text-slate-600 mt-2 leading-relaxed">
+            Lớp chuyên sâu luyện đề vào trường chuyên Lê Hồng Phong và trường công lập top đầu thành phố. Tập trung giải quyết các bài toán phân loại điểm 9-10.
+          </p>
+</article>
+<!-- Class Card 2 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-blue-200 transition-colors" data-purpose="class-card">
+<div class="flex items-center justify-between gap-2 mb-2.5">
+<!-- Môn học Badge -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60">
+              Đại số &amp; Giải tích
+            </span>
+<span class="text-[11px] font-medium text-slate-400">Niên khóa 2024–2025</span>
+</div>
+<!-- Tên lớp -->
+<h2 class="text-lg font-bold text-slate-900 tracking-tight font-heading">
+            Luyện Thi Đại Học Toán 12 - Khối A
+          </h2>
+<!-- Mô tả lớp -->
+<p class="text-xs text-slate-600 mt-2 leading-relaxed">
+            Bồi dưỡng kiến thức nền tảng và phương pháp giải nhanh trắc nghiệm 50 câu. Luyện chuyên đề hàm số, tích phân, số phức và phương pháp bấm máy tính Casio tối ưu thời gian.
+          </p>
+</article>
+<!-- Class Card 3 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-blue-200 transition-colors" data-purpose="class-card">
+<div class="flex items-center justify-between gap-2 mb-2.5">
+<!-- Môn học Badge -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+              Hình học không gian
+            </span>
+<span class="text-[11px] font-medium text-slate-400">Niên khóa 2024–2025</span>
+</div>
+<!-- Tên lớp -->
+<h2 class="text-lg font-bold text-slate-900 tracking-tight font-heading">
+            Toán Tư Duy &amp; Hình Học 8B
+          </h2>
+<!-- Mô tả lớp -->
+<p class="text-xs text-slate-600 mt-2 leading-relaxed">
+            Xây dựng tư duy trực quan hình học phẳng và đa diện, hướng dẫn cách dựng hình phụ và phương pháp chứng minh định lý căn bản dành cho học sinh chuẩn bị lên lớp 9.
+          </p>
+</article>
+</div>
+<!-- ==============================================
+           STATE 2: Đang tải dữ liệu (Loading State)
+           Animated skeleton cards and loading indicator
+           ============================================== -->
+<div aria-busy="true" class="hidden space-y-3.5" id="stateLoading">
+<div class="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-blue-900 bg-blue-50/70 rounded-xl border border-blue-100">
+<svg class="animate-spin h-4 w-4 text-blue-900" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor"></path>
+</svg>
+<span>Đang đồng bộ dữ liệu lớp học...</span>
+</div>
+<!-- Skeleton Card 1 -->
+<div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs animate-pulse space-y-3">
+<div class="flex items-center justify-between">
+<div class="h-5 w-20 bg-slate-200 rounded-full"></div>
+<div class="h-3 w-16 bg-slate-100 rounded-md"></div>
+</div>
+<div class="h-5 w-3/4 bg-slate-200 rounded-md"></div>
+<div class="space-y-2 pt-1">
+<div class="h-3.5 w-full bg-slate-100 rounded-sm"></div>
+<div class="h-3.5 w-5/6 bg-slate-100 rounded-sm"></div>
+</div>
+</div>
+<!-- Skeleton Card 2 -->
+<div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs animate-pulse space-y-3">
+<div class="flex items-center justify-between">
+<div class="h-5 w-28 bg-slate-200 rounded-full"></div>
+<div class="h-3 w-16 bg-slate-100 rounded-md"></div>
+</div>
+<div class="h-5 w-4/5 bg-slate-200 rounded-md"></div>
+<div class="space-y-2 pt-1">
+<div class="h-3.5 w-full bg-slate-100 rounded-sm"></div>
+<div class="h-3.5 w-2/3 bg-slate-100 rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- ==============================================
+           STATE 3: Trạng thái trống (Empty State)
+           Empty vector icon, headline, and primary CTA
+           ============================================== -->
+<div class="hidden bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center flex flex-col items-center justify-center" id="stateEmpty">
+<div class="w-16 h-16 rounded-full bg-blue-50 text-blue-900 flex items-center justify-center mb-4">
+<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.75" viewbox="0 0 24 24">
+<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h2 class="text-base font-bold text-slate-800 font-heading">Chưa có lớp học nào</h2>
+<p class="text-xs text-slate-500 mt-1.5 max-w-xs leading-relaxed">
+          Hiện tại Thầy Nam chưa khởi tạo danh sách lớp nào trong học kỳ này. Bắt đầu ngay với lớp đầu tiên.
+        </p>
+<button class="touch-target mt-5 inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-900 text-white text-xs font-semibold shadow-xs hover:bg-blue-800 active:scale-95 transition-all" onclick="switchPreviewState('populated')" type="button">
+<svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 4.5v15m7.5-7.5h-15" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+          + Tạo lớp đầu tiên
+        </button>
+</div>
+<!-- ==============================================
+           STATE 4: Lỗi kết nối (Network Error State)
+           Error alert icon, message & retry action
+           ============================================== -->
+<div class="hidden bg-white rounded-2xl border border-red-200 p-6 text-center flex flex-col items-center justify-center" id="stateError">
+<div class="w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-3">
+<svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h2 class="text-base font-bold text-slate-800 font-heading">Không thể tải danh sách lớp</h2>
+<p class="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+          Đường truyền mạng bị gián đoạn hoặc máy chủ chưa phản hồi. Vui lòng kiểm tra lại kết nối Internet của thiết bị.
+        </p>
+<button class="touch-target mt-4 inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold shadow-2xs hover:bg-slate-50 active:scale-95 transition-all" onclick="switchPreviewState('populated')" type="button">
+<svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+          Thử lại ngay
+        </button>
+</div>
+</section>
+<!-- BEGIN: PrototypeReviewPanel -->
+<!-- Collapsible QA / Prototype Review Section Stacked BELOW Content -->
+<section class="mt-4 border border-blue-200/90 bg-white rounded-2xl overflow-hidden shadow-xs" data-purpose="prototype-review-panel">
+<!-- Accordion Header -->
+<button aria-controls="qaPanelBody" aria-expanded="true" class="touch-target w-full px-4 py-3 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-blue-100 flex items-center justify-between text-left focus:outline-hidden" id="btnToggleReview" type="button">
+<div class="flex items-center gap-2">
+<!-- Clipboard Checklist Icon -->
+<svg class="w-4 h-4 text-blue-900 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<div>
+<h2 class="text-xs font-bold uppercase tracking-wider text-blue-900 font-sans">
+              BẢNG KIỂM THỬ TRẠNG THÁI (QA PANEL)
+            </h2>
+<p class="text-[10px] text-slate-500 font-normal">Ticket #2: Thẩm định quy chuẩn thẻ lớp học</p>
+</div>
+</div>
+<!-- Arrow toggle -->
+<svg class="w-4 h-4 text-slate-400 transition-transform duration-200 rotate-180" fill="none" id="arrowToggleReview" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M19.5 8.25l-7.5 7.5-7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Panel Body -->
+<div class="p-3.5 space-y-3 bg-white text-xs" id="qaPanelBody">
+<div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-[11px] text-slate-600 leading-relaxed">
+<span class="font-bold text-slate-800">Quy chuẩn hiển thị:</span> Thẻ lớp chỉ gồm <span class="font-semibold text-blue-900">Tên lớp</span>, <span class="font-semibold text-emerald-800">Môn học badge</span> và <span class="font-semibold text-slate-800">Mô tả lớp</span>. Không kèm số lượng học sinh hay đường dẫn giáo án.
+        </div>
+<p class="font-bold text-slate-700 text-xs">Chuyển đổi trạng thái giao diện trực quan:</p>
+<!-- Tab Pill Switchers (Interactive 44px targets) -->
+<div aria-label="Bộ chọn trạng thái kiểm thử" class="grid grid-cols-2 gap-2" role="group">
+<!-- Button 1: Populated -->
+<button aria-pressed="true" class="qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-blue-900 text-white border-blue-900 shadow-2xs" data-target="populated" type="button">
+<span class="leading-tight">1. Có dữ liệu</span>
+<span class="text-[10px] font-normal opacity-80">(Populated)</span>
+</button>
+<!-- Button 2: Loading -->
+<button aria-pressed="false" class="qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100" data-target="loading" type="button">
+<span class="leading-tight">2. Đang tải</span>
+<span class="text-[10px] font-normal text-slate-500">(Loading State)</span>
+</button>
+<!-- Button 3: Empty -->
+<button aria-pressed="false" class="qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100" data-target="empty" type="button">
+<span class="leading-tight">3. Trạng thái trống</span>
+<span class="text-[10px] font-normal text-slate-500">(Empty State)</span>
+</button>
+<!-- Button 4: Network Error -->
+<button aria-pressed="false" class="qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100" data-target="error" type="button">
+<span class="leading-tight">4. Lỗi kết nối</span>
+<span class="text-[10px] font-normal text-slate-500">(Network Error)</span>
+</button>
+</div>
+</div>
+</section>
+<!-- END: PrototypeReviewPanel -->
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: MobileFooter -->
+<footer class="border-t border-slate-200 bg-white py-3 px-4 text-center text-xs text-slate-400">
+<p>Education Keeptrack © 2025 • Hệ thống quản lý học vụ cá nhân</p>
+</footer>
+<!-- END: MobileFooter -->
+<!-- BEGIN: LogoutConfirmModal -->
+<div aria-labelledby="logoutModalTitle" aria-modal="true" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden transition-opacity" data-purpose="logout-confirmation" id="logoutModal" role="dialog">
+<div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 transform transition-all duration-200 translate-y-4 sm:translate-y-0">
+<div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-3.5">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-base font-bold text-slate-900 font-heading" id="logoutModalTitle">
+        Xác nhận đăng xuất
+      </h3>
+<p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+        Thầy Nam có chắc chắn muốn đăng xuất phiên làm việc hiện tại khỏi thiết bị này?
+      </p>
+<div class="flex items-center gap-2 mt-5">
+<button class="touch-target flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 active:bg-slate-100 transition-colors" id="btnCancelLogout" type="button">
+          Hủy bỏ
+        </button>
+<button class="touch-target flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-xs font-semibold text-white shadow-xs hover:bg-red-700 active:scale-95 transition-all" id="btnConfirmLogout" type="button">
+          Đăng xuất
+        </button>
+</div>
+</div>
+</div>
+<!-- END: LogoutConfirmModal -->
+<!-- BEGIN: InteractiveScripts -->
+<!-- Switch Prototype Review States -->
+<script data-purpose="qa-state-switcher">
+    const statePopulated = document.getElementById('statePopulated');
+    const stateLoading = document.getElementById('stateLoading');
+    const stateEmpty = document.getElementById('stateEmpty');
+    const stateError = document.getElementById('stateError');
+    const qaTabButtons = document.querySelectorAll('.qa-tab-btn');
+
+    function switchPreviewState(targetKey) {
+      // Hide all states
+      statePopulated.classList.add('hidden');
+      stateLoading.classList.add('hidden');
+      stateEmpty.classList.add('hidden');
+      stateError.classList.add('hidden');
+
+      // Update Tab Buttons Styling
+      qaTabButtons.forEach((btn) => {
+        const isSelected = btn.getAttribute('data-target') === targetKey;
+        btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        if (isSelected) {
+          btn.className = 'qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-blue-900 text-white border-blue-900 shadow-2xs';
+        } else {
+          btn.className = 'qa-tab-btn touch-target text-left px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col justify-center bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100';
+        }
+      });
+
+      // Show active state
+      switch (targetKey) {
+        case 'loading':
+          stateLoading.classList.remove('hidden');
+          break;
+        case 'empty':
+          stateEmpty.classList.remove('hidden');
+          break;
+        case 'error':
+          stateError.classList.remove('hidden');
+          break;
+        case 'populated':
+        default:
+          statePopulated.classList.remove('hidden');
+          break;
+      }
+    }
+
+    qaTabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-target');
+        switchPreviewState(target);
+      });
+    });
+  </script>
+<!-- Accordion Toggle for QA Panel -->
+<script data-purpose="qa-panel-accordion">
+    const btnToggleReview = document.getElementById('btnToggleReview');
+    const qaPanelBody = document.getElementById('qaPanelBody');
+    const arrowToggleReview = document.getElementById('arrowToggleReview');
+
+    btnToggleReview.addEventListener('click', () => {
+      const isExpanded = btnToggleReview.getAttribute('aria-expanded') === 'true';
+      if (isExpanded) {
+        btnToggleReview.setAttribute('aria-expanded', 'false');
+        qaPanelBody.classList.add('hidden');
+        arrowToggleReview.classList.remove('rotate-180');
+      } else {
+        btnToggleReview.setAttribute('aria-expanded', 'true');
+        qaPanelBody.classList.remove('hidden');
+        arrowToggleReview.classList.add('rotate-180');
+      }
+    });
+  </script>
+<!-- Logout Confirmation Dialog Behavior -->
+<script data-purpose="logout-dialog-controller">
+    const btnLogoutModalTrigger = document.getElementById('btnLogoutModalTrigger');
+    const logoutModal = document.getElementById('logoutModal');
+    const btnCancelLogout = document.getElementById('btnCancelLogout');
+    const btnConfirmLogout = document.getElementById('btnConfirmLogout');
+
+    function openLogoutModal() {
+      logoutModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLogoutModal() {
+      logoutModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    btnLogoutModalTrigger.addEventListener('click', openLogoutModal);
+    btnCancelLogout.addEventListener('click', closeLogoutModal);
+
+    logoutModal.addEventListener('click', (e) => {
+      if (e.target === logoutModal) {
+        closeLogoutModal();
+      }
+    });
+
+    btnConfirmLogout.addEventListener('click', () => {
+      btnConfirmLogout.innerText = 'Đang đăng xuất...';
+      btnConfirmLogout.disabled = true;
+      setTimeout(() => {
+        closeLogoutModal();
+        alert('Đã đăng xuất thành công khỏi tài khoản Thầy Nam.');
+        btnConfirmLogout.innerText = 'Đăng xuất';
+        btnConfirmLogout.disabled = false;
+      }, 700);
+    });
+  </script>
+<!-- END: InteractiveScripts -->
+</body></html>

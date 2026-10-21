@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lớp học của tôi - Education Keeptrack</title>
+<!-- Google Fonts: Literata & Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#86f2e4",
+            "outline": "#757682",
+            "secondary-fixed": "#89f5e7",
+            "on-primary-fixed": "#00164e",
+            "tertiary": "#4a1d00",
+            "on-secondary-container": "#006f66",
+            "surface": "#f8f9ff",
+            "primary-fixed": "#dce1ff",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#b6c4ff",
+            "outline-variant": "#c5c5d3",
+            "inverse-primary": "#b6c4ff",
+            "on-secondary-fixed": "#00201d",
+            "primary": "#00236f",
+            "on-secondary-fixed-variant": "#005049",
+            "error-container": "#ffdad6",
+            "on-secondary": "#ffffff",
+            "background": "#f8f9ff",
+            "on-tertiary-container": "#ff8e49",
+            "tertiary-fixed": "#ffdbca",
+            "primary-container": "#1e3a8a",
+            "inverse-surface": "#233144",
+            "surface-container": "#e6eeff",
+            "secondary-fixed-dim": "#6bd8cb",
+            "on-surface-variant": "#444651",
+            "on-background": "#0d1c2f",
+            "surface-container-high": "#dde9ff",
+            "surface-bright": "#f8f9ff",
+            "on-primary-container": "#90a8ff",
+            "on-tertiary-fixed-variant": "#763300",
+            "tertiary-container": "#6c2e00",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "surface-tint": "#4059aa",
+            "surface-dim": "#ccdbf4",
+            "on-tertiary-fixed": "#331200",
+            "on-surface": "#0d1c2f",
+            "on-primary-fixed-variant": "#264191",
+            "error": "#ba1a1a",
+            "surface-variant": "#d5e3fd",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "inverse-on-surface": "#ebf1ff",
+            "secondary": "#006a61",
+            "on-error": "#ffffff",
+            "tertiary-fixed-dim": "#ffb68e",
+            "surface-container-highest": "#d5e3fd"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "display-lg-mobile": ["Literata"],
+            "label-sm": ["Manrope"],
+            "title-md": ["Manrope"],
+            "body-lg": ["Manrope"],
+            "label-md": ["Manrope"],
+            "title-lg": ["Manrope"],
+            "body-sm": ["Manrope"],
+            "headline-lg": ["Literata"],
+            "display-lg": ["Literata"],
+            "headline-sm": ["Literata"],
+            "headline-md": ["Literata"],
+            "body-md": ["Manrope"]
+          },
+          "fontSize": {
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "title-lg": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.005em", "fontWeight": "500" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md antialiased min-h-screen flex flex-col selection:bg-surface-container-highest">
+<!-- ================= TOP APP BAR / HEADER ================= -->
+<header class="sticky top-0 z-30 bg-surface-container-lowest border-b border-outline-variant/40 shadow-sm">
+<div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+<!-- Left: Logo & Single Active Nav Pill -->
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="school">school</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold block">Education Keeptrack</span>
+</div>
+</div>
+<nav class="hidden md:flex items-center">
+<a class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary font-title-md text-title-md font-semibold border-b-2 border-primary-container" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="school">school</span>
+<span>Lớp học</span>
+</a>
+</nav>
+</div>
+<!-- Right: User Identity (Thầy Nam without subtitle) & Logout Action -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 pr-2">
+<div class="w-9 h-9 rounded-full bg-surface-container border border-outline-variant/60 flex items-center justify-center text-primary font-semibold text-sm">
+            TN
+          </div>
+<div class="text-left hidden sm:block">
+<div class="font-title-md text-title-md text-on-surface leading-tight font-semibold">Thầy Nam</div>
+</div>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant/40"></div>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors duration-150 font-label-md text-label-md" id="open-logout-btn" title="Đăng xuất khỏi hệ thống" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
+<span class="hidden sm:inline">Đăng xuất</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ================= MAIN VIEWPORT CONTENT ================= -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+<!-- QA / REVIEW PANEL - TICKET #2 SPECIFICATIONS -->
+<aside aria-label="Bảng kiểm thử trạng thái giao diện" class="mb-8 rounded-xl border border-primary-container/20 bg-gradient-to-r from-surface-container-low via-surface-container to-surface-container-low p-4 shadow-xs">
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[20px]" data-icon="fact_check">fact_check</span>
+<div>
+<h2 class="text-xs font-bold uppercase tracking-wider text-primary-container">
+            BẢNG KIỂM THỬ TRẠNG THÁI GIAO DIỆN (QA REVIEW PANEL - TICKET #2)
+          </h2>
+<p class="text-xs text-on-surface-variant mt-0.5">Quy chuẩn hiển thị: Chỉ gồm Tên lớp, Môn học (badge) và Mô tả. Không có số lượng học sinh.</p>
+</div>
+</div>
+<!-- Toggle Pills -->
+<div class="flex flex-wrap items-center gap-1.5 bg-surface-container-lowest/80 p-1 rounded-lg border border-outline-variant/40">
+<button class="px-3 py-1.5 rounded text-xs font-semibold transition-all bg-primary-container text-on-primary shadow-xs" id="btn-show-active" onclick="switchState('active')">
+          1. Danh sách có dữ liệu (Populated)
+        </button>
+<button class="px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container-low" id="btn-show-loading" onclick="switchState('loading')">
+          2. Đang tải dữ liệu (Loading State)
+        </button>
+<button class="px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container-low" id="btn-show-empty" onclick="switchState('empty')">
+          3. Trạng thái trống (Empty State)
+        </button>
+<button class="px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-error hover:bg-error-container/20" id="btn-show-error" onclick="switchState('error')">
+          4. Lỗi kết nối (Network Error)
+        </button>
+</div>
+</div>
+</aside>
+<!-- Page Header Cluster -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-8 border-b border-outline-variant/30">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-semibold tracking-tight">
+          Lớp học của tôi
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-2xl">
+          Quản lý tổng quan danh mục lớp giảng dạy cá nhân và các chuyên đề trọng tâm dành cho giáo viên và gia sư.
+        </p>
+</div>
+<!-- Primary Action CTA Button: Height >= 44px, Navy Blue Solid -->
+<div class="flex items-center gap-3">
+<button class="inline-flex items-center justify-center gap-2 px-5 min-h-[44px] h-11 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md hover:bg-primary transition-all duration-150 shadow-sm active:translate-y-[1px]" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+<span>+ Tạo lớp</span>
+</button>
+</div>
+</div>
+<!-- ================= STATE 1: CLASS CARDS GRID (POPULATED) ================= -->
+<section class="space-y-6 mt-8" id="state-active">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<article class="bg-surface-container-lowest rounded-lg border border-outline-variant/50 p-6 flex flex-col justify-between hover:border-primary-container/40 hover:shadow-md transition-all duration-150 group">
+<div>
+<div class="flex items-start justify-between gap-3 mb-3">
+<!-- Pill Môn học -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-surface-container-low text-secondary border border-secondary-container/50">
+            Toán học
+          </span>
+<button class="text-on-surface-variant/40 hover:text-on-surface transition-colors" title="Tùy chọn thẻ">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Tên lớp -->
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary font-semibold leading-snug">
+          Toán Nâng Cao 9A
+        </h3>
+<!-- Mô tả tự nhập -->
+<p class="font-body-md text-body-md text-on-surface-variant mt-3 line-clamp-4 leading-relaxed">
+          Lớp chuyên sâu luyện đề vào trường chuyên Lê Hồng Phong và trường công lập top đầu thành phố. Tập trung giải quyết các bài toán phân loại điểm 9-10.
+        </p>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="bg-surface-container-lowest rounded-lg border border-outline-variant/50 p-6 flex flex-col justify-between hover:border-primary-container/40 hover:shadow-md transition-all duration-150 group">
+<div>
+<div class="flex items-start justify-between gap-3 mb-3">
+<!-- Pill Môn học -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-surface-container-low text-secondary border border-secondary-container/50">
+            Đại số &amp; Giải tích
+          </span>
+<button class="text-on-surface-variant/40 hover:text-on-surface transition-colors" title="Tùy chọn thẻ">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Tên lớp -->
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary font-semibold leading-snug">
+          Luyện Thi Đại Học Toán 12 - Khối A
+        </h3>
+<!-- Mô tả tự nhập -->
+<p class="font-body-md text-body-md text-on-surface-variant mt-3 line-clamp-4 leading-relaxed">
+          Bồi dưỡng kiến thức nền tảng và phương pháp giải nhanh trắc nghiệm 50 câu. Luyện chuyên đề hàm số, tích phân, số phức và phương pháp bấm máy tính Casio tối ưu thời gian.
+        </p>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="bg-surface-container-lowest rounded-lg border border-outline-variant/50 p-6 flex flex-col justify-between hover:border-primary-container/40 hover:shadow-md transition-all duration-150 group">
+<div>
+<div class="flex items-start justify-between gap-3 mb-3">
+<!-- Pill Môn học -->
+<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-surface-container-low text-secondary border border-secondary-container/50">
+            Hình học không gian
+          </span>
+<button class="text-on-surface-variant/40 hover:text-on-surface transition-colors" title="Tùy chọn thẻ">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Tên lớp -->
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary font-semibold leading-snug">
+          Toán Tư Duy &amp; Hình Học 8B
+        </h3>
+<!-- Mô tả tự nhập -->
+<p class="font-body-md text-body-md text-on-surface-variant mt-3 line-clamp-4 leading-relaxed">
+          Xây dựng tư duy trực quan hình học phẳng và đa diện, hướng dẫn cách dựng hình phụ và phương pháp chứng minh định lý căn bản dành cho học sinh chuẩn bị lên lớp 9.
+        </p>
+</div>
+</article>
+</div>
+</section>
+<!-- ================= STATE 2: LOADING SKELETON STATE ================= -->
+<section class="space-y-6 mt-8 hidden" id="state-loading">
+<!-- Loading status indicator with spinner -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg border border-outline-variant/40">
+<div class="flex items-center gap-3">
+<div class="w-5 h-5 border-2 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+<span class="font-title-md text-title-md font-medium text-on-surface">Đang tải danh sách lớp học...</span>
+</div>
+<span class="text-xs text-on-surface-variant bg-surface-container-low px-2.5 py-1 rounded">Hệ thống đang đồng bộ dữ liệu</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Skeleton Card 1 -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-6 flex flex-col justify-between animate-pulse">
+<div>
+<div class="flex items-start justify-between gap-3 mb-4">
+<div class="h-5 w-20 bg-surface-container-highest rounded"></div>
+<div class="h-5 w-5 bg-surface-container rounded-full"></div>
+</div>
+<div class="h-6 w-3/4 bg-surface-container-highest rounded mb-4"></div>
+<div class="space-y-2">
+<div class="h-3.5 bg-surface-container-low rounded w-full"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-5/6"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-4/6"></div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-outline-variant/20 flex justify-end">
+<div class="h-4 w-32 bg-surface-container rounded"></div>
+</div>
+</div>
+<!-- Skeleton Card 2 -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-6 flex flex-col justify-between animate-pulse">
+<div>
+<div class="flex items-start justify-between gap-3 mb-4">
+<div class="h-5 w-28 bg-surface-container-highest rounded"></div>
+<div class="h-5 w-5 bg-surface-container rounded-full"></div>
+</div>
+<div class="h-6 w-4/5 bg-surface-container-highest rounded mb-4"></div>
+<div class="space-y-2">
+<div class="h-3.5 bg-surface-container-low rounded w-full"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-11/12"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-3/4"></div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-outline-variant/20 flex justify-end">
+<div class="h-4 w-32 bg-surface-container rounded"></div>
+</div>
+</div>
+<!-- Skeleton Card 3 -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-6 flex flex-col justify-between animate-pulse">
+<div>
+<div class="flex items-start justify-between gap-3 mb-4">
+<div class="h-5 w-32 bg-surface-container-highest rounded"></div>
+<div class="h-5 w-5 bg-surface-container rounded-full"></div>
+</div>
+<div class="h-6 w-2/3 bg-surface-container-highest rounded mb-4"></div>
+<div class="space-y-2">
+<div class="h-3.5 bg-surface-container-low rounded w-full"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-4/5"></div>
+<div class="h-3.5 bg-surface-container-low rounded w-2/3"></div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-outline-variant/20 flex justify-end">
+<div class="h-4 w-32 bg-surface-container rounded"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- ================= STATE 3: EMPTY STATE ================= -->
+<section class="hidden mt-8" id="state-empty">
+<div class="bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant py-16 px-6 text-center max-w-2xl mx-auto my-4">
+<div class="w-16 h-16 rounded-full bg-surface-container text-primary flex items-center justify-center mx-auto mb-4">
+<span class="material-symbols-outlined text-[36px]" data-icon="school">school</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold mb-2">
+          Chưa có lớp học nào được tạo
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md mx-auto mb-6">Tạo lớp đầu tiên để bắt đầu quản lý lớp học của thầy/cô.</p>
+<button class="inline-flex items-center justify-center gap-2 px-6 h-11 rounded-lg bg-primary-container text-on-primary font-title-md text-title-md hover:bg-primary transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+<span>+ Tạo lớp đầu tiên</span>
+</button>
+</div>
+</section>
+<!-- ================= STATE 4: NETWORK ERROR STATE ================= -->
+<section class="hidden mt-8" id="state-error">
+<div class="bg-error-container/20 border border-error/30 rounded-lg p-8 max-w-2xl mx-auto my-4 text-center">
+<div class="w-14 h-14 rounded-full bg-error-container text-error flex items-center justify-center mx-auto mb-3">
+<span class="material-symbols-outlined text-[32px]" data-icon="wifi_off">wifi_off</span>
+</div>
+<h3 class="font-title-lg text-title-lg font-semibold text-error mb-2">
+          Không thể tải danh sách lớp học
+        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-md mx-auto">
+          Không thể tải danh sách lớp học do sự cố kết nối mạng hoặc máy chủ không phản hồi. Vui lòng kiểm tra lại đường truyền của bạn.
+        </p>
+<button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-error text-on-error font-title-md text-title-md hover:opacity-95 transition-opacity shadow-sm" onclick="switchState('active')" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+<span>Thử lại kết nối</span>
+</button>
+</div>
+</section>
+</main>
+<!-- ================= LOGOUT CONFIRMATION MODAL ================= -->
+<div aria-labelledby="logout-modal-title" aria-modal="true" class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-xs flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200" id="logout-modal" role="dialog">
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant max-w-md w-full p-6 shadow-xl transform scale-95 transition-transform duration-200" id="modal-box">
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]" data-icon="logout">logout</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold" id="logout-modal-title">
+            Đăng xuất tài khoản?
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 leading-relaxed">
+            Xác nhận đăng xuất khỏi tài khoản của Thầy Nam?
+          </p>
+</div>
+</div>
+<div class="mt-6 flex items-center justify-end gap-3">
+<button class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container-low font-title-md text-title-md transition-colors" id="cancel-logout-btn" type="button">
+          Hủy
+        </button>
+<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary hover:bg-primary font-title-md text-title-md transition-colors" id="confirm-logout-btn" onclick="confirmLogout()" type="button">
+          Xác nhận đăng xuất
+        </button>
+</div>
+</div>
+</div>
+<!-- Inline Script for Interactive Preview & Modal Logic -->
+<script>
+    // State switcher preview logic supporting all Ticket #2 states
+    function switchState(state) {
+      const activeSec = document.getElementById('state-active');
+      const loadingSec = document.getElementById('state-loading');
+      const emptySec = document.getElementById('state-empty');
+      const errorSec = document.getElementById('state-error');
+
+      const btnActive = document.getElementById('btn-show-active');
+      const btnLoading = document.getElementById('btn-show-loading');
+      const btnEmpty = document.getElementById('btn-show-empty');
+      const btnError = document.getElementById('btn-show-error');
+
+      // Reset all buttons styling to default inactive
+      [btnActive, btnLoading, btnEmpty, btnError].forEach(btn => {
+        btn.className = "px-3 py-1.5 rounded text-xs font-medium transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container-low";
+      });
+
+      // Hide all states
+      activeSec.classList.add('hidden');
+      loadingSec.classList.add('hidden');
+      emptySec.classList.add('hidden');
+      errorSec.classList.add('hidden');
+
+      if (state === 'active') {
+        activeSec.classList.remove('hidden');
+        btnActive.className = "px-3 py-1.5 rounded text-xs font-semibold transition-all bg-primary-container text-on-primary shadow-xs";
+      } else if (state === 'loading') {
+        loadingSec.classList.remove('hidden');
+        btnLoading.className = "px-3 py-1.5 rounded text-xs font-semibold transition-all bg-primary-container text-on-primary shadow-xs";
+      } else if (state === 'empty') {
+        emptySec.classList.remove('hidden');
+        btnEmpty.className = "px-3 py-1.5 rounded text-xs font-semibold transition-all bg-primary-container text-on-primary shadow-xs";
+      } else if (state === 'error') {
+        errorSec.classList.remove('hidden');
+        btnError.className = "px-3 py-1.5 rounded text-xs font-semibold transition-all bg-error text-on-error shadow-xs";
+      }
+    }
+
+    // Modal logic
+    const modal = document.getElementById('logout-modal');
+    const modalBox = document.getElementById('modal-box');
+    const openBtn = document.getElementById('open-logout-btn');
+    const cancelBtn = document.getElementById('cancel-logout-btn');
+
+    function openModal() {
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modalBox.classList.remove('scale-95');
+      modalBox.classList.add('scale-100');
+    }
+
+    function closeModal() {
+      modalBox.classList.remove('scale-100');
+      modalBox.classList.add('scale-95');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function confirmLogout() {
+      closeModal();
+      alert('Đã đăng xuất thành công khỏi hệ thống Education Keeptrack.');
+    }
+
+    openBtn.addEventListener('click', openModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  </script>
+</body></html>

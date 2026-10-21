@@ -1,0 +1,74 @@
+{
+  "projectId": "7871005430122021919",
+  "reviewedOn": "2026-10-16",
+  "reviewStatus": "partial-needs-design-completion",
+  "source": "user-updated-project-inventory",
+  "screens": [
+    {
+      "resourceName": "projects/7871005430122021919/screens/ff2404a1e79e42938b30c864dd5779c7",
+      "title": "Lớp học của tôi — Mobile (Thực tế)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/user-review-ticket-02/ff2404a1e79e42938b30c864dd5779c7.html",
+      "image": "stitch/user-review-ticket-02/ff2404a1e79e42938b30c864dd5779c7.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "reviewed-candidate-not-approved"
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/ffff15e01e0940c8aa2448386af39732",
+      "title": "Lớp học của tôi — Đang tải (Loading Skeleton)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/user-review-ticket-02/ffff15e01e0940c8aa2448386af39732.html",
+      "image": "stitch/user-review-ticket-02/ffff15e01e0940c8aa2448386af39732.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "reviewed-candidate-not-approved"
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/15a5fb831ea64c77917157b55c0a65e7",
+      "title": "Đăng nhập - Education Keeptrack",
+      "deviceType": "MOBILE",
+      "html": "stitch/user-review-ticket-02/15a5fb831ea64c77917157b55c0a65e7.html",
+      "image": "stitch/user-review-ticket-02/15a5fb831ea64c77917157b55c0a65e7.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "legacy-login-needs-revision"
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/bb1dc84896db4ea1b02ba97764072e58",
+      "title": "Lớp học của tôi — Tải lỗi (Error State)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/user-review-ticket-02/bb1dc84896db4ea1b02ba97764072e58.html",
+      "image": "stitch/user-review-ticket-02/bb1dc84896db4ea1b02ba97764072e58.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "reviewed-candidate-not-approved"
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/8c8984f6742d429e933e86aaf6c70281",
+      "title": "Lớp học của tôi — Chưa có lớp (Empty State)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/user-review-ticket-02/8c8984f6742d429e933e86aaf6c70281.html",
+      "image": "stitch/user-review-ticket-02/8c8984f6742d429e933e86aaf6c70281.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "reviewed-candidate-not-approved"
+    },
+    {
+      "resourceName": "projects/7871005430122021919/screens/879d049abdf14b0abb7c940d008314a0",
+      "title": "Lớp học của tôi — Desktop (Thực tế)",
+      "deviceType": "DESKTOP",
+      "html": "stitch/user-review-ticket-02/879d049abdf14b0abb7c940d008314a0.html",
+      "image": "stitch/user-review-ticket-02/879d049abdf14b0abb7c940d008314a0.png",
+      "ticketNumbers": [
+        2
+      ],
+      "status": "reviewed-candidate-not-approved"
+    }
+  ]
+}
