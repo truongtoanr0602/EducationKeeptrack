@@ -42,7 +42,9 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public ITuitionChangeHandler? TuitionChangeHandler { get; init; }
     public ILearningResultChangeHandler? LearningResultChangeHandler { get; init; }
     public Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? BillingInterceptor { get; init; }
+    public Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? ReportingInterceptor { get; init; }
     public EducationKeeptrack.Billing.Application.IVietQrGenerator? QrGenerator { get; init; }
+    public Func<EducationKeeptrack.Reporting.Application.IReportObjectStore, EducationKeeptrack.Reporting.Application.IReportObjectStore>? DecorateReportStore { get; init; }
     public string Connection => new NpgsqlConnectionStringBuilder(adminConnection) { Database = database }.ConnectionString;
     public string ReportBucket => database.Replace('_', '-');
     private Amazon.S3.AmazonS3Client ReportStore() => new(new Amazon.Runtime.BasicAWSCredentials(Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY"), Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY")),
@@ -59,9 +61,16 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
+            if (DecorateReportStore is not null)
+            {
+                services.AddSingleton<EducationKeeptrack.Reporting.Infrastructure.S3ReportStore>();
+                services.AddSingleton<EducationKeeptrack.Reporting.Application.IReportObjectStore>(p => DecorateReportStore(p.GetRequiredService<EducationKeeptrack.Reporting.Infrastructure.S3ReportStore>()));
+            }
             if (QrGenerator is not null) services.AddSingleton(QrGenerator);
             if (BillingInterceptor is not null)
                 services.ConfigureDbContext<EducationKeeptrack.Billing.Infrastructure.BillingDatabase>(options => options.AddInterceptors(BillingInterceptor));
+            if (ReportingInterceptor is not null)
+                services.ConfigureDbContext<EducationKeeptrack.Reporting.Infrastructure.ReportingDatabase>(options => options.AddInterceptors(ReportingInterceptor));
             if (ClassroomChangeHandler is not null)
             {
                 services.AddSingleton(ClassroomChangeHandler);

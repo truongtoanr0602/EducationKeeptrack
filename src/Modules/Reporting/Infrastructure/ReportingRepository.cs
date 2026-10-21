@@ -17,6 +17,15 @@ public sealed class ReportingRepository(ReportingDatabase db) : IReportingReposi
         var result = await action(); await tx.CommitAsync(ct); return result;
     }
     public void Add(ReportPreview preview) => db.Previews.Add(preview);
+    public async Task<T> WithExportLockAsync<T>(string owner, Guid key, Func<Task<T>> action, CancellationToken ct)
+    {
+        db.ChangeTracker.Clear();
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var lockKey = $"report-export:{owner}:{key}";
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 11))", ct);
+        try { var result = await action(); await tx.CommitAsync(ct); return result; }
+        catch { db.ChangeTracker.Clear(); throw; }
+    }
     public void Add(ReportExport export) => db.Exports.Add(export);
     public Task<long> DraftVersionAsync(ReportScope scope, CancellationToken ct) => db.Drafts.AsNoTracking().Where(x => x.OwnerId == scope.OwnerId && x.ClassId == scope.ClassId && x.StudentId == scope.StudentId && x.Month == scope.Month).Select(x => x.Version).SingleOrDefaultAsync(ct);
     public Task<ReportExport?> ExportByKeyAsync(string owner, Guid key, CancellationToken ct) => db.Exports.SingleOrDefaultAsync(x => x.OwnerId == owner && x.IdempotencyKey == key, ct);

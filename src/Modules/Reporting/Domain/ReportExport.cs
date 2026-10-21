@@ -23,6 +23,8 @@ public sealed class ReportExport
     public string WarningsJson { get; private set; } = "[]";
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public Guid? LeaseOwner { get; private set; }
+    public DateTimeOffset? LeaseUntil { get; private set; }
     private ReportExport() { }
     public ReportExport(ReportScope scope, ExportInput input, DateTimeOffset now)
     {
@@ -30,6 +32,12 @@ public sealed class ReportExport
         DraftVersion = input.DraftVersion; IdempotencyKey = input.IdempotencyKey; Fingerprint = ReportStamp.Of(new { scope, input }); CreatedAt = now;
     }
     public bool Matches(ReportScope scope, ExportInput input) => Fingerprint == ReportStamp.Of(new { scope, input });
+    public Guid? Acquire(DateTimeOffset now)
+    {
+        if (State == "ready" || (State == "pending" && LeaseUntil > now)) return null;
+        State = "pending"; LeaseOwner = Guid.NewGuid(); LeaseUntil = now.AddSeconds(120); return LeaseOwner;
+    }
+    public bool Owns(Guid attempt, DateTimeOffset now) => State == "pending" && LeaseOwner == attempt && LeaseUntil > now;
     public void Complete(string key, string sha256, long length, string warnings, DateTimeOffset now)
     { ObjectKey = key; Sha256 = sha256; ByteLength = length; WarningsJson = warnings; CompletedAt = now; State = "ready"; }
     public void Fail() { if (State != "ready") State = "failed"; }
