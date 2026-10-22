@@ -24,7 +24,6 @@ Education Keeptrack tập trung các hoạt động này vào một ứng dụng
 - Tổng hợp báo cáo tháng có nội dung học tập và tài chính, lưu PDF riêng tư.
 - Đáp ứng định hướng học phần: .NET Modular Monolith, DbContext/schema riêng theo module, giao tiếp liên module, object storage tương thích S3, Docker Compose và Jenkins.
 
-Hệ thống chọn Cloudflare R2 qua S3 API cho object storage, thay SeaweedFS/MinIO. Đề cương có nội dung thực hành MinIO và presigned URL; khi báo cáo với giảng viên cần trình bày rõ lựa chọn R2 tương thích S3 và cơ chế tải qua backend đang sử dụng, không coi hai cơ chế là hoàn toàn giống nhau.
 
 ### 1.3. Tác nhân và trạng thái phạm vi
 
@@ -34,28 +33,27 @@ Hệ thống chọn Cloudflare R2 qua S3 API cho object storage, thay SeaweedFS/
 | Admin | Theo thiết kế: duyệt đăng ký, đối chiếu phí dịch vụ, cấp kỳ sử dụng, quản lý khóa tài khoản và quyền AI. Không mặc định được đọc dữ liệu học sinh. |
 | Phụ huynh | Nhận báo cáo PDF và hướng dẫn thanh toán từ giáo viên; không có tài khoản đăng nhập trong phạm vi đề tài hiện tại. |
 
-Các nội dung dưới đây bao gồm yêu cầu của toàn hệ thống và thiết kế hiện thực đang có. Nhãn **đã triển khai** chỉ thể hiện phạm vi chức năng đã có trong mã nguồn; không có nghĩa đã triển khai Production hoặc mọi tình huống vận hành đã được nghiệm thu.
 
 ## 2. Yêu cầu chức năng
 
-| Mã | Nhóm chức năng | Hệ thống cần cung cấp | Trạng thái tại buổi báo cáo |
+| Mã | Nhóm chức năng | Hệ thống cần cung cấp | |
 | --- | --- | --- | --- |
-| FR-01 | Đăng nhập và phiên | Đăng nhập email/mật khẩu, đăng xuất, xác định giáo viên hiện tại, hết hạn và thu hồi phiên. | Đã triển khai nền tảng. |
-| FR-02 | Đăng ký và quản trị dịch vụ | Xác minh email, Admin duyệt, đối chiếu phí dịch vụ, cấp/gia hạn kỳ sử dụng, khóa tài khoản, quản lý quyền AI. | Thiết kế; hiện dùng quyền cấp cho môi trường phát triển. |
-| FR-03 | Quản lý lớp | Tạo, xem và cập nhật thông tin lớp; giới hạn truy cập theo giáo viên sở hữu. | Đã triển khai. |
-| FR-04 | Quản lý học sinh | Quản lý hồ sơ, thông tin phụ huynh, đăng ký vào lớp, tình trạng theo học và lịch sử thay đổi; ngăn đăng ký đang hoạt động bị trùng. | Đã triển khai. |
-| FR-05 | Lịch và buổi học | Thiết lập lịch tuần, sinh buổi, tạo học bù, ghi nhận buổi đã diễn ra/hủy; kiểm tra trùng khung giờ. | Đã triển khai. |
-| FR-06 | Điểm danh | Ghi chưa điểm danh/có mặt/vắng, lý do vắng và nghỉ có phép; cho phép sửa có kiểm soát phiên bản. | Đã triển khai. |
-| FR-07 | Học phí theo buổi | Lưu đơn giá hiệu lực theo ngày, tính phí buổi đã diễn ra có mặt; không tự áp giá mới vào lịch sử đã có căn cứ. | Đã triển khai. |
-| FR-08 | Thu tiền và công nợ | Ghi từng khoản nhận tiền, phân bổ kỳ cũ còn nợ trước, theo dõi trả một phần, tiền chưa phân bổ và công nợ theo kỳ. | Đã triển khai. |
-| FR-09 | Điều chỉnh tài chính | Điều chỉnh tăng/giảm phí có lý do; sửa/hủy giao dịch nhận tiền với lịch sử và tính lại phân bổ. | Đã triển khai. |
-| FR-10 | QR và thống kê | Thiết lập người nhận tiền, tạo QR chuyển khoản, giữ hướng dẫn thủ công khi QR lỗi; thống kê tiền thực thu và số dư kỳ. | Đã triển khai. |
-| FR-11 | Đánh giá thủ công | Tạo bài đánh giá, ghi hai chỉ số hoàn thành/làm đúng, phân biệt chưa đánh giá, không làm bài, không có câu đúng và không giao bài; lưu lịch sử. | Đã triển khai. |
+| FR-01 | Đăng nhập và phiên | Đăng nhập email/mật khẩu, đăng xuất, xác định giáo viên hiện tại, hết hạn và thu hồi phiên. |
+| FR-02 | Đăng ký và quản trị dịch vụ | Xác minh email, Admin duyệt, đối chiếu phí dịch vụ, cấp/gia hạn kỳ sử dụng, khóa tài khoản, quản lý quyền AI. | 
+| FR-03 | Quản lý lớp | Tạo, xem và cập nhật thông tin lớp; giới hạn truy cập theo giáo viên sở hữu. | 
+| FR-04 | Quản lý học sinh | Quản lý hồ sơ, thông tin phụ huynh, đăng ký vào lớp, tình trạng theo học và lịch sử thay đổi; ngăn đăng ký đang hoạt động bị trùng. | 
+| FR-05 | Lịch và buổi học | Thiết lập lịch tuần, sinh buổi, tạo học bù, ghi nhận buổi đã diễn ra/hủy; kiểm tra trùng khung giờ. | 
+| FR-06 | Điểm danh | Ghi chưa điểm danh/có mặt/vắng, lý do vắng và nghỉ có phép; cho phép sửa có kiểm soát phiên bản. | 
+| FR-07 | Học phí theo buổi | Lưu đơn giá hiệu lực theo ngày, tính phí buổi đã diễn ra có mặt; không tự áp giá mới vào lịch sử đã có căn cứ. | 
+| FR-08 | Thu tiền và công nợ | Ghi từng khoản nhận tiền, phân bổ kỳ cũ còn nợ trước, theo dõi trả một phần, tiền chưa phân bổ và công nợ theo kỳ. | 
+| FR-09 | Điều chỉnh tài chính | Điều chỉnh tăng/giảm phí có lý do; sửa/hủy giao dịch nhận tiền với lịch sử và tính lại phân bổ. | 
+| FR-10 | QR và thống kê | Thiết lập người nhận tiền, tạo QR chuyển khoản, giữ hướng dẫn thủ công khi QR lỗi; thống kê tiền thực thu và số dư kỳ. | 
+| FR-11 | Đánh giá thủ công | Tạo bài đánh giá, ghi hai chỉ số hoàn thành/làm đúng, phân biệt chưa đánh giá, không làm bài, không có câu đúng và không giao bài; lưu lịch sử. | 
 | FR-12 | Ảnh bài và AI chấm | Upload ảnh riêng tư có thứ tự, lưu phiên bản hướng dẫn; AI đề xuất kết quả, giáo viên chỉnh/xác nhận; hỗ trợ lỗi và chấm lại. | Thiết kế mở rộng. |
 | FR-13 | Xu hướng và nhận xét AI | Tổng hợp kết quả cuối, nhận biết xu hướng/cảnh báo, đề xuất nhận xét và lộ trình; không ghi đè nội dung giáo viên tự sửa. | Thiết kế mở rộng. |
-| FR-14 | Báo cáo tháng PDF | Soạn nhận xét/lộ trình, xem trước, lấy dữ liệu học tập/tài chính, xuất PDF và tải có kiểm tra quyền. | Đã triển khai luồng thủ công và lưu PDF trên R2. |
+| FR-14 | Báo cáo tháng PDF | Soạn nhận xét/lộ trình, xem trước, lấy dữ liệu học tập/tài chính, xuất PDF và tải có kiểm tra quyền. |  lưu PDF trên R2. |
 | FR-15 | Trả trước và bảo lưu | Theo dõi nguồn tiền trả trước, duyệt bảo lưu và sử dụng đúng một lần cho kỳ sau, thể hiện trên báo cáo. | Thiết kế mở rộng. |
-| FR-16 | Cập nhật báo cáo | Nhận biết bản xuất không còn khớp dữ liệu nguồn và chủ động tạo bản cập nhật, giữ lịch sử bản cũ. | Phát hiện xung đột nguồn lúc xuất đã có; luồng cập nhật PDF cũ đầy đủ là phần tiếp theo. |
+| FR-16 | Cập nhật báo cáo | Nhận biết bản xuất không còn khớp dữ liệu nguồn và chủ động tạo bản cập nhật, giữ lịch sử bản cũ. |  
 
 ### 2.1. Quy tắc nghiệp vụ cốt lõi
 
@@ -80,7 +78,6 @@ Các nội dung dưới đây bao gồm yêu cầu của toàn hệ thống và 
 | NFR-07 | Sao lưu và phục hồi | Cần có phương án sao lưu và khôi phục dữ liệu nghiệp vụ cùng các file báo cáo khi xảy ra sự cố. |
 | NFR-08 | Bảo trì và mở rộng | Mã nguồn được chia theo module để dễ sửa lỗi, bổ sung chức năng và triển khai hệ thống. |
 
-Các yêu cầu trên là mục tiêu chất lượng của hệ thống; mức độ đáp ứng được đánh giá qua kiểm thử và chạy thử thực tế.
 
 ## 4. Sơ đồ phân rã chức năng
 
