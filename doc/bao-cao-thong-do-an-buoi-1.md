@@ -69,22 +69,18 @@ Các nội dung dưới đây bao gồm yêu cầu của toàn hệ thống và 
 
 ## 3. Yêu cầu phi chức năng
 
-| Mã | Thuộc tính chất lượng | Yêu cầu và cách kiểm tra |
+| Mã | Nhóm yêu cầu | Nội dung |
 | --- | --- | --- |
-| NFR-01 | Bảo mật xác thực | Dùng cookie HttpOnly, Secure khi Production qua HTTPS; thao tác ghi yêu cầu chống CSRF. Kiểm tra đăng nhập, hết hạn, giả mạo và thu hồi phiên. |
-| NFR-02 | Cô lập dữ liệu | Lấy owner từ phiên server, kiểm tra quyền ở API. Tài khoản giáo viên khác không đọc/sửa được dữ liệu hoặc tải PDF bằng ID trực tiếp. |
-| NFR-03 | Bảo mật file và secrets | Bucket R2 private; credentials chỉ ở backend/CI, ngoài Git. Tải PDF qua API; token tải mặc định 5 phút vẫn cần phiên và quyền đọc. Không log token hoặc secrets. |
-| NFR-04 | Toàn vẹn tài chính | Tiền VND lưu chính xác bằng numeric, truyền chuỗi số nguyên; thu tiền, phân bổ và phiên bản cập nhật trong cùng giao dịch. Kiểm tra rollback và gửi lặp. |
-| NFR-05 | Đồng thời và nhất quán | Có kiểm tra phiên bản, khóa giao dịch khi cần, inbox/outbox bền vững; xử lý sự kiện lặp và khởi động lại không tính trùng phí. |
-| NFR-06 | Hiệu năng | **Mục tiêu đề xuất để đo:** P95 API đọc/ghi thông thường không quá 2 giây với 20 người dùng đồng thời và lớp tối đa 100 học sinh trên môi trường đo được ghi rõ. Đây chưa phải kết quả benchmark đã đạt. PDF/AI được đo riêng. |
-| NFR-07 | Giới hạn tài nguyên | Bộ dựng PDF hiện cấu hình timeout mặc định 60 giây và 2 lượt dựng đồng thời. Kiểm tra giới hạn, lỗi và khả năng thử lại; timeout không phải cam kết mọi PDF hoàn tất dưới 60 giây. |
-| NFR-08 | Khả năng phục hồi | R2/QR lỗi không làm sai dữ liệu hoặc công bố file chưa sẵn sàng. R2 lỗi không chặn nghiệp vụ lớp/học phí; có backup metadata và object tương ứng, diễn tập khôi phục. |
-| NFR-09 | Dễ sử dụng | Giao diện tiếng Việt; thao tác chính có phản hồi, lỗi giữ nội dung đang nhập. Điểm danh có nhãn chữ cùng màu; kiểm tra desktop và màn hình rộng 390px. |
-| NFR-10 | Chất lượng báo cáo | PDF đọc được tiếng Việt, xuống dòng/nhiều trang, đúng học sinh và số liệu; nội dung nhập được escape, không chạy script. Kiểm tra PDF thật bằng trích xuất văn bản và mẫu hiển thị. |
-| NFR-11 | Bảo trì và mở rộng | Clean Architecture trong module, schema/DbContext riêng, hợp đồng liên module rõ ràng; thay nhà cung cấp lưu trữ qua adapter mà không thay nghiệp vụ. |
-| NFR-12 | Kiểm thử và triển khai | Build có thể tái lập, migrations có kiểm soát, kiểm thử qua API với PostgreSQL/R2 thật và browser. Docker Compose đóng gói hệ thống; Jenkins tự động hóa theo phạm vi được triển khai. |
+| NFR-01 | Bảo mật | Người dùng phải đăng nhập và chỉ được truy cập dữ liệu thuộc quyền của mình. Mật khẩu và thông tin kết nối phải được bảo vệ. |
+| NFR-02 | Hiệu năng | Các thao tác xem, thêm và sửa dữ liệu cần phản hồi nhanh. Khi xuất PDF hoặc xử lý AI, giao diện phải thông báo đang xử lý hoặc có lỗi. |
+| NFR-03 | Độ chính xác | Học phí, khoản thu và công nợ phải được tính đúng; gửi lại cùng một yêu cầu không được tạo dữ liệu hoặc tính tiền trùng. |
+| NFR-04 | Dễ sử dụng | Giao diện tiếng Việt, bố cục rõ ràng, thông báo dễ hiểu và sử dụng được trên máy tính lẫn điện thoại. |
+| NFR-05 | Độ tin cậy | Dữ liệu đã lưu phải được giữ sau khi khởi động lại. Khi dịch vụ QR hoặc lưu file gặp lỗi, hệ thống cần thông báo và cho phép thử lại. |
+| NFR-06 | Chất lượng báo cáo | PDF phải hiển thị rõ tiếng Việt, đúng học sinh và số liệu, không bị mất nội dung khi có nhiều trang. |
+| NFR-07 | Sao lưu và phục hồi | Cần có phương án sao lưu và khôi phục dữ liệu nghiệp vụ cùng các file báo cáo khi xảy ra sự cố. |
+| NFR-08 | Bảo trì và mở rộng | Mã nguồn được chia theo module để dễ sửa lỗi, bổ sung chức năng và triển khai hệ thống. |
 
-Các mục tiêu hiệu năng đề xuất cần được giảng viên/nhóm thống nhất và đo bằng kịch bản tải riêng. Số lượng kiểm thử qua không thay thế số liệu hiệu năng hoặc đánh giá chất lượng AI.
+Các yêu cầu trên là mục tiêu chất lượng của hệ thống; mức độ đáp ứng được đánh giá qua kiểm thử và chạy thử thực tế.
 
 ## 4. Sơ đồ phân rã chức năng
 
