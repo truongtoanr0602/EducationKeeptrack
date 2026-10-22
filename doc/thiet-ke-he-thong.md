@@ -669,7 +669,7 @@ erDiagram
     }
 
     StudentCharges {
-        uuid SessionId PK_FK "FK SessionCharges"
+        uuid SessionId PK, FK "FK SessionCharges"
         uuid StudentId PK
         varchar AttendanceStatus
         int AttendanceVersion
@@ -697,7 +697,7 @@ erDiagram
     }
 
     ReceiptAllocations {
-        uuid ReceiptId PK_FK "FK Receipts.Id"
+        uuid ReceiptId PK, FK "FK Receipts.Id"
         date Period PK "Ky hoc phi yyyy-MM-01"
         numeric AmountVnd
     }
