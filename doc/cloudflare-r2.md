@@ -18,6 +18,8 @@ Ghi object thành công rồi mới đánh dấu metadata ready. Giữ key riên
 
 ## Vận hành, kiểm thử và chuyển dữ liệu
 
+Pipeline và lệnh tái hiện: [Kiểm chứng PDF/R2 qua Jenkins](../docs/verification/R2-Jenkins.md). Backend test dùng `Reporting__KeyPrefix`; mặc định rỗng để giữ key hiện hữu. API fixture nhận `TEST_S3_RUN_PREFIX=ekt-ci/<run-id>/` và tự tạo nhánh con. Cleanup CI chỉ xóa prefix của run, không quản trị bucket. Đổi prefix deployment đang có dữ liệu cần chuyển object trước như khi đổi bucket.
+
 Local kết nối bucket R2 dev qua Internet. Khi triển khai chuyển đổi, bỏ service s3, depends_on tương ứng và volume report-objects khỏi Compose; chỉ xóa dữ liệu cũ sau xác minh. Theo dõi lỗi, độ trễ, dung lượng và số thao tác. Không tự đặt lifecycle xóa ảnh khi retention nghiệp vụ chưa chốt. Backup object độc lập cùng metadata PostgreSQL và diễn tập khôi phục; dịch vụ lưu trữ không thay thế backup.
 
 CI dùng bucket R2 test được cấp trước, credentials từ Jenkins binding và prefix ngẫu nhiên theo run. Fixture nhận TEST_S3_ENDPOINT, TEST_S3_ACCESS_KEY, TEST_S3_SECRET_KEY, TEST_S3_BUCKET; region auto. Chỉ dọn prefix do run tạo, không tạo/xóa bucket, không dùng production. Thiếu credentials phải báo chưa xác minh tích hợp, không âm thầm bỏ qua kiểm thử. Nghiệm thu PDF thật và ảnh (cùng T12), đối chiếu bytes, owner khác, token hết hạn, tài khoản khóa, lỗi mạng/quyền, retry và không có metadata ready khi upload thất bại.

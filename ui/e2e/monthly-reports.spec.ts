@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 async function setup(page: Page, withFee = false) {
   await page.goto("/");
@@ -30,7 +31,7 @@ async function setup(page: Page, withFee = false) {
 }
 
 test("teacher edits monthly draft, previews and downloads only selected student", async ({ page }) => {
-  const { region, classroom } = await setup(page, true);
+  const { region, classroom, student } = await setup(page, true);
   const comment = "Tiến bộ về phân số <script>window.reportInjected=true</script>";
   await region.getByLabel("Nhận xét báo cáo").fill(comment);
   await region.getByLabel("Lộ trình báo cáo").fill("Luyện 10 bài toán");
@@ -48,7 +49,14 @@ test("teacher edits monthly draft, previews and downloads only selected student"
   const downloadEvent = page.waitForEvent("download");
   await region.getByRole("button", { name: "Tải PDF", exact: true }).first().click();
   const downloaded = await downloadEvent; const file = await downloaded.path();
-  expect((await readFile(file!)).subarray(0, 5).toString()).toBe("%PDF-");
+  const bytes = await readFile(file!);
+  expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
+  const metadataResponse = await page.request.get(`/api/reporting/classes/${classroom.id}/students/${student.id}/months/2026-10/exports`);
+  expect(metadataResponse.ok()).toBeTruthy();
+  const exports = await metadataResponse.json();
+  expect(exports).toHaveLength(1);
+  expect(bytes.byteLength).toBe(exports[0].byteLength);
+  expect(createHash("sha256").update(bytes).digest("hex").toUpperCase()).toBe(exports[0].sha256);
   await region.getByRole("button", { name: "Đối chiếu học phí" }).click();
   expect(new URL(page.url()).hash).toBe(`#${classroom.id}`);
   await page.reload();
@@ -90,7 +98,9 @@ test("uncertain export retries same command and source conflict preserves draft"
   await region.getByRole("button", { name: "Thử lại lệnh xuất" }).click();
   expect((await retry).postDataJSON()).toEqual(first);
   await expect(region.getByRole("button", { name: "Tải PDF", exact: true })).toHaveCount(1);
+  const refreshedPreview = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/previews"));
   await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
+  expect((await refreshedPreview).ok()).toBeTruthy();
   await write(`/students/${student.id}`, { name: "Tên nguồn mới", version: 1 }, "PUT");
   await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
   await expect(region.getByRole("alert")).toContainText("làm mới");

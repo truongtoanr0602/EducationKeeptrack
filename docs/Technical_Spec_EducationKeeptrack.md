@@ -1,14 +1,15 @@
+
 # Education Keeptrack — Đặc tả sản phẩm và kỹ thuật
 
 > Cập nhật 21/10/2026: dùng Cloudflare R2 private thay SeaweedFS/MinIO. [Thiết kế R2](../doc/cloudflare-r2.md) quy định cấu hình, quyền tải qua backend, kiểm thử và chuyển dữ liệu; thay thế hướng dẫn kho cũ. Ticket #28 chuyển cấu hình và adapter sang R2; nghiệm thu thực tế cần bucket test và credentials. CI và chuyển dữ liệu cũ lần lượt thuộc #29/#30.
 
-| Thuộc tính | Giá trị |
-| --- | --- |
-| Phiên bản | 1.2 — Cloudflare R2 (21/10/2026) |
-| Ngày lập | 16/10/2026 |
-| Cơ sở nghiệp vụ | BRD Education Keeptrack 2.2 và các quyết định trong phiên làm rõ yêu cầu |
+| Thuộc tính                  | Giá trị                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Phiên bản                   | 1.2 — Cloudflare R2 (21/10/2026)                                                                                         |
+| Ngày lập                    | 16/10/2026                                                                                                                |
+| Cơ sở nghiệp vụ           | BRD Education Keeptrack 2.2 và các quyết định trong phiên làm rõ yêu cầu                                        |
 | Điểm kiểm thử đã duyệt | API hệ thống, dữ liệu lưu trữ thật trong môi trường kiểm thử, mô phỏng AI và lỗi QR; kiểm tra riêng PDF |
-| Nơi quản lý công việc | GitHub Issues: truongtoanr0602/EducationKeeptrack |
+| Nơi quản lý công việc    | GitHub Issues: truongtoanr0602/EducationKeeptrack                                                                         |
 
 ## Problem Statement
 
@@ -74,7 +75,6 @@ Giáo viên chọn tự chấm hoặc AI chấm trước khi xử lý bài; AI c
 48. Là phụ huynh, tôi muốn thấy buổi học, hai mức đánh giá, lộ trình, nợ cũ, tiền đã trả và tổng phải trả để hiểu tình hình của con.
 49. Là phụ huynh, tôi muốn nhận bản PDF cập nhật khi số liệu thay đổi để thanh toán đúng.
 50. Là giáo viên, tôi muốn dữ liệu, ảnh và báo cáo của mình không bị giáo viên khác truy cập kể cả qua đường dẫn trực tiếp để bảo vệ học sinh.
-
 51. Là giáo viên, tôi muốn tự đăng ký và xác minh email để gửi yêu cầu dùng dịch vụ.
 52. Là giáo viên chờ duyệt, tôi muốn xem hướng dẫn và gửi mã giao dịch để Admin đối chiếu thanh toán.
 53. Là Admin, tôi muốn duyệt/từ chối và cấp kỳ quyền sử dụng có lịch sử để quản lý dịch vụ trả phí.
@@ -99,29 +99,29 @@ Giáo viên chọn tự chấm hoặc AI chấm trước khi xử lý bài; AI c
 
 ### 2. Thuật ngữ và quyền sở hữu
 
-| Khái niệm | Ý nghĩa |
-| --- | --- |
-| Giáo viên sở hữu | Tài khoản là phạm vi cô lập dữ liệu; danh tính lấy từ phiên xác thực, không tin giá trị do client gửi |
-| Buổi học | Lần học cụ thể có thời gian, trạng thái và đơn giá áp dụng; khác lịch tuần dự kiến |
-| Bài đánh giá | Đề bài và các phiên bản đáp án/hướng dẫn dùng chung cho một lượt chấm |
-| Bài nộp | Bài của một học sinh trong một bài đánh giá; có một cách chấm hiện hành |
-| Lượt AI | Một lần xử lý cụ thể, gắn với bài nộp và phiên bản hướng dẫn |
-| Kết quả cuối | Hai chỉ số do giáo viên xác nhận; nguồn chính thức cho báo cáo và cảnh báo |
-| Giao dịch nhận tiền | Một khoản thực nhận, có ngày nhận và lịch sử sửa/hủy |
-| Phân bổ thanh toán | Phần của một giao dịch dùng trả nghĩa vụ của một kỳ học phí |
-| Bảo lưu | Tiền đã thu chưa sử dụng, được duyệt chuyển tiếp; không phải tiền mới thu |
-| Bản xuất báo cáo | PDF tại một phiên bản dữ liệu, có thời điểm xuất và thông tin đối chiếu |
+| Khái niệm            | Ý nghĩa                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Giáo viên sở hữu   | Tài khoản là phạm vi cô lập dữ liệu; danh tính lấy từ phiên xác thực, không tin giá trị do client gửi |
+| Buổi học             | Lần học cụ thể có thời gian, trạng thái và đơn giá áp dụng; khác lịch tuần dự kiến                   |
+| Bài đánh giá       | Đề bài và các phiên bản đáp án/hướng dẫn dùng chung cho một lượt chấm                                 |
+| Bài nộp              | Bài của một học sinh trong một bài đánh giá; có một cách chấm hiện hành                                  |
+| Lượt AI              | Một lần xử lý cụ thể, gắn với bài nộp và phiên bản hướng dẫn                                            |
+| Kết quả cuối        | Hai chỉ số do giáo viên xác nhận; nguồn chính thức cho báo cáo và cảnh báo                                |
+| Giao dịch nhận tiền | Một khoản thực nhận, có ngày nhận và lịch sử sửa/hủy                                                        |
+| Phân bổ thanh toán  | Phần của một giao dịch dùng trả nghĩa vụ của một kỳ học phí                                                |
+| Bảo lưu              | Tiền đã thu chưa sử dụng, được duyệt chuyển tiếp; không phải tiền mới thu                               |
+| Bản xuất báo cáo   | PDF tại một phiên bản dữ liệu, có thời điểm xuất và thông tin đối chiếu                                 |
 
 ### 3. Ranh giới module và giao tiếp
 
-| Module | Dữ liệu và trách nhiệm sở hữu | Hợp đồng cung cấp |
-| --- | --- | --- |
-| Identity | Tài khoản, email, vai trò, TOTP Admin, phiên có thể thu hồi | Đăng ký/xác minh/đăng nhập/khôi phục, danh tính và trạng thái khóa |
-| ServiceAccess | Hồ sơ duyệt, phí dịch vụ, kỳ quyền sử dụng, quyền AI và sổ hạn mức | Đối chiếu/duyệt/gia hạn; kiểm tra đọc/ghi/AI, giữ/trừ/hoàn lượt |
-| Classroom | Lớp, học sinh, liên hệ, đăng ký lớp, lịch, buổi thực tế, điểm danh, đơn giá hiệu lực | Tạo/cập nhật lớp, buổi, điểm danh; đọc dữ liệu buổi có phiên bản |
-| Learning | Bài đánh giá, hướng dẫn có phiên bản, bài nộp, cách chấm, lượt AI, kết quả gốc/cuối, lỗi và lịch sử | Chọn cách chấm, xử lý AI, tự chấm, xác nhận, chấm lại, chuyển sang thủ công; đọc hồ sơ chính thức |
-| Billing | Kỳ phí, phí từng buổi, điều chỉnh, tiền nhận, phân bổ, bảo lưu, số dư, tài khoản nhận tiền | Tính phí, ghi/hủy/điều chỉnh tiền nhận, duyệt/dùng bảo lưu, đối chiếu dư nợ, lấy yêu cầu thanh toán |
-| Reporting | Bản nháp nhận xét, xu hướng/cảnh báo, hành động hỗ trợ, tùy chỉnh trình bày, bản xuất | Tạo/chỉnh nhận xét, đọc xu hướng, xem trước, xuất PDF |
+| Module        | Dữ liệu và trách nhiệm sở hữu                                                                                        | Hợp đồng cung cấp                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Identity      | Tài khoản, email, vai trò, TOTP Admin, phiên có thể thu hồi                                                          | Đăng ký/xác minh/đăng nhập/khôi phục, danh tính và trạng thái khóa                                         |
+| ServiceAccess | Hồ sơ duyệt, phí dịch vụ, kỳ quyền sử dụng, quyền AI và sổ hạn mức                                           | Đối chiếu/duyệt/gia hạn; kiểm tra đọc/ghi/AI, giữ/trừ/hoàn lượt                                             |
+| Classroom     | Lớp, học sinh, liên hệ, đăng ký lớp, lịch, buổi thực tế, điểm danh, đơn giá hiệu lực                     | Tạo/cập nhật lớp, buổi, điểm danh; đọc dữ liệu buổi có phiên bản                                          |
+| Learning      | Bài đánh giá, hướng dẫn có phiên bản, bài nộp, cách chấm, lượt AI, kết quả gốc/cuối, lỗi và lịch sử | Chọn cách chấm, xử lý AI, tự chấm, xác nhận, chấm lại, chuyển sang thủ công; đọc hồ sơ chính thức    |
+| Billing       | Kỳ phí, phí từng buổi, điều chỉnh, tiền nhận, phân bổ, bảo lưu, số dư, tài khoản nhận tiền              | Tính phí, ghi/hủy/điều chỉnh tiền nhận, duyệt/dùng bảo lưu, đối chiếu dư nợ, lấy yêu cầu thanh toán |
+| Reporting     | Bản nháp nhận xét, xu hướng/cảnh báo, hành động hỗ trợ, tùy chỉnh trình bày, bản xuất                    | Tạo/chỉnh nhận xét, đọc xu hướng, xem trước, xuất PDF                                                         |
 
 - Mỗi module có schema và DbContext riêng; chỉ module sở hữu được ghi dữ liệu. Module khác dùng hợp đồng công khai hoặc sự kiện, không đọc trực tiếp bảng/DbContext của nhau.
 - S3, AI, sinh QR và dựng PDF là adapter phía ngoài các module; không tạo module nghiệp vụ riêng chỉ vì khác nhà cung cấp.
@@ -148,14 +148,14 @@ Giáo viên chọn tự chấm hoặc AI chấm trước khi xử lý bài; AI c
 - Cách chấm mặc định của lượt được áp vào các bài chưa bắt đầu; chọn riêng từng bài được trước xử lý. Tự chấm không gọi AI.
 - Với AI: cung cấp đề, đáp án/hướng dẫn một lần mỗi bài; AI đọc ảnh và trả hai tỷ lệ có căn cứ cùng lỗi. Máy chủ kiểm tra dữ liệu trả về trước khi quy đổi; không tin trực tiếp kết quả từ nhà cung cấp.
 
-| Tỷ lệ thực tế | Mức ghi nhận cho từng chỉ số |
-| --- | --- |
-| 0% | Trạng thái bằng 0 phù hợp |
-| Trên 0% đến 25% | 25% |
-| Trên 25% đến 50% | 50% |
-| Trên 50% đến 75% | 75% |
-| Trên 75% đến dưới 100% | 75% |
-| Đúng 100% | 100% |
+| Tỷ lệ thực tế           | Mức ghi nhận cho từng chỉ số |
+| --------------------------- | --------------------------------- |
+| 0%                          | Trạng thái bằng 0 phù hợp    |
+| Trên 0% đến 25%          | 25%                               |
+| Trên 25% đến 50%         | 50%                               |
+| Trên 50% đến 75%         | 75%                               |
+| Trên 75% đến dưới 100% | 75%                               |
+| Đúng 100%                 | 100%                              |
 
 - Giữ nguyên bảng đã duyệt, không thay bằng làm tròn gần nhất. Ví dụ 60% và 90% đều ghi mức 75%; 100% chỉ khi đầy đủ/đúng toàn bộ. Tỷ lệ ngoài 0–100 hoặc thiếu căn cứ phải được báo lỗi/cần kiểm tra.
 - Lượt AI đi qua chờ xử lý, đang xử lý, hoàn tất hoặc lỗi/hủy. Kết quả AI hoàn tất vẫn cần giáo viên sửa/xác nhận trước khi trở thành chính thức; giữ gốc bất biến.
@@ -193,18 +193,18 @@ Giáo viên chọn tự chấm hoặc AI chấm trước khi xử lý bài; AI c
 
 Các nhóm thao tác công khai dưới đây là hợp đồng hành vi, tên tuyến cụ thể sẽ theo quy ước backend khi khởi tạo:
 
-| Nhóm lệnh/truy vấn | Đầu vào chính | Kết quả và ràng buộc |
-| --- | --- | --- |
-| Thiết lập lớp/lịch/đơn giá | Thông tin lớp, ngày hiệu lực, lịch tuần | ID và phiên bản; lỗi nếu trùng đăng ký hoặc dữ liệu không hợp lệ |
-| Điểm danh | Buổi, học sinh, trạng thái, ghi chú, phiên bản | Trạng thái đã lưu; tạo cập nhật tổng hợp liên quan |
-| Tự chấm/xác nhận | Bài nộp, hai mức/trạng thái, phiên bản | Kết quả cuối và lịch sử; kiểm tra cách chấm/trạng thái hợp lệ |
-| Bắt đầu AI | Bài nộp, ảnh, phiên bản hướng dẫn, xác nhận thay thế nếu cần | Chấp nhận xử lý nền, ID lượt và trạng thái; chưa trả kết quả chính thức |
-| Đọc/chuyển lượt AI | ID lượt hoặc bài, phiên bản | Tiến độ hoặc chuyển thủ công; lượt cũ mất quyền cập nhật |
-| Tạo nhận xét | Học sinh, kỳ, phiên bản dữ liệu | ID công việc nền hoặc bản nháp; không tự gửi phụ huynh |
-| Ghi/điều chỉnh/hủy tiền | Học sinh, tiền, ngày nhận, lý do, phiên bản, khóa chống lặp | Giao dịch, phân bổ, số dư mới; áp dụng nguyên tử |
-| Duyệt/dùng bảo lưu | Nguồn tiền, khoảng nghỉ, khoản duyệt/dùng và lý do | Sổ bảo lưu và số dư; ngăn dùng trùng hoặc vượt nguồn |
-| Đọc bảng phí/xem trước | Học sinh, kỳ, tùy chỉnh nội dung | Các dòng phí, nợ, tiền phân bổ, bảo lưu, phiên bản nguồn và cảnh báo |
-| Xuất PDF/QR | Bản nháp, phiên bản nguồn đã xem | Bản xuất nhất quán hoặc thông báo nguồn đã đổi; QR có loại và số tiền tương ứng |
+| Nhóm lệnh/truy vấn             | Đầu vào chính                                                         | Kết quả và ràng buộc                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Thiết lập lớp/lịch/đơn giá | Thông tin lớp, ngày hiệu lực, lịch tuần                            | ID và phiên bản; lỗi nếu trùng đăng ký hoặc dữ liệu không hợp lệ                     |
+| Điểm danh                       | Buổi, học sinh, trạng thái, ghi chú, phiên bản                     | Trạng thái đã lưu; tạo cập nhật tổng hợp liên quan                                       |
+| Tự chấm/xác nhận              | Bài nộp, hai mức/trạng thái, phiên bản                             | Kết quả cuối và lịch sử; kiểm tra cách chấm/trạng thái hợp lệ                          |
+| Bắt đầu AI                     | Bài nộp, ảnh, phiên bản hướng dẫn, xác nhận thay thế nếu cần | Chấp nhận xử lý nền, ID lượt và trạng thái; chưa trả kết quả chính thức             |
+| Đọc/chuyển lượt AI           | ID lượt hoặc bài, phiên bản                                         | Tiến độ hoặc chuyển thủ công; lượt cũ mất quyền cập nhật                              |
+| Tạo nhận xét                   | Học sinh, kỳ, phiên bản dữ liệu                                     | ID công việc nền hoặc bản nháp; không tự gửi phụ huynh                                    |
+| Ghi/điều chỉnh/hủy tiền      | Học sinh, tiền, ngày nhận, lý do, phiên bản, khóa chống lặp     | Giao dịch, phân bổ, số dư mới; áp dụng nguyên tử                                          |
+| Duyệt/dùng bảo lưu            | Nguồn tiền, khoảng nghỉ, khoản duyệt/dùng và lý do               | Sổ bảo lưu và số dư; ngăn dùng trùng hoặc vượt nguồn                                   |
+| Đọc bảng phí/xem trước      | Học sinh, kỳ, tùy chỉnh nội dung                                     | Các dòng phí, nợ, tiền phân bổ, bảo lưu, phiên bản nguồn và cảnh báo                 |
+| Xuất PDF/QR                      | Bản nháp, phiên bản nguồn đã xem                                   | Bản xuất nhất quán hoặc thông báo nguồn đã đổi; QR có loại và số tiền tương ứng |
 
 - Mọi thao tác cần xác thực và kiểm tra sở hữu; yêu cầu bị từ chối không tiết lộ dữ liệu của tài khoản khác.
 - Lỗi trả mã ổn định, thông điệp tiếng Việt, trường cần sửa và ID đối chiếu. Phân biệt thiếu quyền, dữ liệu sai, xung đột phiên bản, phụ thuộc ngoài lỗi và công việc đang xử lý.
@@ -286,19 +286,19 @@ Dùng API hệ thống làm điểm kiểm thử chính, đi qua xác thực, ng
 
 Test tốt kiểm tra hành vi và dữ liệu quan sát được, không phụ thuộc tên lớp, bảng nội bộ hoặc thứ tự gọi handler. Các kiểm thử dùng hai tài khoản giáo viên, nhiều kỳ học, đồng hồ cố định, phản hồi AI điều khiển được và dữ liệu tài chính đối chiếu chính xác.
 
-| Phạm vi | Tình huống bắt buộc | Đối chiếu BRD |
-| --- | --- | --- |
-| Classroom | Lịch nhiều ngày, trùng đăng ký, điểm danh thiếu/có/vắng, hủy/học bù, đổi giá giữa kỳ | AC-01, AC-02, AC-05, AC-06 |
-| Learning | Hai chỉ số độc lập, bốn mức, các trạng thái 0/thiếu, không gọi AI khi tự chấm | AC-03, AC-18, AC-20 |
-| AI chấm | Ảnh đủ/thiếu/mờ, lỗi phụ thuộc, xác nhận/sửa, giữ gốc, chấm lại không tạo trùng | AC-04, AC-14, AC-15 |
-| Quy đổi | 0, 25, 50, 60, 75, 90, 100 và ngay hai phía các mốc; ngoài miền phải lỗi | AC-19 |
-| Bất đồng bộ | Chuyển thủ công trước kết quả AI về, sự kiện lặp, dừng/khôi phục công việc, tranh chấp phiên bản | AC-21 và tính an toàn dữ liệu |
-| Hướng dẫn | Sửa đáp án đánh dấu bản cũ, không tự gọi AI; yêu cầu xác nhận thay kết quả đã sửa | AC-22 |
-| Nhận xét/cảnh báo | Chỉ dùng kết quả cuối, giữ lời sửa, đánh dấu lỗi thời, không đọc/chấm lại ảnh, thiếu dữ liệu, AI lỗi vẫn tự viết | AC-09, AC-16, AC-17, AC-23, AC-24 |
-| Billing | Số buổi/giá, bảo lưu đúng nguồn/dùng một lần, không tiền trước không sinh bảo lưu, dư lớn hơn phí | AC-05, AC-06, AC-10, AC-11, AC-12 |
-| Thu tiền | Trả một phần, nợ cũ trước, ngày thực thu khác kỳ học, hủy/sửa giữ lịch sử, lệnh lặp và thu đồng thời | AC-08, AC-25, AC-26, AC-27 |
-| QR/PDF | Đúng số tiền/người nhận, không quét là đã trả, fallback hai tầng, số tiền 0, không dùng mã cũ, nguồn thay khi xuất | AC-07, AC-08, AC-28, AC-29 |
-| Bảo mật | Giáo viên khác truy cập API/ảnh/PDF, tham chiếu chéo và URL hết hạn đều bị kiểm soát phù hợp | AC-13, AC-30 |
+| Phạm vi              | Tình huống bắt buộc                                                                                                                    | Đối chiếu BRD                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| Classroom             | Lịch nhiều ngày, trùng đăng ký, điểm danh thiếu/có/vắng, hủy/học bù, đổi giá giữa kỳ                                   | AC-01, AC-02, AC-05, AC-06         |
+| Learning              | Hai chỉ số độc lập, bốn mức, các trạng thái 0/thiếu, không gọi AI khi tự chấm                                               | AC-03, AC-18, AC-20                |
+| AI chấm              | Ảnh đủ/thiếu/mờ, lỗi phụ thuộc, xác nhận/sửa, giữ gốc, chấm lại không tạo trùng                                          | AC-04, AC-14, AC-15                |
+| Quy đổi             | 0, 25, 50, 60, 75, 90, 100 và ngay hai phía các mốc; ngoài miền phải lỗi                                                           | AC-19                              |
+| Bất đồng bộ       | Chuyển thủ công trước kết quả AI về, sự kiện lặp, dừng/khôi phục công việc, tranh chấp phiên bản                        | AC-21 và tính an toàn dữ liệu |
+| Hướng dẫn          | Sửa đáp án đánh dấu bản cũ, không tự gọi AI; yêu cầu xác nhận thay kết quả đã sửa                                     | AC-22                              |
+| Nhận xét/cảnh báo | Chỉ dùng kết quả cuối, giữ lời sửa, đánh dấu lỗi thời, không đọc/chấm lại ảnh, thiếu dữ liệu, AI lỗi vẫn tự viết | AC-09, AC-16, AC-17, AC-23, AC-24  |
+| Billing               | Số buổi/giá, bảo lưu đúng nguồn/dùng một lần, không tiền trước không sinh bảo lưu, dư lớn hơn phí                    | AC-05, AC-06, AC-10, AC-11, AC-12  |
+| Thu tiền             | Trả một phần, nợ cũ trước, ngày thực thu khác kỳ học, hủy/sửa giữ lịch sử, lệnh lặp và thu đồng thời                | AC-08, AC-25, AC-26, AC-27         |
+| QR/PDF                | Đúng số tiền/người nhận, không quét là đã trả, fallback hai tầng, số tiền 0, không dùng mã cũ, nguồn thay khi xuất   | AC-07, AC-08, AC-28, AC-29         |
+| Bảo mật             | Giáo viên khác truy cập API/ảnh/PDF, tham chiếu chéo và URL hết hạn đều bị kiểm soát phù hợp                              | AC-13, AC-30                       |
 
 - Kiểm tra UI riêng cho màu/nhãn điểm danh, toàn dòng vắng, hai nhóm bốn nút và trạng thái riêng; không suy ra chất lượng giao diện từ API test.
 - Kiểm tra PDF bằng trích xuất văn bản/số liệu và xem bản mẫu: tiếng Việt, emoji, xuống dòng, nhiều trang, không lẫn học sinh khác. Không chỉ so sánh byte PDF hoặc tạo test bám bố cục nội bộ.
@@ -315,7 +315,6 @@ Test tốt kiểm tra hành vi và dữ liệu quan sát được, không phụ 
 - Tự áp dụng kết quả AI chưa xác nhận, tự chấm lại khi đổi đáp án, tự ghi đè lời nhận xét đã sửa.
 - Tự chọn chính sách bảo lưu, ngưỡng cảnh báo, nhà cung cấp AI hay chỉ tiêu chất lượng rồi coi là đã được duyệt.
 - Triển khai mã nguồn, tạo PR, thiết lập hạ tầng thật hoặc phân rã thành nhiều issue triển khai trong bước lập spec này.
-
 - Chưa có thanh toán dịch vụ tự động, gói dùng thử, OAuth, đăng nhập điện thoại hoặc JWT cho API bên thứ ba. Chưa tự đặt giá gói, số lượt hoặc cách tính lượt cảnh báo AI.
 
 ## Further Notes
@@ -324,15 +323,15 @@ Test tốt kiểm tra hành vi và dữ liệu quan sát được, không phụ 
 
 Spec mô tả đầy đủ phần đã chốt và được xuất với nhãn workflow `ready-for-agent` theo skill to-spec. Nhãn này không thay thế việc xác nhận các chính sách còn mở. Agent triển khai có thể làm phần nền và hành vi đã xác định; phần phụ thuộc dưới đây cần được chốt trước khi tự động hóa hoặc nghiệm thu tương ứng.
 
-| Nội dung còn mở | Ảnh hưởng | Cách xử lý trong khi chưa chốt |
-| --- | --- | --- |
-| Học sinh nhiều lớp | Đăng ký và phạm vi tổng hợp | Thiết kế có đăng ký lớp riêng; chưa coi tự chuyển dư/bảo lưu giữa lớp là được phép |
-| Chính sách trả trước | Phân bổ tiền và điều kiện bảo lưu | Mô hình hỗ trợ nguồn tiền chưa dùng; chưa tự áp dụng chính sách ngoài ví dụ đã duyệt |
-| Nghỉ dài ngày, minh chứng, hạn dùng bảo lưu, chuyển/dừng lớp, tiền dư | Duyệt và dùng số dư | Không tự sinh tiền hoặc hoàn tiền; cần giáo viên xác nhận theo chính sách được duyệt |
-| Môn/dạng bài hỗ trợ, tiêu chí độ chắc chắn, bộ mẫu, chất lượng và thời gian AI | Adapter chấm và nghiệm thu thật | Có thể kiểm thử luồng bằng mô phỏng; chưa cam kết chấm mọi môn/mọi ảnh |
-| Lịch sử tối thiểu, ngưỡng, mô hình phân tích xu hướng | Cảnh báo học tập | Không tự đặt kết luận mất gốc; cần bộ dữ liệu và tiêu chí trước nghiệm thu |
-| Giữ/xóa ảnh, điều kiện dùng dữ liệu huấn luyện | Quy trình dữ liệu và nhà cung cấp | Bảo vệ riêng tư; chưa bổ sung sử dụng dữ liệu cho mục đích khác |
-| Quy mô, hạn mức tải ảnh, thời gian phản hồi, sao lưu/khôi phục | Chất lượng vận hành | Cấu hình được và đo trong môi trường kiểm thử; mục tiêu số cần xác nhận |
-| Mở lại báo cáo đã chốt | Quy trình phiên bản báo cáo | Giữ PDF cũ, đánh dấu cần cập nhật; điều kiện mở lại theo chính sách còn cần duyệt |
+| Nội dung còn mở                                                                               | Ảnh hưởng                               | Cách xử lý trong khi chưa chốt                                                                      |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Học sinh nhiều lớp                                                                            | Đăng ký và phạm vi tổng hợp         | Thiết kế có đăng ký lớp riêng; chưa coi tự chuyển dư/bảo lưu giữa lớp là được phép  |
+| Chính sách trả trước                                                                        | Phân bổ tiền và điều kiện bảo lưu | Mô hình hỗ trợ nguồn tiền chưa dùng; chưa tự áp dụng chính sách ngoài ví dụ đã duyệt |
+| Nghỉ dài ngày, minh chứng, hạn dùng bảo lưu, chuyển/dừng lớp, tiền dư               | Duyệt và dùng số dư                   | Không tự sinh tiền hoặc hoàn tiền; cần giáo viên xác nhận theo chính sách được duyệt    |
+| Môn/dạng bài hỗ trợ, tiêu chí độ chắc chắn, bộ mẫu, chất lượng và thời gian AI | Adapter chấm và nghiệm thu thật        | Có thể kiểm thử luồng bằng mô phỏng; chưa cam kết chấm mọi môn/mọi ảnh                    |
+| Lịch sử tối thiểu, ngưỡng, mô hình phân tích xu hướng                                | Cảnh báo học tập                       | Không tự đặt kết luận mất gốc; cần bộ dữ liệu và tiêu chí trước nghiệm thu             |
+| Giữ/xóa ảnh, điều kiện dùng dữ liệu huấn luyện                                        | Quy trình dữ liệu và nhà cung cấp    | Bảo vệ riêng tư; chưa bổ sung sử dụng dữ liệu cho mục đích khác                            |
+| Quy mô, hạn mức tải ảnh, thời gian phản hồi, sao lưu/khôi phục                        | Chất lượng vận hành                   | Cấu hình được và đo trong môi trường kiểm thử; mục tiêu số cần xác nhận                |
+| Mở lại báo cáo đã chốt                                                                    | Quy trình phiên bản báo cáo           | Giữ PDF cũ, đánh dấu cần cập nhật; điều kiện mở lại theo chính sách còn cần duyệt      |
 
 Khi có quyết định mới, cập nhật BRD và spec cùng nhau, giữ nguyên các quyết định đã xác nhận nếu chưa có yêu cầu thay đổi. Issue này là đặc tả tổng thể; các ticket triển khai sau phải nêu phần phụ thuộc còn mở thay vì bỏ qua chúng.

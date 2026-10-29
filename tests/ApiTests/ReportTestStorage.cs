@@ -10,7 +10,16 @@ namespace ApiTests;
 // A fixture owns objects under one random prefix, never the shared bucket itself.
 public sealed class ReportTestStorage : IAsyncDisposable
 {
-    private readonly string prefix = $"ekt-tests/{Guid.NewGuid():N}/";
+    private readonly string prefix = CreatePrefix();
+
+    private static string CreatePrefix()
+    {
+        var run = Environment.GetEnvironmentVariable("TEST_S3_RUN_PREFIX");
+        if (string.IsNullOrEmpty(run)) return $"ekt-tests/{Guid.NewGuid():N}/";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(run, @"\Aekt-ci/[0-9a-f]{32}/\z"))
+            throw new InvalidOperationException("Invalid test run prefix.");
+        return run + $"api/{Guid.NewGuid():N}/";
+    }
     private readonly Lazy<ReportingOptions> options = new(ReadConfiguration);
     private bool used;
     private readonly List<S3ReportStore> stores = [];

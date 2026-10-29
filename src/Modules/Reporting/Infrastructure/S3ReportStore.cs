@@ -31,7 +31,7 @@ public sealed class S3ReportStore(IOptions<ReportingOptions> options) : IReportO
             // R2 does not support the SDK's streaming SigV4/checksum trailers. HTTPS is mandatory above.
             await client.Value.PutObjectAsync(new PutObjectRequest
             {
-                BucketName = options.Value.Bucket, Key = key, InputStream = stream, ContentType = "application/pdf",
+                BucketName = options.Value.Bucket, Key = ReportObjectPrefix.Apply(options.Value.KeyPrefix, key), InputStream = stream, ContentType = "application/pdf",
                 UseChunkEncoding = false, DisablePayloadSigning = true, DisableDefaultChecksumValidation = true
             }, ct);
         }
@@ -42,7 +42,7 @@ public sealed class S3ReportStore(IOptions<ReportingOptions> options) : IReportO
     {
         try
         {
-            using var response = await client.Value.GetObjectAsync(options.Value.Bucket, key, ct);
+            using var response = await client.Value.GetObjectAsync(options.Value.Bucket, ReportObjectPrefix.Apply(options.Value.KeyPrefix, key), ct);
             var bytes = new MemoryStream(); await response.ResponseStream.CopyToAsync(bytes, ct); bytes.Position = 0; return bytes;
         }
         catch (AmazonS3Exception e) { throw new ReportStorageException("Không thể tải PDF từ kho riêng tư.", e); }
