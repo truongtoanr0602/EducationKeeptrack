@@ -19,6 +19,7 @@
    * [Tổng quan Kiến trúc Modular Monolith](#tổng-quan-kiến-trúc-modular-monolith)
    * [Module 1: Identity (Định danh & Quản lý Phiên làm việc)](#module-1-identity-định-danh--quản-lý-phiên-làm-việc)
    * [Module 2: Classroom (Lớp học, Học sinh, Điểm danh & Lịch học)](#module-2-classroom-lớp-học-học-sinh-điểm-danh--lịch-học)
+     - [Sơ đồ quy trình luồng gọi (Từ Domain Object lên Application)](#5-sơ-đồ-quy-trình-luồng-gọi-từ-domain-object-lên-application--endpoints)
    * [Module 3: Billing (Học phí, Đơn giá hiệu lực, Thu tiền & VietQR)](#module-3-billing-học-phí-đơn-giá-hiệu-lực-thu-tiền--vietqr)
    * [Module 4: Learning (Đánh giá học tập & Kết quả bài tập)](#module-4-learning-đánh-giá-học-tập--kết-quả-bài-tập)
    * [Module 5: Reporting (Báo cáo tháng, Xem trước Snapshot & Xuất PDF)](#module-5-reporting-báo-cáo-tháng-xem-trước-snapshot--xuất-pdf)
@@ -369,6 +370,72 @@ Là trung tâm vận hành lớp học của giáo viên: Quản lý danh mục 
 * Quản lý lớp: `GET/POST /api/classes`, `GET/PUT /api/classes/{id}`.
 * Quản lý học sinh & Ghi danh: `GET/POST/PUT /api/students`, `GET/POST /api/classes/{id}/enrollments`, `PUT /api/classes/{id}/enrollments/{enrollmentId}`.
 * Lịch học & Điểm danh: `GET/PUT /api/classes/{id}/schedule`, `POST /api/classes/{id}/sessions/generate`, `GET/POST /api/classes/{id}/sessions`, `PUT /api/classes/{id}/sessions/{sid}`, `GET/PUT /api/classes/{id}/sessions/{sid}/attendance`, `GET /api/classes/{id}/attendance-missing`.
+
+#### 5. Sơ Đồ Quy Trình Luồng Gọi (Từ Domain Object Lên Application & Endpoints)
+
+Nhằm làm rõ cách thức Module Classroom hiện thực hóa kiến trúc Domain-Driven Design (DDD), dưới đây là sơ đồ quy trình chi tiết mô tả luồng thực thi đi từ **Domain Object (Entity/Trạng thái cốt lõi)** $\rightarrow$ **Infrastructure/Locking** $\rightarrow$ **Application Service (Use Case)** $\rightarrow$ **Presentation/Endpoints**, minh họa qua hành động **Điểm danh một học sinh** (`PUT /api/classes/{classId}/sessions/{id}/attendance/{studentId}`):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Teacher Client
+    participant EP as SessionEndpoints (Tầng 4)
+    participant App as SessionService (Tầng 3)
+    participant Repo as SessionRepository (Tầng 2)
+    participant DB as Postgres Database
+    participant Obj as Domain Objects (Tầng 1)
+    participant Outbox as SessionChange (Outbox)
+
+    Client->>EP: PUT /api/classes/.../attendance (AttendanceInput, CSRF, Cookie)
+    
+    rect rgb(240, 248, 255)
+    Note over EP: Tầng 4 - Bảo mật và Đón request
+    EP->>EP: Lấy OwnerId từ Cookie Claims và kiểm tra quyền CanWrite qua IAccountAccess
+    EP->>App: Gọi SessionService.MarkAsync(...)
+    end
+
+    rect rgb(255, 250, 240)
+    Note over App,Repo: Tầng 2 - Khóa Transaction và Nạp dữ liệu
+    App->>Repo: WithClassLockAsync(classId, action)
+    Repo->>DB: BEGIN TRANSACTION và SELECT pg_advisory_xact_lock
+    Repo->>DB: Nạp ClassSession, Attendance, Student
+    DB-->>App: Trả về Entity Instances đang được EF Core tracking
+    end
+
+    rect rgb(240, 255, 240)
+    Note over App,Obj: Tầng 1 - Thực thi logic nội tại của Domain Object
+    App->>Obj: Kiểm tra session.Status == held (buổi học đã diễn ra)
+    App->>Obj: mark.TryMark(input) (Object tự validate và đổi trạng thái)
+    Obj-->>App: Trả về true, tự động tăng mark.Version
+    App->>Obj: session.RecordAttendanceChange() (tăng Version buổi học)
+    end
+
+    rect rgb(255, 245, 245)
+    Note over App,Outbox: Persistence và Transactional Outbox
+    App->>Outbox: Khởi tạo new SessionChange(session, attendance.changed, mark)
+    App->>Repo: repository.SaveAsync() -> db.SaveChangesAsync()
+    Repo->>DB: UPDATE Attendance, UPDATE Sessions, INSERT SessionChanges
+    Repo->>DB: COMMIT TRANSACTION (Giải phóng Advisory Lock)
+    end
+
+    App-->>EP: Đóng gói ClassroomResult AttendanceView (DTO sạch)
+    EP-->>Client: HTTP 200 OK kèm JSON kết quả
+```
+
+##### Phân Tích Cơ Chế Hoạt Động Giữa Các Tầng:
+1. **Tầng 1: Domain Object ([`Attendance.cs`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Domain/Attendance.cs) & [`ClassSession.cs`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Domain/ClassSession.cs)):**
+   - Đóng vai trò là **nguồn sự thật duy nhất (Single Source of Truth)**. Toàn bộ setter là `private`.
+   - Đối tượng tự chứa logic thay đổi trạng thái và bảo vệ tính toàn vẹn: phương thức `mark.TryMark(input)` tự kiểm tra token phiên bản `Version`, đảm bảo quy tắc "chỉ học sinh vắng mới được có phép", và tự tăng `Version++` chống xung đột ghi đè đồng thời (Optimistic Concurrency Control).
+2. **Tầng 2: Data Access & Transaction Locking ([`SessionRepository.cs`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Infrastructure/SessionRepository.cs)):**
+   - Dùng PostgreSQL Transaction-scoped Advisory Lock: `SELECT pg_advisory_xact_lock(hashtextextended(classId, 1))` để khóa độc quyền lớp học trong phạm vi transaction, loại trừ hoàn toàn nguy cơ race-condition giữa nhiều tab trình duyệt.
+   - Nạp Entity từ database lên RAM và duy trì trạng thái theo dõi (Change Tracking) trong EF Core.
+3. **Tầng 3: Application Service ([`SessionService.cs`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Application/SessionService.cs)):**
+   - Nhạc trưởng điều phối use case: gọi repository nạp đối tượng, kiểm tra điều kiện nghiệp vụ liên aggregate (buổi học phải có trạng thái `held`), kích hoạt phương thức của Domain Object, và tạo bản ghi sự kiện Outbox [`SessionChange`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Domain/SessionChange.cs) lưu vào cơ sở dữ liệu cùng một transaction.
+   - Đóng gói dữ liệu đầu ra bằng Result Pattern ([`ClassroomResult<T>`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Application/ClassroomResult.cs)), phân biệt rõ ràng các loại lỗi `NotFound`, `Invalid`, `Conflict`.
+4. **Tầng 4: Presentation / Endpoints ([`SessionEndpoints.cs`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/SessionEndpoints.cs)):**
+   - Cổng tiếp nhận HTTP: Xác thực cookie phiên, trích xuất mã định danh giáo viên (`OwnerId`), kiểm tra quyền ghi (`IAccountAccess: CanWrite`), và ánh xạ kết quả `ClassroomResult` thành HTTP Response JSON (200, 400, 404, 409).
+5. **Cơ chế Lan Tỏa Nền (Outbox Dispatcher):**
+   - Sự kiện `SessionChange` sau khi lưu vào DB sẽ được worker nền [`ClassroomChangeDispatcher`](file:///d:/TruongQuocToan_0214168/Hoc_ky_7/DAPhattrienphiaServer/src/Modules/Classroom/Infrastructure/ClassroomChangeDispatcher.cs) quét định kỳ (mỗi 2 giây), sử dụng khóa `pg_try_advisory_xact_lock` theo từng `SessionId` và gọi sang Module Billing để tự động cập nhật học phí chính xác theo điểm danh.
 
 ---
 
