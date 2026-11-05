@@ -643,3 +643,21 @@ small {
 .report-preview { min-width: 0; overflow-wrap: anywhere; margin-top: 1rem; }
 .report-preview iframe { display: block; width: 100%; height: 640px; border: 1px solid #dce3eb; background: white; }
 .report-exports article { border-top: 1px solid #dce3eb; padding: 1rem 0; overflow-wrap: anywhere; }
+/* Personalized skill tracking uses text labels alongside every color. */
+.personalized-panel { border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; margin: 20px 0; }
+.personalized-panel label { display: block; margin: 10px 0; }
+.personalized-panel input:not([type="checkbox"]), .personalized-panel textarea { display: block; width: 100%; box-sizing: border-box; }
+.personalized-panel input[type="checkbox"] { width: auto; }
+.personalized-panel button { margin: 4px; }
+.personalized-panel fieldset { min-width: 0; border: 1px solid #cbd5e1; border-radius: 10px; }
+.skill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 16px; margin: 16px 0; }
+.skill-card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; min-width: 0; margin: 12px 0; }
+.skill-config { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.skill-config > label { flex: 1 1 160px; }
+.skill-level { padding: 8px 12px; border-radius: 8px; font-weight: 700; }
+.skill-level.red, .skill-choice.red { background: #fff1f2; color: #9f1239; }
+.skill-level.amber, .skill-choice.amber { background: #fffbeb; color: #854d0e; }
+.skill-level.green, .skill-choice.green { background: #f0fdf4; color: #166534; }
+.skill-level.unobserved { background: #f1f5f9; color: #475569; }
+.personalized-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.plan-content { white-space: pre-wrap; }

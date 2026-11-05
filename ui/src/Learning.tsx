@@ -4,6 +4,7 @@ import { today } from "./roster-api";
 import { Login } from "./Login";
 import { SubmissionForm } from "./SubmissionForm";
 import type { Assessment, AssessmentSummary } from "./learning-api";
+import { PersonalizedLearning } from "./PersonalizedLearning";
 
 export function Learning({
   classroom,
@@ -103,6 +104,7 @@ export function Learning({
   return (
     <section aria-label="Đánh giá học tập" className="learning-panel">
       <h2>Đánh giá học tập</h2>
+      <PersonalizedLearning key={classroom.id} classroom={classroom} me={me} />
       <p>
         Chọn hai mức độc lập cho từng học sinh. Chỉ kết quả đã xác nhận dùng
         trong báo cáo.

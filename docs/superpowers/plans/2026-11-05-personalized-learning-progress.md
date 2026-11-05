@@ -1,0 +1,16 @@
+# Execution ledger — plan: 2026-11-05-personalized-learning.md
+
+- Execution: trực tiếp trong workspace trên nhánh feat/personalized-learning; người dùng đã duyệt triển khai tại workspace.
+- Pre-flight: Tasks 1–3 dùng chung profile/progress routes; Task 4 thêm plans vào cùng nhóm quyền sở hữu Learning. Giữ assessment API hiện có.
+- Ruling: Chưa có nhà cung cấp và chính sách lượt tạo kế hoạch. Triển khai kế hoạch thủ công, contract adapter và endpoint AI từ chối rõ ràng; không tạo worker nhận tác vụ không thể xử lý — tránh hàng đợi giả và gọi AI không được cấp quyền. Tích hợp gọi thật chờ cấu hình/chính sách riêng.
+- Task 1: complete. Profile APIs, ownership, optimistic concurrency and migration implemented. Tests initially failed for missing routes, then passed against PostgreSQL.
+- Task 2: complete for the plan's date-based progress contract. Append-only observations/evidence, retry keys, minimum task counts and confirmed-evidence mastery implemented.
+- Ruling: Pending reviews are calculated from unresolved red/amber observations on earlier dates. Actual attendance-aware scheduling and persisted postpone/complete tasks remain follow-up scope; no artificial sessions or absence grades are created. Cost: teacher still chooses the appropriate next attended date manually.
+- Task 3: complete. UI supports class skills, colors with text, evidence, history and pending review filter. TypeScript/Vite build passes; desktop/mobile E2E passes.
+- Task 4: manual plan creation/edit/approval, snapshots, priorities, duration checks and adapter contract complete. Real provider, quotas and worker intentionally not activated under the provider/quota ruling above. POST plans/generate returns explicit 503, not fake AI content.
+- Ruling: Add a deterministic local draft outline from unresolved skill observations, visibly labeled “không dùng AI”; teacher supplies learning materials/content and approves. Cost: outline is a simple template, not an AI lesson plan.
+- Fresh independent review found retry duplication, repeat-submit duplication, selected-date race and stale-source approval. All fixed: preserve retry ID, lock successful evidence form until explicit new attempt, disable date changes during saves, compare source snapshots on approval and refresh/archive snapshot on edits.
+- Final fixes RED→GREEN: browser simulated lost response after server commit reproduces different request IDs before fix; now retry preserves ID and remains insufficient for mastery. API changed textbook formerly approved stale draft; now 409, explicit edit refreshes snapshot and approval succeeds.
+- API verification: 28/28 tests passed (PersonalizedLearningTests, PersonalizedPlanTests, AssessmentTests). Includes expiry/read-only, foreign-owner reads/writes, stale versions, insufficient evidence, invalid priorities/time and plan revision history.
+- UI verification: frontend production build passed. Personalized flow and legacy assessment checked desktop/mobile; final runtime recheck recorded in .local/personalized-runtime-ui.log.
+- Task 5: development database migrated, latest published backend restarted on 5080; frontend running on 5173; clearly labeled synthetic An/Bình demo seeded via API, credentials unchanged. No push or production deployment.
