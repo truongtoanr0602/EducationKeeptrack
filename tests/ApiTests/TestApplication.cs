@@ -14,9 +14,21 @@ namespace ApiTests;
 
 public sealed class TestClock : TimeProvider
 {
-    private DateTimeOffset now = DateTimeOffset.UtcNow;
+    // Whole seconds so values round-trip PostgreSQL's microsecond precision exactly.
+    private DateTimeOffset now = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     public override DateTimeOffset GetUtcNow() => now;
     public void Advance(TimeSpan amount) => now += amount;
+}
+
+public sealed class TestEmailOutbox : EducationKeeptrack.Identity.Application.IEmailSender
+{
+    private readonly List<EducationKeeptrack.Identity.Application.EmailMessage> messages = [];
+    public IReadOnlyList<EducationKeeptrack.Identity.Application.EmailMessage> Messages { get { lock (messages) return [.. messages]; } }
+    public Task SendAsync(EducationKeeptrack.Identity.Application.EmailMessage message, CancellationToken cancellationToken)
+    {
+        lock (messages) messages.Add(message);
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLifetime
@@ -30,7 +42,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public TestApplication() { }
     private TestApplication(TestApplication original, IClassroomChangeHandler? classroomHandler, ITuitionChangeHandler? tuitionHandler)
     {
-        database = original.database; adminConnection = original.adminConnection; Clock = original.Clock;
+        database = original.database; adminConnection = original.adminConnection; Clock = original.Clock; Outbox = original.Outbox;
         reuseDatabase = true; ownsDatabase = false; ProductionCookies = original.ProductionCookies;
         reportStorage = original.reportStorage;
         ClassroomChangeHandler = classroomHandler; TuitionChangeHandler = tuitionHandler;
@@ -38,6 +50,8 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public Task StopHostAsync() => base.DisposeAsync().AsTask();
     public TestApplication Reopen(IClassroomChangeHandler? classroomHandler = null, ITuitionChangeHandler? tuitionHandler = null) => new(this, classroomHandler, tuitionHandler);
     public TestClock Clock { get; } = new();
+    public TestEmailOutbox Outbox { get; } = new();
+    public IReadOnlyList<EducationKeeptrack.Identity.Application.EmailMessage> Emails => Outbox.Messages;
     public bool ProductionCookies { get; init; }
     public int ReportPreviewMinutes { get; init; } = 15;
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
@@ -63,6 +77,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
+            services.AddSingleton<EducationKeeptrack.Identity.Application.IEmailSender>(Outbox);
             services.AddSingleton<EducationKeeptrack.Reporting.Application.IReportObjectStore>(_ =>
             {
                 var store = reportStorage.CreateStore();
@@ -128,9 +143,10 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         var account = new Account { UserName = email, Email = email, EmailConfirmed = confirmed };
         var result = await users.CreateAsync(account, "Test-only!Password123");
         Assert.True(result.Succeeded, string.Join(",", result.Errors.Select(e => e.Description)));
-        var grants = scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>();
-        grants.DevelopmentGrants.Add(new EducationKeeptrack.ServiceAccess.Domain.DevelopmentGrant { AccountId = account.Id, Approved = approved, Until = Clock.GetUtcNow().AddDays(30) });
-        await grants.SaveChangesAsync();
+        if (approved)
+            await EducationKeeptrack.ServiceAccess.Infrastructure.DevelopmentProvisioning.GrantAsync(
+                scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>(),
+                account.Id, Clock.GetUtcNow(), Clock.GetUtcNow().AddDays(30));
         return account.Id;
     }
 
@@ -161,6 +177,14 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     {
         var csrf = await client.GetFromJsonAsync<JsonElement>("/api/auth/csrf");
         using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) };
+        request.Headers.Add("X-CSRF-TOKEN", csrf.GetProperty("token").GetString());
+        return await client.SendAsync(request);
+    }
+
+    public static async Task<HttpResponseMessage> Put(HttpClient client, string path, object body)
+    {
+        var csrf = await client.GetFromJsonAsync<JsonElement>("/api/auth/csrf");
+        using var request = new HttpRequestMessage(HttpMethod.Put, path) { Content = JsonContent.Create(body) };
         request.Headers.Add("X-CSRF-TOKEN", csrf.GetProperty("token").GetString());
         return await client.SendAsync(request);
     }

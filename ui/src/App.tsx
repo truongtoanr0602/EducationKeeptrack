@@ -13,6 +13,10 @@ import { Sessions } from "./Sessions";
 import { Tuition } from "./Tuition";
 import { Learning } from "./Learning";
 import { Admin } from "./Admin";
+import { Service } from "./Service";
+import { Register } from "./Register";
+import { readTokenLink, TokenAction } from "./TokenAction";
+import type { ServiceProfile } from "./service-api";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -26,6 +30,10 @@ export function App() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [resume, setResume] = useState(false);
   const [tuitionRefresh, setTuitionRefresh] = useState(0);
+  const [screen, setScreen] = useState<"login" | "register" | "forgot">(
+    "login",
+  );
+  const [link, setLink] = useState(readTokenLink);
   const [selectedId, setSelectedId] = useState(() =>
     window.location.hash.slice(1),
   );
@@ -73,6 +81,15 @@ export function App() {
       window.removeEventListener("keydown", activity);
     };
   }, [me]);
+  const syncAccess = useCallback((profile: ServiceProfile) => {
+    setMe((current) =>
+      current &&
+      (current.access.status !== profile.access.status ||
+        current.access.canWrite !== profile.access.canWrite)
+        ? { ...current, access: profile.access }
+        : current,
+    );
+  }, []);
   async function login() {
     await load();
     if (resume) {
@@ -107,6 +124,24 @@ export function App() {
         Đang tải…
       </main>
     );
+  const sessionEnded = () => {
+    setMe(null);
+    setClasses([]);
+    setMessage("Phiên đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại.");
+  };
+  if (!me && link)
+    return (
+      <TokenAction
+        link={link}
+        onDone={(text) => {
+          setLink(null);
+          setMessage(text);
+          setScreen("login");
+        }}
+      />
+    );
+  if (!me && screen === "register")
+    return <Register onBack={() => setScreen("login")} />;
   if (!me)
     return (
       <>
@@ -120,7 +155,13 @@ export function App() {
             {error}
           </p>
         )}
-        <Login onLogin={login} />
+        <Login
+          onLogin={login}
+          onRegister={() => {
+            setMessage("");
+            setScreen("register");
+          }}
+        />
       </>
     );
   if (me.role === "Admin")
@@ -165,15 +206,7 @@ export function App() {
             <span aria-hidden="true">＋ </span>Tạo lớp mới
           </button>
         </div>
-        {!me.access.canWrite && (
-          <p className="notice">
-            {me.access.status === "expired"
-              ? "Quyền sử dụng đã hết hạn. Bạn vẫn có thể xem lớp đã lưu."
-              : me.access.status === "unverified"
-                ? "Tài khoản chưa xác minh email."
-                : "Tài khoản đang chờ duyệt quyền sử dụng."}
-          </p>
-        )}
+        <Service onExpired={sessionEnded} onChanged={syncAccess} />
         {message && (
           <p role="status" className="notice success">
             {message}

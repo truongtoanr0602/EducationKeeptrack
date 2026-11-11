@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using EducationKeeptrack.Contracts;
+using EducationKeeptrack.ServiceAccess.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -11,25 +11,32 @@ public static class AdminEndpoints
     public static RouteGroupBuilder MapServiceAdmin(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/admin").RequireAuthorization(p => p.RequireRole("Admin"));
-        group.MapGet("/teachers", async (HttpContext http, IAccountDirectory directory, IAccountAccess access) =>
-        {
-            var rows = new List<object>();
-            foreach (var teacher in await directory.ListTeachersAsync(http.RequestAborted))
-                rows.Add(Summary(teacher, await access.GetAsync(teacher.Id, http.RequestAborted)));
-            return Results.Ok(rows);
-        });
-        group.MapGet("/teachers/{id}", async (string id, HttpContext http, IAccountDirectory directory, IAccountAccess access) =>
-        {
-            var teacher = await directory.FindTeacherAsync(id, http.RequestAborted);
-            return teacher is null ? Results.NotFound() : Results.Ok(Summary(teacher, await access.GetAsync(id, http.RequestAborted)));
-        });
+        group.MapGet("/teachers", async (HttpContext http, ServiceAdministration admin) => Results.Ok(await admin.TeachersAsync(http.RequestAborted)));
+        group.MapGet("/teachers/{id}", async (string id, HttpContext http, ServiceAdministration admin) =>
+            await admin.TeacherAsync(id, http.RequestAborted) is { } teacher ? Results.Ok(teacher) : Results.NotFound());
+        group.MapGet("/payment-instructions", async (HttpContext http, ServiceAdministration admin) => Results.Ok(await admin.InstructionsAsync(http.RequestAborted)));
+        group.MapPut("/payment-instructions", async (ServiceAdministration.InstructionsInput input, HttpContext http, ServiceAdministration admin) =>
+            Respond(await admin.SaveInstructionsAsync(Actor(http), input, http.RequestAborted)));
+        group.MapPost("/payment-requests/{id:guid}/verification", async (Guid id, ServiceAdministration.NoteInput input, HttpContext http, ServiceAdministration admin) =>
+            Respond(await admin.VerifyRequestAsync(Actor(http), id, input, http.RequestAborted)));
+        group.MapPost("/teachers/{id}/period-preview", async (string id, PreviewInput input, HttpContext http, ServiceAdministration admin) =>
+            Respond(await admin.PreviewAsync(id, input.Days, http.RequestAborted)));
+        group.MapPost("/payment-requests/{id:guid}/approve", async (Guid id, ServiceAdministration.ApproveInput input, HttpContext http, ServiceAdministration admin) =>
+            Respond(await admin.ApproveAsync(Actor(http), id, input, http.RequestAborted)));
+        group.MapPost("/payment-requests/{id:guid}/reject", async (Guid id, ServiceAdministration.ReasonInput input, HttpContext http, ServiceAdministration admin) =>
+            Respond(await admin.RejectAsync(Actor(http), id, input, http.RequestAborted)));
         return group;
     }
 
-    internal static string Actor(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    internal static Actor Actor(HttpContext http) =>
+        new(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!, http.User.FindFirstValue(ClaimTypes.Name)!);
 
-    private static object Summary(AccountSummary teacher, AccountAccess access) => new
+    internal static IResult Respond(Outcome outcome) => outcome.Status switch
     {
-        teacher.Id, teacher.Email, teacher.EmailConfirmed, teacher.IsBlocked, teacher.RegisteredAt, status = access.Status
+        400 when outcome.Body is IDictionary<string, string[]> errors => Results.ValidationProblem(errors),
+        404 => Results.NotFound(),
+        _ => Results.Json(outcome.Body, statusCode: outcome.Status)
     };
+
+    public record PreviewInput(int Days);
 }

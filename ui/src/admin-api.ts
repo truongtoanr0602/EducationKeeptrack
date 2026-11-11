@@ -8,6 +8,8 @@ export type TeacherSummary = {
   isBlocked: boolean;
   registeredAt: string;
   status: ServiceStatus;
+  openRequest?: boolean;
+  accessEndsAt?: string | null;
 };
 
 export const statusLabels: Record<ServiceStatus, string> = {
@@ -21,3 +23,47 @@ export const statusLabels: Record<ServiceStatus, string> = {
 
 export const vnDateTime = (value: string) =>
   new Date(value).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+
+export type AdminRequest = {
+  id: string;
+  transactionCode: string;
+  note: string;
+  submittedAt: string;
+  status: "submitted" | "approved" | "rejected";
+  verificationNote: string | null;
+  decisionReason: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  version: number;
+};
+export type AdminPeriod = {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  label: string;
+  reason: string | null;
+  current: boolean;
+  upcoming: boolean;
+  version: number;
+};
+export type HistoryView = {
+  action: string;
+  actor: string;
+  reason: string | null;
+  details: string | null;
+  at: string;
+};
+export type TeacherDetailView = TeacherSummary & {
+  aiEnabled: boolean;
+  accountVersion: number;
+  requests: AdminRequest[];
+  periods: AdminPeriod[];
+  history: HistoryView[];
+};
+export type Instructions = {
+  bankDetails: string;
+  contact: string;
+  version: number;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};

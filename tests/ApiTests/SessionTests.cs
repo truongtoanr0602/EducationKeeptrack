@@ -98,7 +98,7 @@ public sealed class SessionTests
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<EducationKeeptrack.ServiceAccess.Infrastructure.ServiceAccessDatabase>();
-            await db.DevelopmentGrants.Where(x => x.AccountId == id).ExecuteUpdateAsync(x => x.SetProperty(u => u.Until, app.Clock.GetUtcNow()));
+            await db.Periods.Where(x => x.AccountId == id).ExecuteUpdateAsync(x => x.SetProperty(u => u.StartsAt, app.Clock.GetUtcNow().AddDays(-30)).SetProperty(u => u.EndsAt, app.Clock.GetUtcNow()));
         }
         var classes = await client.GetFromJsonAsync<JsonElement>("/api/classes");
         Assert.Equal("Lớp cũ", classes[0].GetProperty("name").GetString());
