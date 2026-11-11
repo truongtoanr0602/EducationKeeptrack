@@ -17,6 +17,7 @@ public static class AuthEndpoints
     {
         var group = endpoints.MapGroup("/api/auth");
         group.MapAccountFlows();
+        group.MapRecoveryFlows();
         group.MapGet("/csrf", (HttpContext context, IAntiforgery antiforgery) =>
         {
             context.Response.Headers.CacheControl = "no-store";

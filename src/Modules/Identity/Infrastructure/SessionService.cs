@@ -48,4 +48,8 @@ public sealed class SessionService(IdentityDatabase db, UserManager<Account> use
     public Task RevokeAsync(ClaimsPrincipal principal, CancellationToken ct) =>
         db.Sessions.Where(x => x.Id == Guid.Parse(principal.FindFirstValue("sid")!))
             .ExecuteUpdateAsync(x => x.SetProperty(s => s.Revoked, true), ct);
+
+    public Task RevokeAllAsync(string accountId, CancellationToken ct) =>
+        db.Sessions.Where(x => x.AccountId == accountId && !x.Revoked)
+            .ExecuteUpdateAsync(x => x.SetProperty(s => s.Revoked, true), ct);
 }

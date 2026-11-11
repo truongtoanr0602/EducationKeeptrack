@@ -15,6 +15,7 @@ import { Learning } from "./Learning";
 import { Admin } from "./Admin";
 import { Service } from "./Service";
 import { Register } from "./Register";
+import { ChangeEmail, ForgotPassword } from "./AccountSettings";
 import { readTokenLink, TokenAction } from "./TokenAction";
 import type { ServiceProfile } from "./service-api";
 
@@ -140,6 +141,8 @@ export function App() {
         }}
       />
     );
+  if (!me && screen === "forgot")
+    return <ForgotPassword onBack={() => setScreen("login")} />;
   if (!me && screen === "register")
     return <Register onBack={() => setScreen("login")} />;
   if (!me)
@@ -160,6 +163,10 @@ export function App() {
           onRegister={() => {
             setMessage("");
             setScreen("register");
+          }}
+          onForgot={() => {
+            setMessage("");
+            setScreen("forgot");
           }}
         />
       </>
@@ -207,6 +214,7 @@ export function App() {
           </button>
         </div>
         <Service onExpired={sessionEnded} onChanged={syncAccess} />
+        <ChangeEmail onExpired={sessionEnded} />
         {message && (
           <p role="status" className="notice success">
             {message}

@@ -33,6 +33,15 @@ public sealed class EmailTokens(IdentityDatabase db, TimeProvider clock)
         return claimed == 1 ? await db.EmailTokens.AsNoTracking().SingleAsync(x => x.TokenHash == hash, ct) : null;
     }
 
+    // Reads a still-valid token without using it (e.g. to validate a new password first).
+    public async Task<EmailToken?> PeekAsync(string? raw, EmailTokenPurpose purpose, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw.Length > 100) return null;
+        var hash = Hash(raw);
+        var now = clock.GetUtcNow();
+        return await db.EmailTokens.AsNoTracking().SingleOrDefaultAsync(x => x.TokenHash == hash && x.Purpose == purpose && x.UsedAt == null && x.ExpiresAt > now, ct);
+    }
+
     private static string Hash(string raw) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
