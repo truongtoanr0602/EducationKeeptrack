@@ -7,9 +7,46 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
     public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<ResultRevision> ResultRevisions => Set<ResultRevision>();
+    public DbSet<ClassCurriculum> Curricula => Set<ClassCurriculum>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<SkillEvent> SkillEvents => Set<SkillEvent>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("learning");
+        var curriculum = model.Entity<ClassCurriculum>();
+        curriculum.HasKey(x => x.Id);
+        curriculum.Property(x => x.Id).ValueGeneratedNever();
+        curriculum.Property(x => x.OwnerId).HasMaxLength(450);
+        curriculum.Property(x => x.Subject).HasMaxLength(80);
+        curriculum.Property(x => x.Grade).HasMaxLength(40);
+        curriculum.Property(x => x.Term).HasMaxLength(40);
+        curriculum.Property(x => x.Textbook).HasMaxLength(160);
+        curriculum.Property(x => x.Version).IsConcurrencyToken();
+        curriculum.HasIndex(x => new { x.OwnerId, x.ClassId }).IsUnique();
+        curriculum.HasMany(x => x.Skills).WithOne().HasForeignKey(x => x.CurriculumId).OnDelete(DeleteBehavior.Restrict);
+        var skill = model.Entity<Skill>();
+        skill.HasKey(x => x.Id);
+        skill.Property(x => x.Id).ValueGeneratedNever();
+        skill.Property(x => x.OwnerId).HasMaxLength(450);
+        skill.Property(x => x.Code).HasMaxLength(20);
+        skill.Property(x => x.Name).HasMaxLength(200);
+        skill.Property(x => x.Strand).HasMaxLength(120);
+        skill.Property(x => x.Criteria).HasMaxLength(500);
+        skill.Property(x => x.Source).HasMaxLength(200);
+        skill.Property(x => x.Status).HasMaxLength(20);
+        skill.Property(x => x.TaughtBy).HasMaxLength(450);
+        skill.Ignore(x => x.IsTaught);
+        skill.HasIndex(x => new { x.OwnerId, x.ClassId });
+        // Archived skills free their code; two live skills of one class never share a code.
+        skill.HasIndex(x => new { x.CurriculumId, x.Code }).IsUnique().HasFilter("\"Archived\" = false");
+        skill.HasMany(x => x.Events).WithOne().HasForeignKey(x => x.SkillId).OnDelete(DeleteBehavior.Restrict);
+        var skillEvent = model.Entity<SkillEvent>();
+        skillEvent.HasKey(x => x.Id);
+        skillEvent.Property(x => x.Id).ValueGeneratedNever();
+        skillEvent.Property(x => x.Action).HasMaxLength(20);
+        skillEvent.Property(x => x.ActorId).HasMaxLength(450);
+        skillEvent.Property(x => x.Detail).HasMaxLength(300);
+        skillEvent.HasIndex(x => new { x.SkillId, x.CurriculumVersion });
         var assessment = model.Entity<Assessment>();
         assessment.HasKey(x => x.Id);
         assessment.Property(x => x.Id).ValueGeneratedNever();

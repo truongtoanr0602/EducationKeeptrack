@@ -56,6 +56,66 @@ namespace Learning.Infrastructure.Migrations
                     b.ToTable("Assessments", "learning");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ClassCurriculum", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("MasteryThreshold")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinTasks")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("RequiredAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RuleVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Textbook")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "ClassId")
+                        .IsUnique();
+
+                    b.ToTable("Curricula", "learning");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ResultRevision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -102,6 +162,112 @@ namespace Learning.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ResultRevision", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Skill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Criteria")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CurriculumId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Strand")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("TaughtBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateOnly?>("TaughtOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurriculumId", "Code")
+                        .IsUnique()
+                        .HasFilter("\"Archived\" = false");
+
+                    b.HasIndex("OwnerId", "ClassId");
+
+                    b.ToTable("Skills", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurriculumVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId", "CurriculumVersion");
+
+                    b.ToTable("SkillEvents", "learning");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
@@ -157,6 +323,24 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Skill", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.ClassCurriculum", null)
+                        .WithMany("Skills")
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillEvent", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.Skill", null)
+                        .WithMany("Events")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
                 {
                     b.HasOne("EducationKeeptrack.Learning.Domain.Assessment", null)
@@ -169,6 +353,16 @@ namespace Learning.Infrastructure.Migrations
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Assessment", b =>
                 {
                     b.Navigation("Submissions");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ClassCurriculum", b =>
+                {
+                    b.Navigation("Skills");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Skill", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
