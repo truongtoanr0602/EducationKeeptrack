@@ -40,7 +40,7 @@ Sự cho phép dùng các chức năng AI do Admin bật hoặc tắt cho từng
 Số lượt được cấp theo từng loại tác vụ trong một kỳ quyền sử dụng.
 
 **Lượt AI**:
-Một lần chấm bài cho một học sinh hoặc sinh nhận xét tháng cho một học sinh; mỗi loại được theo dõi riêng.
+Một lần xử lý AI được chấp nhận theo một trong ba loại, mỗi loại được theo dõi riêng: **chấm bài** (một bài của một học sinh), **nhận xét** (một nhận xét theo buổi hoặc theo tháng cho một học sinh) và **kế hoạch** (một kế hoạch ôn tập tuần hoặc một dự thảo kỹ năng). Tạo lại là lượt mới. Đơn vị lượt của kế hoạch tuần và của cảnh báo AI chưa được chốt.
 
 **Lượt đang giữ**:
 Phần hạn mức đã dành cho yêu cầu AI được chấp nhận và chưa có kết quả cuối.
@@ -53,6 +53,29 @@ Quyết định của Admin chặn truy cập, kể cả dữ liệu cũ, và v�
 
 **Kết quả cuối**:
 Hai mức đánh giá do giáo viên xác nhận, dùng chính thức trong hồ sơ, báo cáo và phân tích.
+
+**Kỹ năng**:
+Đơn vị nhỏ nhất có thể đánh giá của chương trình, ví dụ "cộng qua 10 trong phạm vi 20"; chỉ có hiệu lực khi giáo viên đã duyệt. Nhãn rộng như "Số và phép tính" không phải kỹ năng.
+_Avoid_: Chủ đề, mạch nội dung
+
+**Chuẩn đầu ra**:
+Tiêu chí đạt của một kỹ năng, có nguồn và phiên bản, do giáo viên duyệt cho từng lớp; AI không tự tạo chuẩn chính thức.
+
+**Học liệu**:
+Nội dung luyện tập trong kho của giáo viên, gắn kỹ năng, độ khó và thời lượng; chỉ học liệu đã duyệt được đưa vào kế hoạch.
+
+**Kết quả theo kỹ năng**:
+Số nhiệm vụ và số đúng của một học sinh ở một kỹ năng trong một bài đánh giá, do giáo viên xác nhận; khác với kết quả cuối hai mức và không suy ra được từ hai mức đó.
+
+**Hồ sơ năng lực**:
+Mức đạt, chưa đạt hoặc chưa đủ dữ liệu của một học sinh theo từng kỹ năng đã dạy, tính bằng quy tắc có phiên bản từ các kết quả theo kỹ năng đã xác nhận; AI không tự tính hay đổi.
+_Avoid_: Điểm học lực
+
+**Kế hoạch ôn tập**:
+Kế hoạch theo tuần cho học sinh với tối đa hai kỹ năng ưu tiên mỗi em, hoạt động từng buổi trong quỹ phút của giáo viên; có phiên bản và chỉ áp dụng sau khi giáo viên duyệt.
+
+**Nhận xét buổi / nhận xét tháng**:
+Lời nhận xét về một học sinh sau một buổi học hoặc trong báo cáo tháng gửi phụ huynh; có thể do AI soạn nhưng chỉ nội dung giáo viên đã duyệt được dùng và đưa vào PDF.
 
 **Lịch tuần**:
 Các ngày và khung giờ học lặp lại trong tuần của một lớp, áp dụng từ ngày hiệu lực.
