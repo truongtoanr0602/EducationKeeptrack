@@ -65,6 +65,30 @@ if (args.Contains("--migrate"))
     await scope.ServiceProvider.GetRequiredService<ReportingDatabase>().Database.MigrateAsync();
     return;
 }
+// Refuse to serve (or run operator commands) against an out-of-date schema instead of failing later with 500s.
+if (builder.Configuration.GetValue("Startup:CheckPendingMigrations", true))
+{
+    using var scope = app.Services.CreateScope();
+    DbContext[] modules =
+    [
+        scope.ServiceProvider.GetRequiredService<IdentityDatabase>(),
+        scope.ServiceProvider.GetRequiredService<ClassroomDatabase>(),
+        scope.ServiceProvider.GetRequiredService<ServiceAccessDatabase>(),
+        scope.ServiceProvider.GetRequiredService<BillingDatabase>(),
+        scope.ServiceProvider.GetRequiredService<LearningDatabase>(),
+        scope.ServiceProvider.GetRequiredService<ReportingDatabase>()
+    ];
+    var pending = new List<string>();
+    foreach (var module in modules)
+        pending.AddRange((await module.Database.GetPendingMigrationsAsync()).Select(m => $"{module.GetType().Name}: {m}"));
+    if (pending.Count > 0)
+    {
+        var message = $"Cơ sở dữ liệu chưa được cập nhật (còn migration chưa chạy: {string.Join(", ", pending)}). " +
+            "Chạy `dotnet run --project src/Host -- --migrate` rồi khởi động lại.";
+        app.Logger.LogCritical("{Message}", message);
+        throw new InvalidOperationException(message);
+    }
+}
 if (args.Contains("--setup-admin"))
 {
     // First Admin only through this operator tool; secrets come from the environment, never source control.

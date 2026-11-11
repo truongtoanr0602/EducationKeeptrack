@@ -49,10 +49,13 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     }
     public Task StopHostAsync() => base.DisposeAsync().AsTask();
     public TestApplication Reopen(IClassroomChangeHandler? classroomHandler = null, ITuitionChangeHandler? tuitionHandler = null) => new(this, classroomHandler, tuitionHandler);
+    public TestApplication ReopenWithMigrationCheck() => new(this, null, null) { CheckPendingMigrations = true };
     public TestClock Clock { get; } = new();
     public TestEmailOutbox Outbox { get; } = new();
     public IReadOnlyList<EducationKeeptrack.Identity.Application.EmailMessage> Emails => Outbox.Messages;
     public bool ProductionCookies { get; init; }
+    // The fixture starts the host before migrating its database, so the startup check is off by default.
+    public bool CheckPendingMigrations { get; init; }
     public int ReportPreviewMinutes { get; init; } = 15;
     public IClassroomChangeHandler? ClassroomChangeHandler { get; init; }
     public Func<IClassroomChangeHandler, IClassroomChangeHandler>? DecorateBillingHandler { get; init; }
@@ -68,6 +71,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     {
         builder.UseEnvironment(ProductionCookies ? "Production" : "Testing");
         builder.UseSetting("ConnectionStrings:Database", Connection);
+        builder.UseSetting("Startup:CheckPendingMigrations", CheckPendingMigrations ? "true" : "false");
         builder.UseSetting("Reporting:Endpoint", Environment.GetEnvironmentVariable("TEST_S3_ENDPOINT") ?? "");
         builder.UseSetting("Reporting:AccessKey", Environment.GetEnvironmentVariable("TEST_S3_ACCESS_KEY") ?? "");
         builder.UseSetting("Reporting:SecretKey", Environment.GetEnvironmentVariable("TEST_S3_SECRET_KEY") ?? "");
@@ -104,6 +108,15 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
             if (TuitionChangeHandler is not null) services.AddSingleton(TuitionChangeHandler);
             if (LearningResultChangeHandler is not null) services.AddSingleton(LearningResultChangeHandler);
         });
+    }
+
+    // Creates the empty test database without migrating it.
+    public async Task CreateDatabaseAsync()
+    {
+        await using var connection = new NpgsqlConnection(adminConnection);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand($"CREATE DATABASE {database}", connection);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task InitializeAsync()
