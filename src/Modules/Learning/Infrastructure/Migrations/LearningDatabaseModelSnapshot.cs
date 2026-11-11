@@ -56,6 +56,61 @@ namespace Learning.Infrastructure.Migrations
                     b.ToTable("Assessments", "learning");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.AssessmentSkill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TaskCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SetId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("AssessmentSkills", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.AssessmentSkillSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId", "ClassId");
+
+                    b.ToTable("AssessmentSkillSets", "learning");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ClassCurriculum", b =>
                 {
                     b.Property<Guid>("Id")
@@ -387,6 +442,109 @@ namespace Learning.Infrastructure.Migrations
                     b.ToTable("SkillEvents", "learning");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Correct")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("SetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StudentName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "ClassId", "StudentId");
+
+                    b.HasIndex("SetId", "StudentId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("SkillResults", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int?>("Correct")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ResultId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("TaskCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResultId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("SkillRevisions", "learning");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -431,6 +589,15 @@ namespace Learning.Infrastructure.Migrations
                     b.ToTable("Submissions", "learning");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.AssessmentSkill", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.AssessmentSkillSet", null)
+                        .WithMany("Skills")
+                        .HasForeignKey("SetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.MaterialRevision", b =>
                 {
                     b.HasOne("EducationKeeptrack.Learning.Domain.Material", null)
@@ -467,6 +634,24 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillResult", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.AssessmentSkillSet", null)
+                        .WithMany("Results")
+                        .HasForeignKey("SetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillRevision", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.SkillResult", null)
+                        .WithMany("History")
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
                 {
                     b.HasOne("EducationKeeptrack.Learning.Domain.Assessment", null)
@@ -479,6 +664,13 @@ namespace Learning.Infrastructure.Migrations
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Assessment", b =>
                 {
                     b.Navigation("Submissions");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.AssessmentSkillSet", b =>
+                {
+                    b.Navigation("Results");
+
+                    b.Navigation("Skills");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ClassCurriculum", b =>
@@ -494,6 +686,11 @@ namespace Learning.Infrastructure.Migrations
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Skill", b =>
                 {
                     b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SkillResult", b =>
+                {
+                    b.Navigation("History");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
