@@ -10,6 +10,8 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
     public DbSet<ClassCurriculum> Curricula => Set<ClassCurriculum>();
     public DbSet<Skill> Skills => Set<Skill>();
     public DbSet<SkillEvent> SkillEvents => Set<SkillEvent>();
+    public DbSet<Material> Materials => Set<Material>();
+    public DbSet<MaterialRevision> MaterialRevisions => Set<MaterialRevision>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("learning");
@@ -47,6 +49,27 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         skillEvent.Property(x => x.ActorId).HasMaxLength(450);
         skillEvent.Property(x => x.Detail).HasMaxLength(300);
         skillEvent.HasIndex(x => new { x.SkillId, x.CurriculumVersion });
+        var material = model.Entity<Material>();
+        material.HasKey(x => x.Id);
+        material.Property(x => x.Id).ValueGeneratedNever();
+        material.Property(x => x.OwnerId).HasMaxLength(450);
+        material.Property(x => x.Title).HasMaxLength(200);
+        material.Property(x => x.Content).HasMaxLength(2000);
+        material.Property(x => x.Difficulty).HasMaxLength(20);
+        material.Property(x => x.Status).HasMaxLength(20);
+        material.Property(x => x.Version).IsConcurrencyToken();
+        material.HasIndex(x => new { x.OwnerId, x.ClassId, x.SkillId });
+        material.HasMany(x => x.Revisions).WithOne().HasForeignKey(x => x.MaterialId).OnDelete(DeleteBehavior.Restrict);
+        var materialRevision = model.Entity<MaterialRevision>();
+        materialRevision.HasKey(x => x.Id);
+        materialRevision.Property(x => x.Id).ValueGeneratedNever();
+        materialRevision.Property(x => x.Action).HasMaxLength(20);
+        materialRevision.Property(x => x.ActorId).HasMaxLength(450);
+        materialRevision.Property(x => x.Title).HasMaxLength(200);
+        materialRevision.Property(x => x.Content).HasMaxLength(2000);
+        materialRevision.Property(x => x.Difficulty).HasMaxLength(20);
+        materialRevision.Property(x => x.Status).HasMaxLength(20);
+        materialRevision.HasIndex(x => new { x.MaterialId, x.Version }).IsUnique();
         var assessment = model.Entity<Assessment>();
         assessment.HasKey(x => x.Id);
         assessment.Property(x => x.Id).ValueGeneratedNever();
