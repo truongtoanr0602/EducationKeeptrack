@@ -45,6 +45,12 @@ namespace Identity.Infrastructure.Migrations
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("LastTotpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastTotpCode")
+                        .HasColumnType("text");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 

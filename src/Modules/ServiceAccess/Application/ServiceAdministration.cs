@@ -137,9 +137,16 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
     // Caller holds the account lock. Body is the new period on success.
     internal async Task<Outcome> AddPeriodAsync(Actor actor, string accountId, int days, string? label, DateTimeOffset expectedStart, string? reason, Guid? requestId, Quotas quotas, CancellationToken ct)
     {
+        // Re-checked under the row lock so a concurrent Admin lock cannot slip a period in.
+        var blocked = await GrantBlockerAsync(accountId, ct);
+        if (blocked is not null) return blocked;
         var now = clock.GetUtcNow();
         var start = await db.NextStartAsync(accountId, now, ct);
-        if (Moment.Of(expectedStart) != start)
+        // Continuation must match the previewed end exactly. Without a current/future period the period
+        // starts at approval time, so any preview taken earlier (start <= now) is still valid.
+        var continuing = start > Moment.Of(now);
+        var stale = continuing ? Moment.Of(expectedStart) != start : Moment.Of(expectedStart) > start;
+        if (stale)
             return Outcome.Conflict("Ngày bắt đầu đã thay đổi so với bản xem trước. Vui lòng xem trước lại.", new { startsAt = start, endsAt = start.AddDays(days) });
         var period = new ServicePeriod
         {

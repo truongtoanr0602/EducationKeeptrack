@@ -21,9 +21,14 @@ public sealed class AdminLoginTests(TestApplication app) : IClassFixture<TestApp
         Assert.Equal(HttpStatusCode.Unauthorized, (await TestApplication.Post(client, "/api/auth/login", new { email = "totp-admin@example.test", password = "Wrong-password!123", code = Totp.Code(key) })).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.OK, (await TestApplication.Post(client, "/api/auth/login", new { email = "totp-admin@example.test", password = TestApplication.Password, code = Totp.Code(key) })).StatusCode);
+        var code = Totp.Code(key);
+        Assert.Equal(HttpStatusCode.OK, (await TestApplication.Post(client, "/api/auth/login", new { email = "totp-admin@example.test", password = TestApplication.Password, code })).StatusCode);
         var me = await client.GetFromJsonAsync<JsonElement>("/api/auth/me");
         Assert.Equal("Admin", me.GetProperty("role").GetString());
+
+        // A captured code cannot be replayed for a second sign-in.
+        using var replay = app.Client();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await TestApplication.Post(replay, "/api/auth/login", new { email = "totp-admin@example.test", password = TestApplication.Password, code })).StatusCode);
     }
 
     [Fact]

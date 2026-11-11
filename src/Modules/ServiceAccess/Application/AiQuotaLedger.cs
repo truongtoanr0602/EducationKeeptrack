@@ -25,7 +25,9 @@ public sealed class AiQuotaLedger(ServiceAccessDatabase db, IAccountAccess acces
         if (status.Status != "active") return Denied(status.Status);
         if (!account.AiEnabled) return Denied("ai_disabled");
         var now = clock.GetUtcNow();
-        var period = await db.Periods.AsNoTracking().SingleAsync(x => x.AccountId == accountId && x.StartsAt <= now && x.EndsAt > now, ct);
+        // The period may end between the policy check and this read; treat that as expired, not an error.
+        var period = await db.Periods.AsNoTracking().FirstOrDefaultAsync(x => x.AccountId == accountId && x.StartsAt <= now && x.EndsAt > now, ct);
+        if (period is null) return Denied("expired");
         var quota = period.QuotaFor(kind);
         if (quota is null) return Denied("no_quota");
         var spent = await Spent(period.Id, kind, ct);

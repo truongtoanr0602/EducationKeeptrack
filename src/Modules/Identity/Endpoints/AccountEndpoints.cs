@@ -39,7 +39,10 @@ public static class AccountEndpoints
             }
             probe.RegisteredAt = clock.GetUtcNow();
             var created = await users.CreateAsync(probe, request.Password);
-            if (!created.Succeeded) return Accepted();
+            // A concurrent duplicate keeps the non-disclosing answer; any other failure is a real validation error.
+            if (!created.Succeeded && created.Errors.All(e => e.Code is "DuplicateEmail" or "DuplicateUserName")) return Accepted();
+            if (!created.Succeeded)
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["email"] = ["Email này chưa được hỗ trợ. Vui lòng dùng email khác."] });
             await SendVerification(probe, tokens, email, options.Value, http.RequestAborted);
             return Accepted();
         });
