@@ -4,6 +4,7 @@ namespace EducationKeeptrack.Identity.Domain;
 public sealed class Account : IdentityUser
 {
     public bool IsBlocked { get; set; }
+    public DateTimeOffset RegisteredAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
 public sealed class LoginSession

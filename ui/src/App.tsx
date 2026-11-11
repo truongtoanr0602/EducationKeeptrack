@@ -12,6 +12,7 @@ import { Roster } from "./Roster";
 import { Sessions } from "./Sessions";
 import { Tuition } from "./Tuition";
 import { Learning } from "./Learning";
+import { Admin } from "./Admin";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
 export function App() {
@@ -35,9 +36,10 @@ export function App() {
   }, []);
   const load = useCallback(async () => {
     const user = await api<Me>("/auth/me");
-    const items = user.access.canRead
-      ? await api<TeacherClass[]>("/classes")
-      : [];
+    const items =
+      user.role !== "Admin" && user.access.canRead
+        ? await api<TeacherClass[]>("/classes")
+        : [];
     setMe(user);
     setClasses(items);
     setError("");
@@ -120,6 +122,17 @@ export function App() {
         )}
         <Login onLogin={login} />
       </>
+    );
+  if (me.role === "Admin")
+    return (
+      <Admin
+        me={me}
+        onLogout={logout}
+        onExpired={() => {
+          setMe(null);
+          setMessage("Phiên Admin đã hết hạn. Vui lòng đăng nhập lại.");
+        }}
+      />
     );
   return (
     <>

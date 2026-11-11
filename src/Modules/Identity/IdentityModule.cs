@@ -22,6 +22,7 @@ public static class IdentityModule
         }).AddRoles<IdentityRole>().AddEntityFrameworkStores<IdentityDatabase>().AddDefaultTokenProviders();
         services.AddScoped<ILoginSessions, SessionService>();
         services.AddScoped<IAccountState, AccountStateProvider>();
+        services.AddScoped<IAccountDirectory, AccountDirectory>();
         services.AddAuthentication("session").AddCookie("session", o =>
         {
             o.Cookie.Name = "ekt.session";

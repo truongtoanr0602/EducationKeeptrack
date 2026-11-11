@@ -134,6 +134,27 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         return account.Id;
     }
 
+    public const string Password = "Test-only!Password123";
+
+    public async Task<string> AddAdmin(string email, bool enrollTotp = true)
+    {
+        using var scope = Services.CreateScope();
+        if (enrollTotp) return (await AdminSetup.RunAsync(scope.ServiceProvider, email, Password)).AuthenticatorKey;
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        if (!await roles.RoleExistsAsync("Admin")) await roles.CreateAsync(new IdentityRole("Admin"));
+        var account = new Account { UserName = email, Email = email, EmailConfirmed = true };
+        Assert.True((await users.CreateAsync(account, Password)).Succeeded);
+        Assert.True((await users.AddToRoleAsync(account, "Admin")).Succeeded);
+        return "";
+    }
+
+    public async Task LoginAdmin(HttpClient client, string email, string key)
+    {
+        var response = await Post(client, "/api/auth/login", new { email, password = Password, code = Totp.Code(key) });
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
     public HttpClient Client() => CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     public static async Task<HttpResponseMessage> Post(HttpClient client, string path, object body)
