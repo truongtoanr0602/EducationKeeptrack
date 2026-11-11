@@ -1,4 +1,5 @@
 import type { Access } from "./api";
+import type { QuotaBalance } from "./QuotaTable";
 
 export type ServiceStatus = Access["status"];
 export type TeacherSummary = {
@@ -56,6 +57,7 @@ export type HistoryView = {
 export type TeacherDetailView = TeacherSummary & {
   aiEnabled: boolean;
   accountVersion: number;
+  quotas: QuotaBalance[];
   requests: AdminRequest[];
   periods: AdminPeriod[];
   history: HistoryView[];

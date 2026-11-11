@@ -1,4 +1,5 @@
 import type { Access } from "./api";
+import type { QuotaBalance } from "./QuotaTable";
 
 export type PaymentRequestView = {
   id: string;
@@ -23,6 +24,7 @@ export type ServiceProfile = {
   instructions: { bankDetails: string; contact: string };
   requests: PaymentRequestView[];
   periods: PeriodView[];
+  ai: { enabled: boolean; canUseAi: boolean; quotas: QuotaBalance[] };
 };
 
 export const requestStatusLabels: Record<PaymentRequestView["status"], string> =

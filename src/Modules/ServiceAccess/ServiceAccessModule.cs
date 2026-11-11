@@ -14,6 +14,8 @@ public static class ServiceAccessModule
         services.AddScoped<ServiceDesk>();
         services.AddScoped<ServiceAdministration>();
         services.AddScoped<PeriodAdministration>();
+        services.AddScoped<AiQuotaLedger>();
+        services.AddScoped<IAiQuota>(p => p.GetRequiredService<AiQuotaLedger>());
         return services;
     }
 }

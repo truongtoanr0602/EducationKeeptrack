@@ -8,7 +8,7 @@ namespace EducationKeeptrack.ServiceAccess.Application;
 public sealed record Actor(string Id, string Email);
 
 // Admin workflows. Every mutation records actor/time/reason in history and checks expected versions.
-public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDirectory directory, IAccountAccess access, TimeProvider clock)
+public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDirectory directory, IAccountAccess access, AiQuotaLedger ledger, TimeProvider clock)
 {
     public const int MaxDays = 3660;
 
@@ -32,14 +32,16 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
         var status = await access.GetAsync(id, ct);
         var now = clock.GetUtcNow();
         var account = await db.Accounts.AsNoTracking().SingleOrDefaultAsync(x => x.AccountId == id, ct);
+        var current = await db.Periods.AsNoTracking().SingleOrDefaultAsync(x => x.AccountId == id && x.StartsAt <= now && x.EndsAt > now, ct);
         return new
         {
             teacher.Id, teacher.Email, teacher.EmailConfirmed, teacher.IsBlocked, teacher.RegisteredAt, status = status.Status,
             aiEnabled = account?.AiEnabled ?? false, accountVersion = account?.Version ?? 0,
+            quotas = await ledger.BalancesAsync(current, ct),
             requests = (await db.PaymentRequests.AsNoTracking().Where(x => x.AccountId == id).OrderByDescending(x => x.SubmittedAt).ToListAsync(ct))
                 .Select(x => new { x.Id, x.TransactionCode, x.Note, x.SubmittedAt, status = x.Status.ToString().ToLowerInvariant(), x.VerificationNote, x.DecisionReason, x.DecidedBy, x.DecidedAt, x.PeriodId, x.Version }),
             periods = (await db.Periods.AsNoTracking().Where(x => x.AccountId == id).OrderBy(x => x.StartsAt).ToListAsync(ct))
-                .Select(p => new { p.Id, p.StartsAt, p.EndsAt, p.Label, p.Reason, p.CreatedBy, p.CreatedAt, current = p.Contains(now), upcoming = p.StartsAt > now, p.Version }),
+                .Select(p => new { p.Id, p.StartsAt, p.EndsAt, p.Label, p.Reason, p.CreatedBy, p.CreatedAt, current = p.Contains(now), upcoming = p.StartsAt > now, p.Version, p.GradingQuota, p.CommentQuota }),
             history = (await db.History.AsNoTracking().Where(x => x.AccountId == id).OrderByDescending(x => x.At).Take(200).ToListAsync(ct))
                 .Select(x => new { x.Action, actor = x.ActorEmail, x.Reason, x.Details, x.At })
         };
@@ -103,14 +105,14 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
         var request = await db.PaymentRequests.SingleAsync(x => x.Id == requestId, ct);
         if (request.Status != PaymentRequestStatus.Submitted || request.Version != input.Version)
             return Outcome.Conflict("Yêu cầu đã được xử lý hoặc đã thay đổi. Vui lòng tải lại.");
-        var created = await AddPeriodAsync(actor, accountId, input.Days, input.Label, input.ExpectedStartsAt, input.Reason, requestId, ct);
+        var created = await AddPeriodAsync(actor, accountId, input.Days, input.Label, input.ExpectedStartsAt, input.Reason, requestId, new(input.Grading, input.Comment), ct);
         if (created.Status != 200) return created;
         var period = (ServicePeriod)created.Body!;
         request.Status = PaymentRequestStatus.Approved;
         request.DecidedAt = clock.GetUtcNow();
         request.DecidedBy = actor.Email;
         request.PeriodId = period.Id;
-        Record(actor, accountId, "request.approved", input.Reason, new { requestId, periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label });
+        Record(actor, accountId, "request.approved", input.Reason, new { requestId, periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label, period.GradingQuota, period.CommentQuota });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return Outcome.Ok(new { period.Id, period.StartsAt, period.EndsAt });
@@ -133,7 +135,7 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
     }
 
     // Caller holds the account lock. Body is the new period on success.
-    internal async Task<Outcome> AddPeriodAsync(Actor actor, string accountId, int days, string? label, DateTimeOffset expectedStart, string? reason, Guid? requestId, CancellationToken ct)
+    internal async Task<Outcome> AddPeriodAsync(Actor actor, string accountId, int days, string? label, DateTimeOffset expectedStart, string? reason, Guid? requestId, Quotas quotas, CancellationToken ct)
     {
         var now = clock.GetUtcNow();
         var start = await db.NextStartAsync(accountId, now, ct);
@@ -142,7 +144,8 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
         var period = new ServicePeriod
         {
             Id = Guid.NewGuid(), AccountId = accountId, StartsAt = start, EndsAt = start.AddDays(days), Label = label?.Trim() ?? "",
-            SourceRequestId = requestId, CreatedBy = actor.Email, CreatedAt = now, Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim()
+            SourceRequestId = requestId, CreatedBy = actor.Email, CreatedAt = now, Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            GradingQuota = quotas.Grading, CommentQuota = quotas.Comment
         };
         db.Periods.Add(period);
         return Outcome.Ok(period);
@@ -167,10 +170,20 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
     public record InstructionsInput(string? BankDetails, string? Contact, uint Version);
     public record NoteInput(string? Note, uint Version);
     public record ReasonInput(string? Reason, uint Version);
-    public record ApproveInput(int Days, string? Label, DateTimeOffset ExpectedStartsAt, uint Version, string? Reason = null)
+    // Snapshot of the quota per turn type for a new period; null = not granted. No defaults are assumed.
+    public record Quotas(int? Grading, int? Comment)
+    {
+        public Outcome? Validate() =>
+            Grading is < 0 or > MaxQuota ? Outcome.Invalid("grading", $"Hạn mức từ 0 đến {MaxQuota}.")
+            : Comment is < 0 or > MaxQuota ? Outcome.Invalid("comment", $"Hạn mức từ 0 đến {MaxQuota}.") : null;
+    }
+    public const int MaxQuota = 100_000;
+
+    public record ApproveInput(int Days, string? Label, DateTimeOffset ExpectedStartsAt, uint Version, string? Reason = null, int? Grading = null, int? Comment = null)
     {
         public Outcome? Validate()
         {
+            if (new Quotas(Grading, Comment).Validate() is { } quota) return quota;
             if (Days is < 1 or > MaxDays) return Outcome.Invalid("days", $"Số ngày phải từ 1 đến {MaxDays}.");
             if (Label?.Trim().Length > 100) return Outcome.Invalid("label", "Tên gói tối đa 100 ký tự.");
             if (Reason?.Trim().Length > 500) return Outcome.Invalid("reason", "Lý do tối đa 500 ký tự.");
