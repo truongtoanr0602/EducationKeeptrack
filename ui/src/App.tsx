@@ -130,7 +130,9 @@ export function App() {
     setClasses([]);
     setMessage("Phiên đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại.");
   };
-  if (!me && link)
+  // Email links work whether or not this browser is signed in; afterwards the session is re-read
+  // because confirming an email or resetting a password revokes existing sessions.
+  if (link)
     return (
       <TokenAction
         link={link}
@@ -138,6 +140,11 @@ export function App() {
           setLink(null);
           setMessage(text);
           setScreen("login");
+          if (me)
+            load().catch(() => {
+              setMe(null);
+              setClasses([]);
+            });
         }}
       />
     );

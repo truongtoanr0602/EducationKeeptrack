@@ -139,7 +139,7 @@ public sealed class RegistrationTests(TestApplication app) : IClassFixture<TestA
     }
 
     [Fact]
-    public async Task Stale_period_preview_and_unverified_accounts_are_not_granted()
+    public async Task Approval_starts_at_approval_time_and_stale_continuations_conflict()
     {
         var (admin, _) = await Admin("stale-admin@example.test");
         using var teacher = await Register("stale-teacher@example.test");
@@ -149,9 +149,18 @@ public sealed class RegistrationTests(TestApplication app) : IClassFixture<TestA
         var teacherId = (await admin.GetFromJsonAsync<JsonElement>("/api/admin/teachers")).EnumerateArray().Single(x => x.GetProperty("email").GetString() == "stale-teacher@example.test").GetProperty("id").GetString();
         var version = (await admin.GetFromJsonAsync<JsonElement>($"/api/admin/teachers/{teacherId}")).GetProperty("requests").EnumerateArray().Single().GetProperty("version").GetUInt32();
         var preview = await Json(await TestApplication.Post(admin, $"/api/admin/teachers/{teacherId}/period-preview", new { days = 30 }));
+        // "Starts at approval": an Admin taking a few minutes between preview and approval is not a conflict.
         app.Clock.Advance(TimeSpan.FromMinutes(5));
-        var stale = await TestApplication.Post(admin, $"/api/admin/payment-requests/{requestId}/approve", new { days = 30, label = "", expectedStartsAt = preview.GetProperty("startsAt").GetDateTimeOffset(), version });
-        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        var approved = await TestApplication.Post(admin, $"/api/admin/payment-requests/{requestId}/approve", new { days = 30, label = "", expectedStartsAt = preview.GetProperty("startsAt").GetDateTimeOffset(), version });
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        Assert.Equal(app.Clock.GetUtcNow(), (await Json(approved)).GetProperty("startsAt").GetDateTimeOffset());
+
+        // A continuation preview is stale once another period has been appended.
+        var continuation = (await Json(await TestApplication.Post(admin, $"/api/admin/teachers/{teacherId}/period-preview", new { days = 30 }))).GetProperty("startsAt").GetDateTimeOffset();
+        Assert.Equal(app.Clock.GetUtcNow().AddDays(30), continuation);
+        var grant = new { days = 30, label = "", expectedStartsAt = continuation, reason = "Gia hạn" };
+        Assert.Equal(HttpStatusCode.OK, (await TestApplication.Post(admin, $"/api/admin/teachers/{teacherId}/periods", grant)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await TestApplication.Post(admin, $"/api/admin/teachers/{teacherId}/periods", grant)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await TestApplication.Post(admin, $"/api/admin/teachers/{teacherId}/period-preview", new { days = 0 })).StatusCode);
 
         var unverifiedId = await app.AddTeacher("unverified-applicant@example.test", approved: false, confirmed: false);

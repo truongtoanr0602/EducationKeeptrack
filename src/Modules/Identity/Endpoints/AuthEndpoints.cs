@@ -23,7 +23,7 @@ public static class AuthEndpoints
             context.Response.Headers.CacheControl = "no-store";
             return Results.Ok(new { token = antiforgery.GetAndStoreTokens(context).RequestToken });
         });
-        group.MapPost("/login", async (LoginRequest request, HttpContext context, UserManager<Account> users, ILoginSessions sessions) =>
+        group.MapPost("/login", async (LoginRequest request, HttpContext context, UserManager<Account> users, ILoginSessions sessions, TimeProvider clock) =>
         {
             if (string.IsNullOrWhiteSpace(request.Email) || request.Email.Length > 256 || string.IsNullOrEmpty(request.Password) || request.Password.Length > 1024)
                 return Results.BadRequest(new { message = "Vui lòng nhập email và mật khẩu hợp lệ." });
@@ -42,11 +42,18 @@ public static class AuthEndpoints
                 if (string.IsNullOrWhiteSpace(request.Code))
                     return Results.Json(new { message = "Nhập mã từ ứng dụng xác thực để đăng nhập Admin.", requiresTotp = true }, statusCode: 403);
                 var code = request.Code.Replace(" ", "").Replace("-", "");
-                if (code.Length != 6 || !await users.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code))
+                var now = clock.GetUtcNow();
+                var replayed = user.LastTotpCode == code && user.LastTotpAt > now.AddMinutes(-3);
+                if (code.Length != 6 || replayed || !await users.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code))
                 {
                     await users.AccessFailedAsync(user);
                     return Results.Json(new { message = "Email, mật khẩu hoặc mã xác thực không đúng.", requiresTotp = true }, statusCode: 401);
                 }
+                user.LastTotpCode = code;
+                user.LastTotpAt = now;
+                // Optimistic concurrency on the account row: two simultaneous sign-ins with one code cannot both win.
+                if (!(await users.UpdateAsync(user)).Succeeded)
+                    return Results.Json(new { message = "Email, mật khẩu hoặc mã xác thực không đúng.", requiresTotp = true }, statusCode: 401);
             }
             await users.ResetAccessFailedCountAsync(user);
             await context.SignInAsync("session", await sessions.CreateAsync(user), new AuthenticationProperties { IsPersistent = false });

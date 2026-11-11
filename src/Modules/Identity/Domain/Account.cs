@@ -5,6 +5,9 @@ public sealed class Account : IdentityUser
 {
     public bool IsBlocked { get; set; }
     public DateTimeOffset RegisteredAt { get; set; } = DateTimeOffset.UtcNow;
+    // Last accepted Admin authenticator code, so a captured code cannot be replayed within its window.
+    public string? LastTotpCode { get; set; }
+    public DateTimeOffset? LastTotpAt { get; set; }
 }
 
 public sealed class LoginSession
