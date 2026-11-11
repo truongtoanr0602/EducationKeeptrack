@@ -7,6 +7,7 @@ import {
   type AdminRequest,
 } from "./admin-api";
 import { requestStatusLabels } from "./service-api";
+import { AdminPeriods } from "./AdminPeriods";
 
 export function TeacherDetail({
   id,
@@ -100,6 +101,12 @@ export function TeacherDetail({
               ))}
             </ul>
           )}
+          <AdminPeriods
+            key={`${teacher.periods.length}-${teacher.isBlocked}-${teacher.periods.at(-1)?.version ?? 0}`}
+            teacher={teacher}
+            fail={fail}
+            done={done}
+          />
           <h3>Lịch sử thao tác</h3>
           <ul className="request-list" aria-label="Lịch sử thao tác">
             {teacher.history.map((h, index) => (

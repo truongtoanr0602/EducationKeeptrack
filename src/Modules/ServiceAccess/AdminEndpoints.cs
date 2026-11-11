@@ -25,6 +25,14 @@ public static class AdminEndpoints
             Respond(await admin.ApproveAsync(Actor(http), id, input, http.RequestAborted)));
         group.MapPost("/payment-requests/{id:guid}/reject", async (Guid id, ServiceAdministration.ReasonInput input, HttpContext http, ServiceAdministration admin) =>
             Respond(await admin.RejectAsync(Actor(http), id, input, http.RequestAborted)));
+        group.MapPost("/teachers/{id}/periods", async (string id, PeriodAdministration.GrantInput input, HttpContext http, PeriodAdministration periods) =>
+            Respond(await periods.GrantAsync(Actor(http), id, input, http.RequestAborted)));
+        group.MapPut("/periods/{id:guid}", async (Guid id, PeriodAdministration.PeriodEdit input, HttpContext http, PeriodAdministration periods) =>
+            Respond(await periods.UpdateAsync(Actor(http), id, input, http.RequestAborted)));
+        group.MapPost("/teachers/{id}/lock", async (string id, PeriodAdministration.ReasonOnly input, HttpContext http, PeriodAdministration periods) =>
+            Respond(await periods.SetLockedAsync(Actor(http), id, true, input.Reason, http.RequestAborted)));
+        group.MapPost("/teachers/{id}/unlock", async (string id, PeriodAdministration.ReasonOnly input, HttpContext http, PeriodAdministration periods) =>
+            Respond(await periods.SetLockedAsync(Actor(http), id, false, input.Reason, http.RequestAborted)));
         return group;
     }
 
