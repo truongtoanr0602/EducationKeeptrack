@@ -46,6 +46,9 @@ export type AdminPeriod = {
   current: boolean;
   upcoming: boolean;
   version: number;
+  gradingQuota: number | null;
+  commentQuota: number | null;
+  planningQuota: number | null;
 };
 export type HistoryView = {
   action: string;

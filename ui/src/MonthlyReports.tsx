@@ -5,6 +5,7 @@ import { reportPath, type ExportCommand, type MonthlyExport, type MonthlyPreview
 import { ReportDraftForm } from "./ReportDraftForm";
 import { ReportPreview } from "./ReportPreview";
 import { ReportExports } from "./ReportExports";
+import { classHref } from "./router";
 
 export function MonthlyReports({ classId, students, canWrite, onDenied }: { classId: string; students: Student[]; canWrite: boolean; onDenied: (error: ApiError) => void }) {
   const query = new URLSearchParams(location.search);
@@ -88,7 +89,7 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
     <div className="roster-actions">
       <button disabled={busy || dirty || uncertain} onClick={() => void act(capture)}>Xem trước báo cáo</button>
       <button disabled={busy || dirty || !preview} onClick={() => void act(exportPdf)}>{uncertain ? "Thử lại lệnh xuất" : "Xuất PDF"}</button>
-      <button onClick={() => { if (location.hash !== `#${classId}`) return; document.querySelector('[aria-label="Học phí theo buổi"]')?.scrollIntoView({ behavior: "smooth" }); }}>Đối chiếu học phí</button>
+      <a className="button-link" href={classHref(classId, "tuition")}>Đối chiếu học phí</a>
     </div>
     {preview && <ReportPreview preview={preview} path={path} />}
     <ReportExports items={exports} busy={busy} onDownload={id => void act(() => download(id))} />

@@ -1,0 +1,50 @@
+/* ---- Account, sign-up and Admin service screens (built on shell.css tokens) ---- */
+.login-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.quota-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 1rem;
+  border: 1px solid #e2e7f2;
+  border-radius: 10px;
+  padding: 0.6rem 1rem 0.2rem;
+  margin: 0.5rem 0;
+}
+.quota-fields legend {
+  padding: 0 0.4rem;
+  color: #444651;
+  font-size: 0.85rem;
+}
+.admin-actions {
+  margin-top: 1.25rem;
+}
+.admin-actions > form,
+.request-item .stack > form {
+  border-top: 1px solid #e2e7f2;
+  padding-top: 1rem;
+}
+.admin-actions h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+.request-item h3 .state {
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+.card-heading h2 .state {
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  font-size: 0.75rem;
+}
+.notice .primary {
+  margin-top: 0.6rem;
+}
+@media (max-width: 640px) {
+  .quota-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

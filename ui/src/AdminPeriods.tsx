@@ -99,45 +99,56 @@ export function AdminPeriods({ teacher, fail, done }: Props) {
     }, "Không thể cập nhật trạng thái khóa.");
   };
   return (
-    <div className="roster-form" aria-busy={busy}>
+    <div className="stack admin-actions" aria-busy={busy}>
       {!teacher.isBlocked && teacher.emailConfirmed && (
-        <form onSubmit={showPreview}>
-          <h4>Cấp hoặc gia hạn trực tiếp</h4>
-          <label htmlFor="grant-days">Số ngày</label>
-          <input
-            id="grant-days"
-            type="number"
-            min={1}
-            max={3660}
-            required
-            value={days}
-            onChange={(e) => {
-              setDays(e.target.value);
-              setPreview(null);
-            }}
-          />
-          <label htmlFor="grant-label">Tên gói (tùy chọn)</label>
-          <input
-            id="grant-label"
-            maxLength={100}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-          <label htmlFor="grant-reason">Lý do</label>
-          <input
-            id="grant-reason"
-            maxLength={500}
-            required
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
+        <form onSubmit={showPreview} className="form-grid">
+          <h3 className="full-row">Cấp hoặc gia hạn trực tiếp</h3>
+          <label>
+            Số ngày
+            <input
+              id="grant-days"
+              type="number"
+              min={1}
+              max={3660}
+              required
+              value={days}
+              onChange={(e) => {
+                setDays(e.target.value);
+                setPreview(null);
+              }}
+            />
+          </label>
+          <label>
+            Tên gói (tùy chọn)
+            <input
+              id="grant-label"
+              maxLength={100}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </label>
+          <label className="full-row">
+            Lý do
+            <input
+              id="grant-reason"
+              maxLength={500}
+              required
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </label>
           <QuotaInputs prefix="grant" values={quotas} onChange={setQuotas} />
-          <button disabled={busy}>Xem trước kỳ</button>
+          <div className="row-actions full-row">
+            <button disabled={busy}>Xem trước kỳ</button>
+          </div>
           {preview && (
-            <p className="notice">
-              Kỳ mới: {vnDateTime(preview.startsAt)} –{" "}
-              {vnDateTime(preview.endsAt)}. Còn hạn thì nối tiếp cuối kỳ hiện
-              tại; đã hết hạn thì bắt đầu lúc duyệt. Không tự hoàn tiền.{" "}
+            <div className="notice full-row">
+              <p>
+                Kỳ mới: <strong>{vnDateTime(preview.startsAt)}</strong> –{" "}
+                <strong>{vnDateTime(preview.endsAt)}</strong>. Còn hạn thì nối
+                tiếp cuối kỳ hiện tại; đã hết hạn thì bắt đầu lúc duyệt. Không
+                tự hoàn tiền.
+              </p>
               <button
                 type="button"
                 className="primary"
@@ -146,45 +157,63 @@ export function AdminPeriods({ teacher, fail, done }: Props) {
               >
                 Xác nhận cấp kỳ
               </button>
-            </p>
+            </div>
           )}
         </form>
       )}
       {latest && (
-        <form onSubmit={edit}>
-          <h4>Sửa ngày kết thúc kỳ cuối</h4>
-          <label htmlFor="edit-ends">Kết thúc (giờ Việt Nam)</label>
-          <input
-            id="edit-ends"
-            type="datetime-local"
-            required
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-          />
-          <label htmlFor="edit-reason">Lý do sửa</label>
-          <input
-            id="edit-reason"
-            maxLength={500}
-            required
-            value={editReason}
-            onChange={(e) => setEditReason(e.target.value)}
-          />
-          <button disabled={busy}>Lưu thay đổi kỳ</button>
+        <form onSubmit={edit} className="form-grid">
+          <h3 className="full-row">Sửa ngày kết thúc kỳ cuối</h3>
+          <label>
+            Kết thúc (giờ Việt Nam)
+            <input
+              id="edit-ends"
+              type="datetime-local"
+              required
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+            />
+          </label>
+          <label>
+            Lý do sửa
+            <input
+              id="edit-reason"
+              maxLength={500}
+              required
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+            />
+          </label>
+          <div className="row-actions full-row">
+            <button disabled={busy}>Lưu thay đổi kỳ</button>
+          </div>
         </form>
       )}
-      <form onSubmit={lock}>
-        <h4>{teacher.isBlocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}</h4>
-        <label htmlFor="lock-reason">Lý do</label>
-        <input
-          id="lock-reason"
-          maxLength={500}
-          required
-          value={lockReason}
-          onChange={(e) => setLockReason(e.target.value)}
-        />
-        <button disabled={busy}>
-          {teacher.isBlocked ? "Mở khóa" : "Khóa và thu hồi phiên"}
-        </button>
+      <form onSubmit={lock} className="form-grid">
+        <h3 className="full-row">
+          {teacher.isBlocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+        </h3>
+        <label className="full-row">
+          Lý do
+          <input
+            id="lock-reason"
+            maxLength={500}
+            required
+            value={lockReason}
+            onChange={(e) => setLockReason(e.target.value)}
+          />
+        </label>
+        {!teacher.isBlocked && (
+          <p className="muted full-row">
+            Khóa sẽ thu hồi mọi phiên, chặn cả dữ liệu cũ và hủy các lượt AI
+            đang giữ. Mở khóa không tự gia hạn kỳ.
+          </p>
+        )}
+        <div className="row-actions full-row">
+          <button disabled={busy}>
+            {teacher.isBlocked ? "Mở khóa" : "Khóa và thu hồi phiên"}
+          </button>
+        </div>
       </form>
     </div>
   );
