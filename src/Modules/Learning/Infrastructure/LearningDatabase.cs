@@ -14,6 +14,8 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
     public DbSet<AssessmentSkill> AssessmentSkills => Set<AssessmentSkill>();
     public DbSet<SkillResult> SkillResults => Set<SkillResult>();
     public DbSet<SkillRevision> SkillRevisions => Set<SkillRevision>();
+    public DbSet<ReviewPlan> ReviewPlans => Set<ReviewPlan>();
+    public DbSet<PlanRevision> PlanRevisions => Set<PlanRevision>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<MaterialRevision> MaterialRevisions => Set<MaterialRevision>();
     protected override void OnModelCreating(ModelBuilder model)
@@ -85,6 +87,26 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         skillRevision.Property(x => x.Action).HasMaxLength(20);
         skillRevision.Property(x => x.ActorId).HasMaxLength(450);
         skillRevision.HasIndex(x => new { x.ResultId, x.Version }).IsUnique();
+        var plan = model.Entity<ReviewPlan>();
+        plan.HasKey(x => x.Id);
+        plan.Property(x => x.Id).ValueGeneratedNever();
+        plan.Property(x => x.OwnerId).HasMaxLength(450);
+        plan.Property(x => x.Status).HasMaxLength(20);
+        plan.Property(x => x.Stamp).IsConcurrencyToken();
+        // Plain text, not jsonb: jsonb would reorder keys and break the unchanged-content check.
+        plan.Property(x => x.ContentJson).HasColumnType("text");
+        plan.Property(x => x.ApprovedContentJson).HasColumnType("text");
+        plan.Property(x => x.EvidenceJson).HasColumnType("text");
+        plan.HasIndex(x => new { x.OwnerId, x.ClassId, x.WeekStart }).IsUnique();
+        plan.HasMany(x => x.Revisions).WithOne().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
+        var planRevision = model.Entity<PlanRevision>();
+        planRevision.HasKey(x => x.Id);
+        planRevision.Property(x => x.Id).ValueGeneratedNever();
+        planRevision.Property(x => x.Action).HasMaxLength(20);
+        planRevision.Property(x => x.Status).HasMaxLength(20);
+        planRevision.Property(x => x.ActorId).HasMaxLength(450);
+        planRevision.Property(x => x.ContentJson).HasColumnType("text");
+        planRevision.HasIndex(x => new { x.PlanId, x.Version }).IsUnique();
         var material = model.Entity<Material>();
         material.HasKey(x => x.Id);
         material.Property(x => x.Id).ValueGeneratedNever();

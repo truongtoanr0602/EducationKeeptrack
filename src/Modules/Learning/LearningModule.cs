@@ -25,6 +25,8 @@ public static class LearningModule
         services.AddScoped<SkillResultService>();
         services.AddScoped<ICompetencyRepository, CompetencyRepository>();
         services.AddScoped<CompetencyService>();
+        services.AddScoped<IReviewPlanRepository, ReviewPlanRepository>();
+        services.AddScoped<ReviewPlanService>();
         services.AddScoped<ILearningReportSource, LearningReportSource>();
         services.AddHostedService<LearningResultDispatcher>();
         return services;
@@ -35,6 +37,7 @@ public static class LearningModule
         endpoints.MapMaterials();
         endpoints.MapSkillResults();
         endpoints.MapCompetency();
+        endpoints.MapReviewPlans();
         var group = endpoints.MapGroup("/api/learning/classes/{classId:guid}/assessments").RequireAuthorization(p => p.RequireRole("Teacher"));
         group.AddEndpointFilter(async (context, next) =>
         {
