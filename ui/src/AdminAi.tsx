@@ -67,30 +67,42 @@ export function AdminAi({ teacher, fail, done }: Props) {
     }, "Không thể điều chỉnh hạn mức.");
   };
   return (
-    <div className="roster-form" aria-busy={busy}>
-      <h4>Quyền AI: {teacher.aiEnabled ? "đang bật" : "đang tắt"}</h4>
-      <form onSubmit={toggle}>
-        <label htmlFor="ai-reason">Lý do</label>
-        <input
-          id="ai-reason"
-          maxLength={500}
-          required
-          value={aiReason}
-          onChange={(e) => setAiReason(e.target.value)}
-        />
-        <button disabled={busy}>
-          {teacher.aiEnabled ? "Tắt AI" : "Bật AI"}
-        </button>
+    <div className="stack" aria-busy={busy}>
+      <form onSubmit={toggle} className="form-grid">
+        <p className="full-row">
+          Quyền AI:{" "}
+          <span className={`state ${teacher.aiEnabled ? "mastered" : ""}`}>
+            {teacher.aiEnabled ? "Đang bật" : "Đang tắt"}
+          </span>{" "}
+          <span className="muted">
+            Tắt/bật không đặt lại số lượt; lượt đã nhận vẫn được hoàn tất.
+          </span>
+        </p>
+        <label className="full-row">
+          Lý do
+          <input
+            id="ai-reason"
+            maxLength={500}
+            required
+            value={aiReason}
+            onChange={(e) => setAiReason(e.target.value)}
+          />
+        </label>
+        <div className="row-actions full-row">
+          <button disabled={busy}>
+            {teacher.aiEnabled ? "Tắt AI" : "Bật AI"}
+          </button>
+        </div>
       </form>
       <QuotaTable quotas={teacher.quotas} />
       {current ? (
-        <form onSubmit={saveQuotas}>
-          <h4>Hạn mức kỳ hiện tại (để trống = chưa cấp)</h4>
+        <form onSubmit={saveQuotas} className="form-grid">
+          <h3 className="full-row">
+            Hạn mức kỳ hiện tại (để trống = chưa cấp)
+          </h3>
           {teacher.quotas.map((q) => (
-            <span key={q.kind}>
-              <label htmlFor={`quota-${q.kind}`}>
-                {kindLabels[q.kind] ?? q.kind}
-              </label>
+            <label key={q.kind}>
+              {kindLabels[q.kind] ?? q.kind}
               <input
                 id={`quota-${q.kind}`}
                 type="number"
@@ -101,20 +113,24 @@ export function AdminAi({ teacher, fail, done }: Props) {
                   setValues((v) => ({ ...v, [q.kind]: e.target.value }))
                 }
               />
-            </span>
+            </label>
           ))}
-          <label htmlFor="quota-reason">Lý do điều chỉnh</label>
-          <input
-            id="quota-reason"
-            maxLength={500}
-            required
-            value={quotaReason}
-            onChange={(e) => setQuotaReason(e.target.value)}
-          />
-          <button disabled={busy}>Lưu hạn mức</button>
+          <label className="full-row">
+            Lý do điều chỉnh
+            <input
+              id="quota-reason"
+              maxLength={500}
+              required
+              value={quotaReason}
+              onChange={(e) => setQuotaReason(e.target.value)}
+            />
+          </label>
+          <div className="row-actions full-row">
+            <button disabled={busy}>Lưu hạn mức</button>
+          </div>
         </form>
       ) : (
-        <p className="hint">Chưa có kỳ đang hiệu lực để cấp hạn mức.</p>
+        <p className="muted">Chưa có kỳ đang hiệu lực để cấp hạn mức.</p>
       )}
     </div>
   );

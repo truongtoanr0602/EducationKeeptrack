@@ -97,44 +97,54 @@ export function ChangeEmail({ onExpired }: { onExpired: () => void }) {
     }
   }
   return (
-    <details className="class-card">
-      <summary>Đổi email đăng nhập</summary>
-      <form onSubmit={submit} className="roster-form" aria-busy={busy}>
-        <label htmlFor="change-email">Email mới</label>
-        <input
-          id="change-email"
-          type="email"
-          maxLength={256}
-          required
-          value={newEmail}
-          disabled={busy}
-          onChange={(e) => setNewEmail(e.target.value)}
-        />
-        <label htmlFor="change-email-password">Mật khẩu hiện tại</label>
-        <input
-          id="change-email-password"
-          type="password"
-          autoComplete="current-password"
-          maxLength={1024}
-          required
-          value={password}
-          disabled={busy}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+    <article className="card">
+      <h2>Đổi email đăng nhập</h2>
+      <p className="muted">
+        Email chỉ đổi sau khi bạn xác minh địa chỉ mới. Tài khoản, kỳ sử dụng và
+        hạn mức được giữ nguyên; các phiên đăng nhập cũ sẽ bị thu hồi.
+      </p>
+      <form onSubmit={submit} className="form-grid" aria-busy={busy}>
+        <label>
+          Email mới
+          <input
+            id="change-email"
+            type="email"
+            maxLength={256}
+            required
+            value={newEmail}
+            disabled={busy}
+            onChange={(e) => setNewEmail(e.target.value)}
+          />
+        </label>
+        <label>
+          Mật khẩu hiện tại
+          <input
+            id="change-email-password"
+            type="password"
+            autoComplete="current-password"
+            maxLength={1024}
+            required
+            value={password}
+            disabled={busy}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
         {message && (
-          <p role="status" className="notice success">
+          <p role="status" className="notice success full-row">
             {message}
           </p>
         )}
         {error && (
-          <p role="alert" className="error">
+          <p role="alert" className="error full-row">
             {error}
           </p>
         )}
-        <button className="primary" disabled={busy}>
-          Gửi xác minh email mới
-        </button>
+        <div className="row-actions full-row">
+          <button className="primary" disabled={busy}>
+            Gửi xác minh email mới
+          </button>
+        </div>
       </form>
-    </details>
+    </article>
   );
 }

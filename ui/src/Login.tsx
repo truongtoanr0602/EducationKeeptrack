@@ -30,6 +30,7 @@ export function Login({
       setCode("");
       await onLogin();
     } catch (e) {
+      // Admin accounts need the 6-digit authenticator code as a second step.
       if (e instanceof ApiError && e.data.requiresTotp === true) {
         setNeedsCode(true);
         setCode("");
@@ -111,18 +112,20 @@ export function Login({
             )}
           </button>
         </form>
-        <div className="login-links">
-          {onRegister && (
-            <button type="button" onClick={onRegister} disabled={busy}>
-              Đăng ký tài khoản giáo viên
-            </button>
-          )}
-          {onForgot && (
-            <button type="button" onClick={onForgot} disabled={busy}>
-              Quên mật khẩu?
-            </button>
-          )}
-        </div>
+        {(onRegister || onForgot) && (
+          <div className="login-links">
+            {onRegister && (
+              <button type="button" onClick={onRegister} disabled={busy}>
+                Đăng ký tài khoản giáo viên
+              </button>
+            )}
+            {onForgot && (
+              <button type="button" onClick={onForgot} disabled={busy}>
+                Quên mật khẩu?
+              </button>
+            )}
+          </div>
+        )}
       </section>
     </main>
   );

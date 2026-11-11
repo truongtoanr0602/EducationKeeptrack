@@ -12,7 +12,7 @@ export const kindLabels: Record<string, string> = {
   planning: "Kế hoạch",
 };
 
-// Turn types an Admin can grant per period; null/empty = not granted (no default counts).
+// Turn types an Admin can grant per period; empty = not granted (no default counts).
 export const quotaKinds = ["grading", "comment", "planning"] as const;
 
 export function quotaBody(values: Record<string, string>) {
@@ -34,11 +34,11 @@ export function QuotaInputs({
   onChange: (values: Record<string, string>) => void;
 }) {
   return (
-    <fieldset>
+    <fieldset className="full-row quota-fields">
       <legend>Hạn mức AI của kỳ (để trống = chưa cấp)</legend>
       {quotaKinds.map((kind) => (
-        <span key={kind}>
-          <label htmlFor={`${prefix}-${kind}`}>{kindLabels[kind]}</label>
+        <label key={kind}>
+          {kindLabels[kind]}
           <input
             id={`${prefix}-${kind}`}
             type="number"
@@ -47,7 +47,7 @@ export function QuotaInputs({
             value={values[kind] ?? ""}
             onChange={(e) => onChange({ ...values, [kind]: e.target.value })}
           />
-        </span>
+        </label>
       ))}
     </fieldset>
   );
@@ -55,8 +55,8 @@ export function QuotaInputs({
 
 export function QuotaTable({ quotas }: { quotas: QuotaBalance[] }) {
   return (
-    <div className="tuition-table-wrap">
-      <table className="quota-table" aria-label="Hạn mức AI theo loại">
+    <div className="table-wrap">
+      <table className="data-table" aria-label="Hạn mức AI theo loại">
         <thead>
           <tr>
             <th>Loại lượt</th>
@@ -70,8 +70,10 @@ export function QuotaTable({ quotas }: { quotas: QuotaBalance[] }) {
           {quotas.map((q) => (
             <tr key={q.kind}>
               <td>{kindLabels[q.kind] ?? q.kind}</td>
-              <td>{q.granted ?? "Chưa cấp"}</td>
-              <td>{q.remaining}</td>
+              <td>{q.granted ?? <span className="muted">Chưa cấp</span>}</td>
+              <td>
+                <strong>{q.remaining}</strong>
+              </td>
               <td>{q.held}</td>
               <td>{q.used}</td>
             </tr>

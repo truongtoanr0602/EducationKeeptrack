@@ -45,38 +45,60 @@ export function AdminInstructions({ onExpired }: { onExpired: () => void }) {
     }
   }
   return (
-    <details className="class-card">
-      <summary>Hướng dẫn thanh toán phí dịch vụ</summary>
-      <form onSubmit={save} className="roster-form" aria-busy={busy}>
-        <label htmlFor="bank-details">Thông tin chuyển khoản</label>
-        <textarea
-          id="bank-details"
-          maxLength={1000}
-          required
-          value={bank}
-          onChange={(e) => setBank(e.target.value)}
-        />
-        <label htmlFor="contact">Liên hệ hỗ trợ</label>
-        <input
-          id="contact"
-          maxLength={500}
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-        />
-        {status && (
-          <p role="status" className="notice success">
-            {status}
-          </p>
-        )}
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
-        <button className="primary" disabled={busy || !value}>
-          Lưu hướng dẫn
-        </button>
-      </form>
-    </details>
+    <section className="panel stack" aria-label="Hướng dẫn thanh toán">
+      <p className="lead">
+        Giáo viên chờ duyệt thấy hướng dẫn này để chuyển khoản phí dịch vụ và
+        gửi mã giao dịch. Không có cổng thanh toán hay tự cấp quyền.
+      </p>
+      <article className="card">
+        <h2>Thông tin chuyển khoản</h2>
+        <form onSubmit={save} className="form-grid" aria-busy={busy}>
+          <label className="full-row">
+            Ngân hàng, số tài khoản, chủ tài khoản, nội dung chuyển khoản
+            <textarea
+              id="bank-details"
+              maxLength={1000}
+              required
+              rows={5}
+              value={bank}
+              onChange={(e) => setBank(e.target.value)}
+            />
+          </label>
+          <label className="full-row">
+            Liên hệ hỗ trợ
+            <input
+              id="contact"
+              maxLength={500}
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+            />
+          </label>
+          {value?.updatedAt && (
+            <p className="muted full-row">
+              Cập nhật lần cuối{" "}
+              {new Date(value.updatedAt).toLocaleString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              })}
+              {value.updatedBy && ` bởi ${value.updatedBy}`}
+            </p>
+          )}
+          {status && (
+            <p role="status" className="notice success full-row">
+              {status}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="error full-row">
+              {error}
+            </p>
+          )}
+          <div className="row-actions full-row">
+            <button className="primary" disabled={busy || !value}>
+              Lưu hướng dẫn
+            </button>
+          </div>
+        </form>
+      </article>
+    </section>
   );
 }

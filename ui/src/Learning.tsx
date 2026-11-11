@@ -3,6 +3,7 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { today } from "./roster-api";
 import { Login } from "./Login";
 import { SubmissionForm } from "./SubmissionForm";
+import { SkillResults } from "./SkillResults";
 import type { Assessment, AssessmentSummary } from "./learning-api";
 
 export function Learning({
@@ -208,6 +209,12 @@ export function Learning({
               onDenied={denied}
             />
           ))}
+          <SkillResults
+            classId={classroom.id}
+            assessmentId={assessment.id}
+            canWrite={access.canWrite && !expired && !busy}
+            onDenied={denied}
+          />
         </div>
       )}
     </section>

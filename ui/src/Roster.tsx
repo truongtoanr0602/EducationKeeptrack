@@ -3,7 +3,6 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { EnrollmentForm } from "./EnrollmentForm";
 import { StudentForm } from "./StudentForm";
 import { Login } from "./Login";
-import { MonthlyReports } from "./MonthlyReports";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
 
 export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
@@ -208,9 +207,6 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
             </article>
           ))}
         </div>
-      </div>
-      <div hidden={sessionExpired || !access.canRead}>
-        <MonthlyReports classId={classroom.id} students={items.map(item => item.student)} canWrite={access.canWrite} onDenied={denied} />
       </div>
       {!access.canRead && !sessionExpired && (
         <p className="error" role="alert">

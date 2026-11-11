@@ -33,7 +33,13 @@ export function Sessions({
   me: Me;
   onChanged?: () => void;
 }) {
-  const initialRange = useMemo(monthRange, []);
+  // The viewed range survives reload/navigation through the query string, like other screen state.
+  const initialRange = useMemo(() => {
+    const query = new URLSearchParams(window.location.search);
+    const from = query.get("sessionsFrom") ?? "";
+    const to = query.get("sessionsTo") ?? "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from <= to ? { from, to } : monthRange();
+  }, []);
   const [range, setRange] = useState(initialRange);
   const [appliedRange, setAppliedRange] = useState(initialRange);
   const [schedule, setSchedule] = useState<WeeklySchedule>({
@@ -81,6 +87,10 @@ export function Sessions({
         setSessions(items);
         setMissing(incomplete);
         setAppliedRange(dates);
+        const url = new URL(window.location.href);
+        url.searchParams.set("sessionsFrom", dates.from);
+        url.searchParams.set("sessionsTo", dates.to);
+        window.history.replaceState(null, "", url);
       } catch (e) {
         setError(
           e instanceof ApiError
