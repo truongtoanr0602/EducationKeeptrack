@@ -41,7 +41,7 @@ public sealed class ServiceAccessDatabase(DbContextOptions<ServiceAccessDatabase
             e.ToTable("periods", t =>
             {
                 t.HasCheckConstraint("CK_periods_range", "\"EndsAt\" > \"StartsAt\"");
-                t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0)");
+                t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0) AND (\"PlanningQuota\" IS NULL OR \"PlanningQuota\" >= 0)");
             }).HasKey(x => x.Id);
             e.Property(x => x.AccountId).HasMaxLength(450);
             e.Property(x => x.Label).HasMaxLength(100);

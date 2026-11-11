@@ -268,6 +268,9 @@ namespace ServiceAccess.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("PlanningQuota")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -293,7 +296,7 @@ namespace ServiceAccess.Infrastructure.Migrations
 
                     b.ToTable("periods", "service_access", t =>
                         {
-                            t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0)");
+                            t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0) AND (\"PlanningQuota\" IS NULL OR \"PlanningQuota\" >= 0)");
 
                             t.HasCheckConstraint("CK_periods_range", "\"EndsAt\" > \"StartsAt\"");
                         });

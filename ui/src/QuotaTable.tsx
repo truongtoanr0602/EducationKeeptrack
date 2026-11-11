@@ -13,7 +13,7 @@ export const kindLabels: Record<string, string> = {
 };
 
 // Turn types an Admin can grant per period; null/empty = not granted (no default counts).
-export const quotaKinds = ["grading", "comment"] as const;
+export const quotaKinds = ["grading", "comment", "planning"] as const;
 
 export function quotaBody(values: Record<string, string>) {
   return Object.fromEntries(
