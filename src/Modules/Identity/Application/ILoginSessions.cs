@@ -8,4 +8,5 @@ public interface ILoginSessions
     Task<ClaimsPrincipal> CreateAsync(Account account);
     Task<bool> ValidateAsync(ClaimsPrincipal principal, bool userActivity, CancellationToken cancellationToken);
     Task RevokeAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
+    Task RevokeAllAsync(string accountId, CancellationToken cancellationToken);
 }

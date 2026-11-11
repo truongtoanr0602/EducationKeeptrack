@@ -60,6 +60,90 @@ public static class AccountEndpoints
         }).RequireAuthorization(p => p.RequireRole("Teacher"));
     }
 
+    public static void MapRecoveryFlows(this RouteGroupBuilder group)
+    {
+        group.MapPost("/forgot-password", async (EmailRequest request, UserManager<Account> users, EmailTokens tokens, IEmailSender email,
+            IOptions<EmailOptions> options, HttpContext http) =>
+        {
+            var address = Normalize(request.Email);
+            var account = address is null ? null : await users.FindByEmailAsync(address);
+            if (account is not null && account.EmailConfirmed && !account.IsBlocked)
+            {
+                var token = await tokens.IssueAsync(account.Id, EmailTokenPurpose.ResetPassword, options.Value.ResetLifetime, null, http.RequestAborted);
+                await email.SendAsync(new EmailMessage(account.Email!, "Đặt lại mật khẩu Education Keeptrack",
+                    $"Mở liên kết để đặt mật khẩu mới (dùng một lần, hết hạn sau {options.Value.ResetLifetime.TotalMinutes:0} phút): {options.Value.PublicUrl}/?action=reset-password&token={token}"), http.RequestAborted);
+            }
+            // Identical response whether or not the account exists.
+            return Results.Json(new { message = "Nếu email có tài khoản, chúng tôi đã gửi liên kết đặt lại mật khẩu." }, statusCode: 202);
+        });
+        group.MapPost("/reset-password", async (ResetRequest request, UserManager<Account> users, EmailTokens tokens, ILoginSessions sessions, HttpContext http) =>
+        {
+            var pending = await tokens.PeekAsync(request.Token, EmailTokenPurpose.ResetPassword, http.RequestAborted);
+            var account = pending is null ? null : await users.FindByIdAsync(pending.AccountId);
+            if (account is null) return InvalidLink();
+            var errors = await PasswordErrors(users, account, request.Password);
+            if (errors.Length > 0) return Results.ValidationProblem(new Dictionary<string, string[]> { ["password"] = errors });
+            if (await tokens.ConsumeAsync(request.Token, EmailTokenPurpose.ResetPassword, http.RequestAborted) is null) return InvalidLink();
+            account.PasswordHash = users.PasswordHasher.HashPassword(account, request.Password!);
+            account.AccessFailedCount = 0;
+            account.LockoutEnd = null;
+            // New security stamp + explicit revocation: every existing session fails on its next request.
+            await users.UpdateSecurityStampAsync(account);
+            await sessions.RevokeAllAsync(account.Id, http.RequestAborted);
+            return Results.NoContent();
+        });
+        group.MapPost("/change-email", async (ChangeEmailRequest request, HttpContext http, UserManager<Account> users, EmailTokens tokens,
+            IEmailSender email, IOptions<EmailOptions> options) =>
+        {
+            var account = await users.FindByIdAsync(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            if (account is null) return Results.Unauthorized();
+            if (string.IsNullOrEmpty(request.CurrentPassword) || request.CurrentPassword.Length > 1024 || !await users.CheckPasswordAsync(account, request.CurrentPassword))
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["currentPassword"] = ["Mật khẩu hiện tại không đúng."] });
+            var address = Normalize(request.NewEmail);
+            if (address is null || string.Equals(address, account.Email, StringComparison.OrdinalIgnoreCase))
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["newEmail"] = ["Nhập email mới hợp lệ, khác email hiện tại."] });
+            if (await users.FindByEmailAsync(address) is not null)
+                await email.SendAsync(new EmailMessage(address, "Yêu cầu đổi email",
+                    "Có yêu cầu dùng email này cho một tài khoản Education Keeptrack khác, nhưng email đã có tài khoản nên không được đổi."), http.RequestAborted);
+            else
+            {
+                var token = await tokens.IssueAsync(account.Id, EmailTokenPurpose.ChangeEmail, options.Value.EmailChangeLifetime, address, http.RequestAborted);
+                await email.SendAsync(new EmailMessage(address, "Xác minh email mới Education Keeptrack",
+                    $"Mở liên kết để xác nhận dùng email này cho tài khoản (dùng một lần): {options.Value.PublicUrl}/?action=confirm-email&token={token}"), http.RequestAborted);
+                await email.SendAsync(new EmailMessage(account.Email!, "Có yêu cầu đổi email",
+                    "Email đăng nhập chỉ đổi sau khi địa chỉ mới được xác minh. Nếu không phải bạn, hãy đổi mật khẩu ngay."), http.RequestAborted);
+            }
+            // Same response whether or not the new address already has an account.
+            return Results.Json(new { message = "Kiểm tra hộp thư email mới để xác nhận. Email đăng nhập chưa thay đổi cho đến khi xác nhận." }, statusCode: 202);
+        }).RequireAuthorization(p => p.RequireRole("Teacher"));
+        group.MapPost("/confirm-email", async (TokenRequest request, UserManager<Account> users, EmailTokens tokens, ILoginSessions sessions, HttpContext http) =>
+        {
+            var token = await tokens.ConsumeAsync(request.Token, EmailTokenPurpose.ChangeEmail, http.RequestAborted);
+            var account = token?.NewEmail is null ? null : await users.FindByIdAsync(token.AccountId);
+            if (account is null) return InvalidLink();
+            if (await users.FindByEmailAsync(token!.NewEmail!) is not null)
+                return Results.Conflict(new { message = "Email mới đã được dùng cho tài khoản khác. Email đăng nhập không thay đổi." });
+            // Same account ID: periods, quota and data stay attached; only the login address changes.
+            account.Email = token.NewEmail;
+            account.UserName = token.NewEmail;
+            account.EmailConfirmed = true;
+            var result = await users.UpdateAsync(account);
+            if (!result.Succeeded) return Results.Conflict(new { message = "Không thể đổi email. Vui lòng thử lại." });
+            await users.UpdateSecurityStampAsync(account);
+            await sessions.RevokeAllAsync(account.Id, http.RequestAborted);
+            return Results.NoContent();
+        });
+    }
+
+    private static async Task<string[]> PasswordErrors(UserManager<Account> users, Account account, string? password)
+    {
+        if (string.IsNullOrEmpty(password) || password.Length > 1024) return ["Mật khẩu không hợp lệ."];
+        var errors = new List<string>();
+        foreach (var validator in users.PasswordValidators)
+            errors.AddRange((await validator.ValidateAsync(users, account, password)).Errors.Select(e => e.Description));
+        return [.. errors];
+    }
+
     internal static string? Normalize(string? value)
     {
         var trimmed = value?.Trim();
@@ -83,4 +167,7 @@ public static class AccountEndpoints
 
     public record RegisterRequest(string? Email, string? Password);
     public record TokenRequest(string? Token);
+    public record EmailRequest(string? Email);
+    public record ResetRequest(string? Token, string? Password);
+    public record ChangeEmailRequest(string? NewEmail, string? CurrentPassword);
 }
