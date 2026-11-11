@@ -8,6 +8,8 @@ import {
 } from "./admin-api";
 import { requestStatusLabels } from "./service-api";
 import { AdminPeriods } from "./AdminPeriods";
+import { AdminAi } from "./AdminAi";
+import { QuotaInputs, quotaBody } from "./QuotaTable";
 
 export function TeacherDetail({
   id,
@@ -107,6 +109,13 @@ export function TeacherDetail({
             fail={fail}
             done={done}
           />
+          <h3>Quyền AI và hạn mức</h3>
+          <AdminAi
+            key={`${teacher.aiEnabled}-${teacher.periods.find((p) => p.current)?.version ?? 0}`}
+            teacher={teacher}
+            fail={fail}
+            done={done}
+          />
           <h3>Lịch sử thao tác</h3>
           <ul className="request-list" aria-label="Lịch sử thao tác">
             {teacher.history.map((h, index) => (
@@ -139,6 +148,7 @@ function RequestCard({
   const [days, setDays] = useState("");
   const [label, setLabel] = useState("");
   const [reason, setReason] = useState("");
+  const [quotas, setQuotas] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<{
     startsAt: string;
     endsAt: string;
@@ -182,6 +192,7 @@ function RequestCard({
           label,
           expectedStartsAt: preview!.startsAt,
           version: request.version,
+          ...quotaBody(quotas),
         });
         await done("Đã duyệt và cấp kỳ quyền sử dụng.");
       } catch (e) {
@@ -246,6 +257,11 @@ function RequestCard({
               maxLength={100}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
+            />
+            <QuotaInputs
+              prefix={`approve-${request.id}`}
+              values={quotas}
+              onChange={setQuotas}
             />
             <button disabled={busy}>Xem trước kỳ</button>
           </form>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, type Access } from "./api";
 import { vnDateTime } from "./admin-api";
+import { QuotaTable } from "./QuotaTable";
 import {
   newKey,
   requestStatusLabels,
@@ -117,6 +118,24 @@ export function Service({
           {vnDateTime(p.endsAt)}.
         </p>
       ))}
+      {(profile.status === "active" || profile.status === "expired") && (
+        <details>
+          <summary>
+            Trợ lý AI:{" "}
+            {profile.ai.canUseAi ? "đang dùng được" : "không khả dụng"}
+          </summary>
+          {!profile.ai.canUseAi && (
+            <p className="hint">
+              {profile.ai.enabled
+                ? "Kỳ sử dụng không còn hiệu lực nên không nhận yêu cầu AI mới."
+                : "Tài khoản chưa được bật AI."}{" "}
+              Bạn vẫn tự chấm, viết nhận xét và lập kế hoạch thủ công khi kỳ còn
+              hạn; kết quả AI cũ được giữ nguyên.
+            </p>
+          )}
+          <QuotaTable quotas={profile.ai.quotas} />
+        </details>
+      )}
       {message && (
         <p role="status" className="notice success">
           {message}

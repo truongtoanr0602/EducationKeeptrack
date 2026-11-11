@@ -9,6 +9,7 @@ public sealed class ServiceAccessDatabase(DbContextOptions<ServiceAccessDatabase
     public DbSet<ServicePeriod> Periods => Set<ServicePeriod>();
     public DbSet<PaymentInstructions> Instructions => Set<PaymentInstructions>();
     public DbSet<HistoryEntry> History => Set<HistoryEntry>();
+    public DbSet<QuotaReservation> Reservations => Set<QuotaReservation>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -37,7 +38,11 @@ public sealed class ServiceAccessDatabase(DbContextOptions<ServiceAccessDatabase
         });
         model.Entity<ServicePeriod>(e =>
         {
-            e.ToTable("periods", t => t.HasCheckConstraint("CK_periods_range", "\"EndsAt\" > \"StartsAt\"")).HasKey(x => x.Id);
+            e.ToTable("periods", t =>
+            {
+                t.HasCheckConstraint("CK_periods_range", "\"EndsAt\" > \"StartsAt\"");
+                t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0)");
+            }).HasKey(x => x.Id);
             e.Property(x => x.AccountId).HasMaxLength(450);
             e.Property(x => x.Label).HasMaxLength(100);
             e.Property(x => x.CreatedBy).HasMaxLength(256);
@@ -46,6 +51,15 @@ public sealed class ServiceAccessDatabase(DbContextOptions<ServiceAccessDatabase
             e.HasIndex(x => new { x.AccountId, x.StartsAt });
             e.HasIndex(x => x.SourceRequestId).IsUnique();
             e.HasOne<ServiceAccount>().WithMany().HasForeignKey(x => x.AccountId);
+        });
+        model.Entity<QuotaReservation>(e =>
+        {
+            e.ToTable("quota_reservations", t => t.HasCheckConstraint("CK_quota_reservations_units", "\"Units\" > 0")).HasKey(x => x.Id);
+            e.Property(x => x.AccountId).HasMaxLength(450);
+            e.Property(x => x.RequestKey).HasMaxLength(100);
+            e.HasIndex(x => new { x.AccountId, x.Kind, x.RequestKey }).IsUnique();
+            e.HasIndex(x => new { x.PeriodId, x.Kind, x.Status });
+            e.HasOne<ServicePeriod>().WithMany().HasForeignKey(x => x.PeriodId);
         });
         model.Entity<PaymentInstructions>(e =>
         {

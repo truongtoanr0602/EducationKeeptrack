@@ -40,8 +40,33 @@ public sealed class ServicePeriod
     public required string CreatedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public string? Reason { get; set; }
+    // Quota snapshot per turn type; null means not granted (AI requests of that type are refused).
+    public int? GradingQuota { get; set; }
+    public int? CommentQuota { get; set; }
     public uint Version { get; set; }
     public bool Contains(DateTimeOffset moment) => StartsAt <= moment && moment < EndsAt;
+    public int? QuotaFor(EducationKeeptrack.Contracts.AiTaskKind kind) => kind switch
+    {
+        EducationKeeptrack.Contracts.AiTaskKind.Grading => GradingQuota,
+        EducationKeeptrack.Contracts.AiTaskKind.Comment => CommentQuota,
+        _ => null
+    };
+}
+
+public enum ReservationStatus { Held = 1, Consumed = 2, Released = 3, Cancelled = 4 }
+
+// Quota ledger row: belongs to the period that accepted it, even if the result arrives after the boundary.
+public sealed class QuotaReservation
+{
+    public Guid Id { get; set; }
+    public required string AccountId { get; set; }
+    public Guid PeriodId { get; set; }
+    public EducationKeeptrack.Contracts.AiTaskKind Kind { get; set; }
+    public required string RequestKey { get; set; }
+    public int Units { get; set; }
+    public ReservationStatus Status { get; set; } = ReservationStatus.Held;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? SettledAt { get; set; }
 }
 
 public sealed class PaymentInstructions

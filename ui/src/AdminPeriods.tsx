@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api } from "./api";
 import { vnDateTime, type TeacherDetailView } from "./admin-api";
+import { QuotaInputs, quotaBody } from "./QuotaTable";
 
 type Props = {
   teacher: TeacherDetailView;
@@ -22,6 +23,7 @@ export function AdminPeriods({ teacher, fail, done }: Props) {
   const [days, setDays] = useState("");
   const [label, setLabel] = useState("");
   const [reason, setReason] = useState("");
+  const [quotas, setQuotas] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<{
     startsAt: string;
     endsAt: string;
@@ -58,6 +60,7 @@ export function AdminPeriods({ teacher, fail, done }: Props) {
           label,
           reason,
           expectedStartsAt: preview!.startsAt,
+          ...quotaBody(quotas),
         });
         setPreview(null);
         setReason("");
@@ -128,6 +131,7 @@ export function AdminPeriods({ teacher, fail, done }: Props) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
+          <QuotaInputs prefix="grant" values={quotas} onChange={setQuotas} />
           <button disabled={busy}>Xem trước kỳ</button>
           {preview && (
             <p className="notice">

@@ -6,7 +6,7 @@ using Npgsql;
 namespace EducationKeeptrack.ServiceAccess.Application;
 
 // Teacher-facing service profile: status, instructions and payment reconciliation requests.
-public sealed class ServiceDesk(ServiceAccessDatabase db, IAccountAccess access, TimeProvider clock)
+public sealed class ServiceDesk(ServiceAccessDatabase db, IAccountAccess access, AiQuotaLedger ledger, TimeProvider clock)
 {
     public async Task<object> ProfileAsync(string accountId, CancellationToken ct)
     {
@@ -15,13 +15,17 @@ public sealed class ServiceDesk(ServiceAccessDatabase db, IAccountAccess access,
         var requests = await db.PaymentRequests.AsNoTracking().Where(x => x.AccountId == accountId).OrderByDescending(x => x.SubmittedAt).ToListAsync(ct);
         var periods = await db.Periods.AsNoTracking().Where(x => x.AccountId == accountId).OrderBy(x => x.StartsAt).ToListAsync(ct);
         var now = clock.GetUtcNow();
+        var aiEnabled = await db.Accounts.AsNoTracking().Where(x => x.AccountId == accountId).Select(x => x.AiEnabled).SingleOrDefaultAsync(ct);
+        var current = periods.FirstOrDefault(p => p.Contains(now));
         return new
         {
             status = status.Status,
             access = status,
             instructions = new { bankDetails = instructions?.BankDetails ?? "", contact = instructions?.Contact ?? "" },
             requests = requests.Select(TeacherRequest),
-            periods = periods.Select(p => new { p.Id, p.StartsAt, p.EndsAt, p.Label, current = p.Contains(now), upcoming = p.StartsAt > now })
+            periods = periods.Select(p => new { p.Id, p.StartsAt, p.EndsAt, p.Label, current = p.Contains(now), upcoming = p.StartsAt > now }),
+            // Balances of the current period only; a new period never inherits unused turns.
+            ai = new { enabled = aiEnabled, canUseAi = status.CanUseAi, quotas = await ledger.BalancesAsync(current, ct) }
         };
     }
 

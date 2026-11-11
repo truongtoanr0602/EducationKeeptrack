@@ -168,6 +168,53 @@ namespace ServiceAccess.Infrastructure.Migrations
                     b.ToTable("payment_requests", "service_access");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.ServiceAccess.Domain.QuotaReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Units")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Kind", "RequestKey")
+                        .IsUnique();
+
+                    b.HasIndex("PeriodId", "Kind", "Status");
+
+                    b.ToTable("quota_reservations", "service_access", t =>
+                        {
+                            t.HasCheckConstraint("CK_quota_reservations_units", "\"Units\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("EducationKeeptrack.ServiceAccess.Domain.ServiceAccount", b =>
                 {
                     b.Property<string>("AccountId")
@@ -199,6 +246,9 @@ namespace ServiceAccess.Infrastructure.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<int?>("CommentQuota")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -209,6 +259,9 @@ namespace ServiceAccess.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("EndsAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("GradingQuota")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Label")
                         .IsRequired()
@@ -240,6 +293,8 @@ namespace ServiceAccess.Infrastructure.Migrations
 
                     b.ToTable("periods", "service_access", t =>
                         {
+                            t.HasCheckConstraint("CK_periods_quota", "(\"GradingQuota\" IS NULL OR \"GradingQuota\" >= 0) AND (\"CommentQuota\" IS NULL OR \"CommentQuota\" >= 0)");
+
                             t.HasCheckConstraint("CK_periods_range", "\"EndsAt\" > \"StartsAt\"");
                         });
                 });
@@ -249,6 +304,15 @@ namespace ServiceAccess.Infrastructure.Migrations
                     b.HasOne("EducationKeeptrack.ServiceAccess.Domain.ServiceAccount", null)
                         .WithMany()
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.ServiceAccess.Domain.QuotaReservation", b =>
+                {
+                    b.HasOne("EducationKeeptrack.ServiceAccess.Domain.ServicePeriod", null)
+                        .WithMany()
+                        .HasForeignKey("PeriodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
