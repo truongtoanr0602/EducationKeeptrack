@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using EducationKeeptrack.Classroom;
 using EducationKeeptrack.Classroom.Infrastructure;
 using EducationKeeptrack.ServiceAccess;
-using EducationKeeptrack.ServiceAccess.Domain;
 using EducationKeeptrack.ServiceAccess.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Net;
@@ -86,9 +85,7 @@ if (args.Contains("--provision-teacher"))
     var accountId = await ProvisionTeacher.RunAsync(scope.ServiceProvider,
         builder.Configuration["Provision:Email"] ?? throw new InvalidOperationException("Set Provision__Email."),
         builder.Configuration["Provision:Password"] ?? throw new InvalidOperationException("Set Provision__Password."));
-    var grants = scope.ServiceProvider.GetRequiredService<ServiceAccessDatabase>();
-    grants.DevelopmentGrants.Add(new DevelopmentGrant { AccountId = accountId, Approved = true, Until = until.ToUniversalTime() });
-    await grants.SaveChangesAsync();
+    await DevelopmentProvisioning.GrantAsync(scope.ServiceProvider.GetRequiredService<ServiceAccessDatabase>(), accountId, DateTimeOffset.UtcNow, until.ToUniversalTime());
     return;
 }
 app.UseForwardedHeaders();
@@ -115,6 +112,7 @@ app.MapBilling();
 app.MapLearning();
 app.MapReporting();
 app.MapServiceAdmin();
+app.MapServiceProfile();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 

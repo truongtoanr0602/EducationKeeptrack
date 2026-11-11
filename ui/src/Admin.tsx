@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Me } from "./api";
 import { statusLabels, vnDateTime, type TeacherSummary } from "./admin-api";
 import { TeacherDetail } from "./AdminTeacher";
+import { AdminInstructions } from "./AdminInstructions";
 
 // Admin manages service access only; no navigation into classes, students or tuition.
 export function Admin({
@@ -61,6 +62,7 @@ export function Admin({
             </p>
           </div>
         </div>
+        <AdminInstructions onExpired={onExpired} />
         {error && (
           <p role="alert" className="error">
             {error}
@@ -80,6 +82,8 @@ export function Admin({
                   <th>Email</th>
                   <th>Xác minh</th>
                   <th>Trạng thái</th>
+                  <th>Chờ đối chiếu</th>
+                  <th>Quyền đến</th>
                   <th>Đăng ký lúc</th>
                   <th />
                 </tr>
@@ -90,6 +94,8 @@ export function Admin({
                     <td>{t.email}</td>
                     <td>{t.emailConfirmed ? "Đã xác minh" : "Chưa"}</td>
                     <td>{t.isBlocked ? "Đã khóa" : statusLabels[t.status]}</td>
+                    <td>{t.openRequest ? "Có" : ""}</td>
+                    <td>{t.accessEndsAt ? vnDateTime(t.accessEndsAt) : ""}</td>
                     <td>{vnDateTime(t.registeredAt)}</td>
                     <td>
                       <button onClick={() => setSelected(t.id)}>

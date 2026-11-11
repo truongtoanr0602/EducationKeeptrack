@@ -1,7 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 
-export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
+export function Login({
+  onLogin,
+  onRegister,
+  onForgot,
+}: {
+  onLogin: () => Promise<void>;
+  onRegister?: () => void;
+  onForgot?: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -103,6 +111,18 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             )}
           </button>
         </form>
+        <div className="login-links">
+          {onRegister && (
+            <button type="button" onClick={onRegister} disabled={busy}>
+              Đăng ký tài khoản giáo viên
+            </button>
+          )}
+          {onForgot && (
+            <button type="button" onClick={onForgot} disabled={busy}>
+              Quên mật khẩu?
+            </button>
+          )}
+        </div>
       </section>
     </main>
   );

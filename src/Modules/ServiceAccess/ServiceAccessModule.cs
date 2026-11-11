@@ -1,4 +1,5 @@
 using EducationKeeptrack.Contracts;
+using EducationKeeptrack.ServiceAccess.Application;
 using EducationKeeptrack.ServiceAccess.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,9 @@ public static class ServiceAccessModule
     public static IServiceCollection AddServiceAccessModule(this IServiceCollection services, string connection)
     {
         services.AddDbContext<ServiceAccessDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "service_access")));
-        services.AddScoped<IAccountAccess, ProvisionedAccountAccess>();
+        services.AddScoped<IAccountAccess, AccessPolicy>();
+        services.AddScoped<ServiceDesk>();
+        services.AddScoped<ServiceAdministration>();
         return services;
     }
 }

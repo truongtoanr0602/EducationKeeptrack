@@ -23,6 +23,9 @@ public static class IdentityModule
         services.AddScoped<ILoginSessions, SessionService>();
         services.AddScoped<IAccountState, AccountStateProvider>();
         services.AddScoped<IAccountDirectory, AccountDirectory>();
+        services.AddScoped<EmailTokens>();
+        services.AddSingleton<IEmailSender, LogEmailSender>();
+        services.AddOptions<EmailOptions>().BindConfiguration("Identity:Email");
         services.AddAuthentication("session").AddCookie("session", o =>
         {
             o.Cookie.Name = "ekt.session";
