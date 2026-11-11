@@ -47,14 +47,20 @@ public static class LearningHttp
     };
 
     /// <summary>Configures the class and adds the given skills; returns skill ids by code.</summary>
-    public static async Task<(Dictionary<string, string> Ids, int Version)> Seed(HttpClient client, string classId, params string[] codes)
+    public static Task<(Dictionary<string, string> Ids, int Version)> Seed(HttpClient client, string classId, params string[] codes) =>
+        SeedSkills(client, classId, false, codes);
+    /// <summary>Same as <see cref="Seed"/> but every skill is marked as taught.</summary>
+    public static Task<(Dictionary<string, string> Ids, int Version)> SeedTaught(HttpClient client, string classId, params string[] codes) =>
+        SeedSkills(client, classId, true, codes);
+
+    private static async Task<(Dictionary<string, string> Ids, int Version)> SeedSkills(HttpClient client, string classId, bool taught, string[] codes)
     {
         var path = $"/api/learning/classes/{classId}/curriculum";
         var current = await Json(await Put(client, path, CurriculumBody()), HttpStatusCode.OK);
         var version = current.GetProperty("version").GetInt32();
         foreach (var code in codes)
         {
-            current = await Json(await Post(client, $"{path}/skills", SkillBody(code, version)), HttpStatusCode.Created);
+            current = await Json(await Post(client, $"{path}/skills", SkillBody(code, version, taught)), HttpStatusCode.Created);
             version = current.GetProperty("version").GetInt32();
         }
         var ids = current.GetProperty("skills").EnumerateArray().ToDictionary(x => x.GetProperty("code").GetString()!, x => x.GetProperty("id").GetString()!);

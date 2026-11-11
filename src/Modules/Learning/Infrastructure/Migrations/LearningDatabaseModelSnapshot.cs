@@ -288,6 +288,47 @@ namespace Learning.Infrastructure.Migrations
                     b.ToTable("MaterialRevisions", "learning");
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.PlanRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("PlanRevisions", "learning");
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ResultRevision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -334,6 +375,62 @@ namespace Learning.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ResultRevision", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ReviewPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovedContentJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ApprovedVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("Stamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("WeekStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "ClassId", "WeekStart")
+                        .IsUnique();
+
+                    b.ToTable("ReviewPlans", "learning");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Skill", b =>
@@ -607,6 +704,15 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.PlanRevision", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.ReviewPlan", null)
+                        .WithMany("Revisions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ResultRevision", b =>
                 {
                     b.HasOne("EducationKeeptrack.Learning.Domain.Submission", null)
@@ -679,6 +785,11 @@ namespace Learning.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Material", b =>
+                {
+                    b.Navigation("Revisions");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.ReviewPlan", b =>
                 {
                     b.Navigation("Revisions");
                 });
