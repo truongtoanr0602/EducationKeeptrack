@@ -23,6 +23,7 @@ public static class IdentityModule
         services.AddScoped<ILoginSessions, SessionService>();
         services.AddScoped<IAccountState, AccountStateProvider>();
         services.AddScoped<IAccountDirectory, AccountDirectory>();
+        services.AddScoped<IAccountControl, AccountControl>();
         services.AddScoped<EmailTokens>();
         services.AddSingleton<IEmailSender, LogEmailSender>();
         services.AddOptions<EmailOptions>().BindConfiguration("Identity:Email");

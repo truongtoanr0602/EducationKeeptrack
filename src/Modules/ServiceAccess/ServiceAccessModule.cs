@@ -13,6 +13,7 @@ public static class ServiceAccessModule
         services.AddScoped<IAccountAccess, AccessPolicy>();
         services.AddScoped<ServiceDesk>();
         services.AddScoped<ServiceAdministration>();
+        services.AddScoped<PeriodAdministration>();
         return services;
     }
 }

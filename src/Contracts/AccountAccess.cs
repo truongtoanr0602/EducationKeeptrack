@@ -23,3 +23,10 @@ public interface IAccountDirectory
     Task<IReadOnlyList<AccountSummary>> ListTeachersAsync(CancellationToken cancellationToken);
     Task<AccountSummary?> FindTeacherAsync(string accountId, CancellationToken cancellationToken);
 }
+
+// Identity owns the lock state and sessions; ServiceAccess (Admin) asks it to lock or unlock a teacher.
+public interface IAccountControl
+{
+    // Returns false when the account is not a teacher. Locking rotates the security stamp and revokes sessions.
+    Task<bool> SetBlockedAsync(string accountId, bool blocked, CancellationToken cancellationToken);
+}
