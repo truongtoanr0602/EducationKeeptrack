@@ -43,12 +43,14 @@ public sealed class ServicePeriod
     // Quota snapshot per turn type; null means not granted (AI requests of that type are refused).
     public int? GradingQuota { get; set; }
     public int? CommentQuota { get; set; }
+    public int? PlanningQuota { get; set; }
     public uint Version { get; set; }
     public bool Contains(DateTimeOffset moment) => StartsAt <= moment && moment < EndsAt;
     public int? QuotaFor(EducationKeeptrack.Contracts.AiTaskKind kind) => kind switch
     {
         EducationKeeptrack.Contracts.AiTaskKind.Grading => GradingQuota,
         EducationKeeptrack.Contracts.AiTaskKind.Comment => CommentQuota,
+        EducationKeeptrack.Contracts.AiTaskKind.Planning => PlanningQuota,
         _ => null
     };
 }

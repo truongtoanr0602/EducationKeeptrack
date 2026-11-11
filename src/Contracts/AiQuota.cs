@@ -1,7 +1,11 @@
 namespace EducationKeeptrack.Contracts;
 
-// Turn types tracked separately per usage period (ADR-0003).
-public enum AiTaskKind { Grading = 1, Comment = 2 }
+// Turn types tracked separately per usage period (ADR-0003, updated 11/11/2026):
+// Grading = one submission of one student; Comment = one session or monthly comment for one student;
+// Planning = weekly review plans and skill drafts. Whether a weekly plan costs one turn per class or one per
+// student is not decided yet; callers pass `units` so either rule can be applied atomically (T33).
+// AI early warnings (T18) have no turn unit and must not be mapped onto these types.
+public enum AiTaskKind { Grading = 1, Comment = 2, Planning = 3 }
 
 public enum AiReservationOutcome { Reserved, Duplicate, Denied }
 

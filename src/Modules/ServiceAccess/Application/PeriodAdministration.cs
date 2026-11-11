@@ -11,7 +11,7 @@ public sealed class PeriodAdministration(ServiceAccessDatabase db, ServiceAdmini
         if (input.Days is < 1 or > ServiceAdministration.MaxDays) return Outcome.Invalid("days", $"Số ngày phải từ 1 đến {ServiceAdministration.MaxDays}.");
         if (input.Label?.Trim().Length > 100) return Outcome.Invalid("label", "Tên gói tối đa 100 ký tự.");
         if (!ValidReason(input.Reason)) return Outcome.Invalid("reason", "Nhập lý do cấp/gia hạn (tối đa 500 ký tự).");
-        var quotas = new ServiceAdministration.Quotas(input.Grading, input.Comment);
+        var quotas = new ServiceAdministration.Quotas(input.Grading, input.Comment, input.Planning);
         if (quotas.Validate() is { } invalidQuota) return invalidQuota;
         var blocked = await admin.GrantBlockerAsync(accountId, ct);
         if (blocked is not null) return blocked;
@@ -20,7 +20,7 @@ public sealed class PeriodAdministration(ServiceAccessDatabase db, ServiceAdmini
         var created = await admin.AddPeriodAsync(actor, accountId, input.Days, input.Label, input.ExpectedStartsAt, input.Reason, null, quotas, ct);
         if (created.Status != 200) return created;
         var period = (Domain.ServicePeriod)created.Body!;
-        admin.Record(actor, accountId, "period.granted", period.Reason, new { periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label, period.GradingQuota, period.CommentQuota });
+        admin.Record(actor, accountId, "period.granted", period.Reason, new { periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label, period.GradingQuota, period.CommentQuota, period.PlanningQuota });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return Outcome.Ok(new { period.Id, period.StartsAt, period.EndsAt });
@@ -87,7 +87,7 @@ public sealed class PeriodAdministration(ServiceAccessDatabase db, ServiceAdmini
     public async Task<Outcome> SetQuotasAsync(Actor actor, Guid periodId, QuotaEdit input, CancellationToken ct)
     {
         if (!ValidReason(input.Reason)) return Outcome.Invalid("reason", "Nhập lý do điều chỉnh hạn mức (tối đa 500 ký tự).");
-        var quotas = new ServiceAdministration.Quotas(input.Grading, input.Comment);
+        var quotas = new ServiceAdministration.Quotas(input.Grading, input.Comment, input.Planning);
         if (quotas.Validate() is { } invalidQuota) return invalidQuota;
         var accountId = await db.Periods.Where(x => x.Id == periodId).Select(x => x.AccountId).SingleOrDefaultAsync(ct);
         if (accountId is null) return Outcome.NotFound;
@@ -95,26 +95,27 @@ public sealed class PeriodAdministration(ServiceAccessDatabase db, ServiceAdmini
         await db.LockAsync(accountId, ct);
         var period = await db.Periods.SingleAsync(x => x.Id == periodId, ct);
         if (period.Version != input.Version) return Outcome.Conflict("Kỳ đã được thay đổi. Vui lòng tải lại.");
-        var before = new { period.GradingQuota, period.CommentQuota };
+        var before = new { period.GradingQuota, period.CommentQuota, period.PlanningQuota };
         period.GradingQuota = quotas.Grading;
         period.CommentQuota = quotas.Comment;
+        period.PlanningQuota = quotas.Planning;
         foreach (var kind in AiQuotaLedger.Kinds)
         {
             var spent = await ledger.Spent(periodId, kind, ct);
             if (spent > 0 && (period.QuotaFor(kind) ?? 0) < spent)
                 return Outcome.Conflict($"Hạn mức {AiQuotaLedger.KindName(kind)} không thể thấp hơn số lượt đã dùng hoặc đang giữ ({spent}).");
         }
-        admin.Record(actor, accountId, "quota.updated", input.Reason!.Trim(), new { periodId, before, after = new { period.GradingQuota, period.CommentQuota } });
+        admin.Record(actor, accountId, "quota.updated", input.Reason!.Trim(), new { periodId, before, after = new { period.GradingQuota, period.CommentQuota, period.PlanningQuota } });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return Outcome.Ok(new { period.Id, period.GradingQuota, period.CommentQuota });
+        return Outcome.Ok(new { period.Id, period.GradingQuota, period.CommentQuota, period.PlanningQuota });
     }
 
     private static bool ValidReason(string? reason) => !string.IsNullOrWhiteSpace(reason) && reason.Trim().Length <= 500;
 
-    public record GrantInput(int Days, string? Label, DateTimeOffset ExpectedStartsAt, string? Reason, int? Grading = null, int? Comment = null);
+    public record GrantInput(int Days, string? Label, DateTimeOffset ExpectedStartsAt, string? Reason, int? Grading = null, int? Comment = null, int? Planning = null);
     public record AiInput(bool Enabled, string? Reason);
-    public record QuotaEdit(int? Grading, int? Comment, string? Reason, uint Version);
+    public record QuotaEdit(int? Grading, int? Comment, string? Reason, uint Version, int? Planning = null);
     public record PeriodEdit(DateTimeOffset EndsAt, string? Label, string? Reason, uint Version);
     public record ReasonOnly(string? Reason);
 }

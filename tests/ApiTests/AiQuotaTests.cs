@@ -181,4 +181,42 @@ public sealed class AiQuotaTests
         await TestApplication.Login(again, "boundary@example.test");
         AssertBalance(await Balance(again, "comment"), 1, 0, 0);
     }
+
+    [Fact]
+    public async Task Planning_turns_have_their_own_quota_and_multi_turn_holds_are_atomic()
+    {
+        var (app, admin) = await Start();
+        await using var _ = app;
+        var id = await app.AddTeacher("planner@example.test");
+        using var teacher = app.Client();
+        await TestApplication.Login(teacher, "planner@example.test");
+        await SetAi(admin, id, true);
+        await SetQuotas(admin, id, grading: 1, comment: 1);
+        Assert.Equal("no_quota", (await Reserve(app, id, AiTaskKind.Planning, "ke-hoach-0")).DeniedReason);
+        AssertBalance(await Balance(teacher, "planning"), null, 0, 0);
+
+        var period = (await Detail(admin, id)).GetProperty("periods").EnumerateArray().Single();
+        Assert.Equal(HttpStatusCode.OK, (await TestApplication.Put(admin, $"/api/admin/periods/{period.GetProperty("id").GetString()}/quotas",
+            new { grading = 1, comment = 1, planning = 2, reason = "Cấp lượt kế hoạch", version = period.GetProperty("version").GetUInt32() })).StatusCode);
+
+        // A request that needs more turns than remain holds nothing (e.g. one turn per student).
+        Assert.Equal("exhausted", (await Reserve(app, id, AiTaskKind.Planning, "ke-hoach-lop", units: 3)).DeniedReason);
+        AssertBalance(await Balance(teacher, "planning"), 2, 0, 0);
+        var plan = await Reserve(app, id, AiTaskKind.Planning, "ke-hoach-tuan", units: 2);
+        Assert.Equal(AiReservationOutcome.Reserved, plan.Outcome);
+        Assert.Equal("exhausted", (await Reserve(app, id, AiTaskKind.Planning, "du-thao-ky-nang")).DeniedReason);
+
+        // Planning does not consume grading or comment turns, and the same key never holds twice.
+        Assert.Equal(AiReservationOutcome.Reserved, (await Reserve(app, id, AiTaskKind.Comment, "ke-hoach-tuan")).Outcome);
+        Assert.Equal(AiReservationOutcome.Duplicate, (await Reserve(app, id, AiTaskKind.Planning, "ke-hoach-tuan", units: 2)).Outcome);
+        Assert.True(await Quota(app, q => q.CommitAsync(plan.ReservationId!.Value, CancellationToken.None)));
+        AssertBalance(await Balance(teacher, "planning"), 2, 0, 2);
+        AssertBalance(await Balance(teacher, "comment"), 1, 1, 0);
+        AssertBalance(await Balance(teacher, "grading"), 1, 0, 0);
+
+        period = (await Detail(admin, id)).GetProperty("periods").EnumerateArray().Single();
+        Assert.Equal(2, period.GetProperty("planningQuota").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict, (await TestApplication.Put(admin, $"/api/admin/periods/{period.GetProperty("id").GetString()}/quotas",
+            new { grading = 1, comment = 1, planning = 1, reason = "Giảm", version = period.GetProperty("version").GetUInt32() })).StatusCode);
+    }
 }
