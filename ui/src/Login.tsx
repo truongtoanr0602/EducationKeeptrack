@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 
 export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [needsCode, setNeedsCode] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent) {
@@ -11,10 +13,19 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
     setError("");
     setBusy(true);
     try {
-      await api("/auth/login", "POST", { email, password });
+      await api("/auth/login", "POST", {
+        email,
+        password,
+        code: needsCode ? code : undefined,
+      });
       setPassword("");
+      setCode("");
       await onLogin();
     } catch (e) {
+      if (e instanceof ApiError && e.data.requiresTotp === true) {
+        setNeedsCode(true);
+        setCode("");
+      }
       setError(e instanceof Error ? e.message : "Không thể đăng nhập.");
     } finally {
       setBusy(false);
@@ -61,6 +72,22 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             onChange={(e) => setPassword(e.target.value)}
             disabled={busy}
           />
+          {needsCode && (
+            <>
+              <label htmlFor="totp">Mã xác thực (6 số)</label>
+              <input
+                id="totp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9 ]{6,7}"
+                maxLength={7}
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                disabled={busy}
+              />
+            </>
+          )}
           {error && (
             <p role="alert" className="error">
               {error}

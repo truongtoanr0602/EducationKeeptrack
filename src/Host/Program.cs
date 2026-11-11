@@ -66,6 +66,17 @@ if (args.Contains("--migrate"))
     await scope.ServiceProvider.GetRequiredService<ReportingDatabase>().Database.MigrateAsync();
     return;
 }
+if (args.Contains("--setup-admin"))
+{
+    // First Admin only through this operator tool; secrets come from the environment, never source control.
+    using var scope = app.Services.CreateScope();
+    var result = await AdminSetup.RunAsync(scope.ServiceProvider,
+        builder.Configuration["AdminSetup:Email"] ?? throw new InvalidOperationException("Set AdminSetup__Email."),
+        builder.Configuration["AdminSetup:Password"] ?? throw new InvalidOperationException("Set AdminSetup__Password."));
+    Console.WriteLine("Admin created. Add this key to an authenticator app now; it is not shown again.");
+    Console.WriteLine(result.OtpAuthUri);
+    return;
+}
 if (args.Contains("--provision-teacher"))
 {
     if (!app.Environment.IsDevelopment()) throw new InvalidOperationException("Demo provisioning is Development-only.");
@@ -103,6 +114,7 @@ app.MapSessions();
 app.MapBilling();
 app.MapLearning();
 app.MapReporting();
+app.MapServiceAdmin();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 

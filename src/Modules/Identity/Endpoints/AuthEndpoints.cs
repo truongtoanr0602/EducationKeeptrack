@@ -2,6 +2,7 @@ using System.Security.Claims;
 using EducationKeeptrack.Contracts;
 using EducationKeeptrack.Identity.Application;
 using EducationKeeptrack.Identity.Domain;
+using EducationKeeptrack.Identity.Infrastructure;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -31,8 +32,20 @@ public static class AuthEndpoints
                 await users.AccessFailedAsync(user);
                 return InvalidLogin();
             }
-            // Dedicated Admin slice must require TOTP; never bypass it here.
-            if (await users.IsInRoleAsync(user, "Admin")) return Results.Json(new { message = "Đăng nhập Admin cần xác thực hai bước." }, statusCode: 403);
+            // Admin always needs password + authenticator code; there is no bypass or fallback.
+            if (await users.IsInRoleAsync(user, AdminSetup.Role))
+            {
+                if (!user.TwoFactorEnabled || string.IsNullOrEmpty(await users.GetAuthenticatorKeyAsync(user)))
+                    return Results.Json(new { message = "Tài khoản Admin chưa thiết lập xác thực hai bước nên không thể đăng nhập." }, statusCode: 403);
+                if (string.IsNullOrWhiteSpace(request.Code))
+                    return Results.Json(new { message = "Nhập mã từ ứng dụng xác thực để đăng nhập Admin.", requiresTotp = true }, statusCode: 403);
+                var code = request.Code.Replace(" ", "").Replace("-", "");
+                if (code.Length != 6 || !await users.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider, code))
+                {
+                    await users.AccessFailedAsync(user);
+                    return Results.Json(new { message = "Email, mật khẩu hoặc mã xác thực không đúng.", requiresTotp = true }, statusCode: 401);
+                }
+            }
             await users.ResetAccessFailedCountAsync(user);
             await context.SignInAsync("session", await sessions.CreateAsync(user), new AuthenticationProperties { IsPersistent = false });
             return Results.Ok(new { email = user.Email });
@@ -43,6 +56,7 @@ public static class AuthEndpoints
             return Results.Ok(new
             {
                 email = context.User.Identity!.Name,
+                role = context.User.FindFirstValue(ClaimTypes.Role),
                 access = await access.GetAsync(context.User.FindFirstValue(ClaimTypes.NameIdentifier)!, context.RequestAborted)
             });
         }).RequireAuthorization();
@@ -55,5 +69,5 @@ public static class AuthEndpoints
         }).RequireAuthorization();
     }
     private static IResult InvalidLogin() => Results.Json(new { message = "Email hoặc mật khẩu không đúng, hoặc tài khoản chưa thể đăng nhập." }, statusCode: 401);
-    public record LoginRequest(string Email, string Password);
+    public record LoginRequest(string Email, string Password, string? Code = null);
 }

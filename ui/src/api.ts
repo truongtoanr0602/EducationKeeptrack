@@ -3,6 +3,7 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public errors?: Record<string, string[]>,
+    public data: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -39,7 +40,7 @@ export async function api<T>(
     const error = (await response.json().catch(() => ({}))) as {
       message?: string;
       errors?: Record<string, string[]>;
-    };
+    } & Record<string, unknown>;
     throw new ApiError(
       response.status,
       error.message ??
@@ -47,6 +48,7 @@ export async function api<T>(
           ? "Phiên đã hết hạn. Vui lòng đăng nhập lại."
           : "Không thể hoàn tất yêu cầu. Vui lòng thử lại."),
       error.errors,
+      error,
     );
   }
   return response.status === 204
@@ -58,9 +60,10 @@ export type Access = {
   canRead: boolean;
   canWrite: boolean;
   canUseAi: boolean;
-  status: "blocked" | "unverified" | "pending" | "active" | "expired";
+  status:
+    "blocked" | "unverified" | "pending" | "rejected" | "active" | "expired";
 };
-export type Me = { email: string; access: Access };
+export type Me = { email: string; role: "Teacher" | "Admin"; access: Access };
 export type TeacherClass = {
   id: string;
   name: string;

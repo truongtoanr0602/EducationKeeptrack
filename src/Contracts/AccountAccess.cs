@@ -14,3 +14,12 @@ public interface IAccountState
 {
     Task<AccountState> GetAsync(string accountId, CancellationToken cancellationToken);
 }
+
+public record AccountSummary(string Id, string Email, bool EmailConfirmed, bool IsBlocked, DateTimeOffset RegisteredAt);
+
+// Identity owns identities; Admin screens in ServiceAccess read teacher accounts only through this.
+public interface IAccountDirectory
+{
+    Task<IReadOnlyList<AccountSummary>> ListTeachersAsync(CancellationToken cancellationToken);
+    Task<AccountSummary?> FindTeacherAsync(string accountId, CancellationToken cancellationToken);
+}
