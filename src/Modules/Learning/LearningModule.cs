@@ -17,12 +17,27 @@ public static class LearningModule
         services.AddDbContext<LearningDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "learning")));
         services.AddScoped<ILearningRepository, LearningRepository>();
         services.AddScoped<LearningService>();
+        services.AddScoped<ICurriculumRepository, CurriculumRepository>();
+        services.AddScoped<CurriculumService>();
+        services.AddScoped<IMaterialRepository, MaterialRepository>();
+        services.AddScoped<MaterialService>();
+        services.AddScoped<ISkillResultRepository, SkillResultRepository>();
+        services.AddScoped<SkillResultService>();
+        services.AddScoped<ICompetencyRepository, CompetencyRepository>();
+        services.AddScoped<CompetencyService>();
+        services.AddScoped<IReviewPlanRepository, ReviewPlanRepository>();
+        services.AddScoped<ReviewPlanService>();
         services.AddScoped<ILearningReportSource, LearningReportSource>();
         services.AddHostedService<LearningResultDispatcher>();
         return services;
     }
     public static void MapLearning(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapCurriculum();
+        endpoints.MapMaterials();
+        endpoints.MapSkillResults();
+        endpoints.MapCompetency();
+        endpoints.MapReviewPlans();
         var group = endpoints.MapGroup("/api/learning/classes/{classId:guid}/assessments").RequireAuthorization(p => p.RequireRole("Teacher"));
         group.AddEndpointFilter(async (context, next) =>
         {
