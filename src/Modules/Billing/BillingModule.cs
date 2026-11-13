@@ -17,7 +17,7 @@ public static class BillingModule
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
         services.AddScoped<PaymentService>(); services.AddScoped<AdjustmentService>();
-        services.AddScoped<StatisticsService>();
+        services.AddScoped<StatisticsService>(); services.AddScoped<ReserveService>();
         services.AddScoped<IBillingReportSource, BillingReportSource>();
         services.AddScoped<PaymentQrService>();
         services.AddHttpClient<IVietQrGenerator, VietQrGenerator>(client => client.Timeout = TimeSpan.FromSeconds(8));
@@ -65,6 +65,14 @@ public static class BillingModule
         recipient.MapGet("", async (HttpContext http, PaymentQrService service) => Respond(await service.RecipientAsync(Owner(http), http.RequestAborted)));
         recipient.MapPost("", async (RecipientInput input, HttpContext http, PaymentQrService service) => Respond(await service.SaveAsync(Owner(http), input, http.RequestAborted)))
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(1500000));
+        group.MapGet("/reserve", async (Guid classId, HttpContext http, ReserveService service) => Respond(await service.ReportAsync(Owner(http), classId, http.RequestAborted)));
+        group.MapPost("/reserve/requests", async (Guid classId, ReserveRequestInput input, HttpContext http, ReserveService service) =>
+        {
+            var result = await service.RequestAsync(Owner(http), classId, input, http.RequestAborted);
+            return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/reserve", result.Value) : Respond(result);
+        });
+        group.MapPost("/reserve/requests/{requestId:guid}/decision", async (Guid classId, Guid requestId, ReserveDecisionInput input, HttpContext http, ReserveService service) =>
+            Respond(await service.DecideAsync(Owner(http), classId, requestId, input, http.RequestAborted)));
         group.MapPost("/payments", async (Guid classId, ReceiptInput input, HttpContext http, PaymentService service) =>
         {
             var result = await service.RecordAsync(Owner(http), classId, input, http.RequestAborted);

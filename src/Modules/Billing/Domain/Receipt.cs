@@ -32,6 +32,9 @@ public sealed class Receipt
     public Guid IdempotencyKey { get; private set; }
     public DateTimeOffset RecordedAt { get; private set; }
     public decimal UnallocatedVnd { get; private set; }
+    /// <summary>Part of the unallocated money held by approved reserves. It is neither new money nor available for another reserve.</summary>
+    public decimal ReservedVnd { get; private set; }
+    public decimal AvailableForReserveVnd => Status == "active" ? UnallocatedVnd - ReservedVnd : 0;
     public List<ReceiptAllocation> Allocations { get; private set; } = [];
     public string Status { get; private set; } = "active";
     public Guid? CorrectionKey { get; private set; }
@@ -61,6 +64,11 @@ public sealed class Receipt
         CorrectionKey = key; CorrectionReason = reason; CorrectedAt = now;
         ReplacementId = replacementId; CorrectionRequest = request;
     }
+    public void Reserve(decimal amount)
+    {
+        if (amount <= 0 || amount > AvailableForReserveVnd) throw new InvalidOperationException("The receipt cannot give that much to a reserve.");
+        ReservedVnd += amount;
+    }
     public void SaveCorrectionResult(string result) => CorrectionResult = result;
     public void Reallocate(IReadOnlyDictionary<DateOnly, decimal> amounts)
     {
@@ -71,7 +79,10 @@ public sealed class Receipt
             if (existing is null) Allocations.Add(new ReceiptAllocation(Id, period, amount));
             else existing.SetAmount(amount);
         }
-        UnallocatedVnd = AmountVnd - amounts.Values.Sum();
+        var unallocated = AmountVnd - amounts.Values.Sum();
+        // Corrections are refused while a student has reserved money; this keeps the invariant even if that guard were bypassed.
+        if (unallocated < ReservedVnd) throw new InvalidOperationException("A correction cannot take back money held by a reserve.");
+        UnallocatedVnd = unallocated;
     }
 }
 
