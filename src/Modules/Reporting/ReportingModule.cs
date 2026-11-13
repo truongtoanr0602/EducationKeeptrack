@@ -18,7 +18,7 @@ public static class ReportingModule
     public static IServiceCollection AddReportingModule(this IServiceCollection services, string connection, IConfiguration config)
     {
         services.AddDbContext<ReportingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "reporting")));
-        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); services.AddScoped<ExportService>();
+        services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); services.AddScoped<ExportService>(); services.AddScoped<ExportFreshnessService>();
         services.Configure<ReportingOptions>(config.GetSection("Reporting"));
         services.AddSingleton<DownloadTokens>(); services.AddScoped<DownloadService>();
         services.AddSingleton<IReportHtmlTemplate, ReportHtmlTemplate>(); services.AddSingleton<IReportPdfRenderer, ChromiumPdfRenderer>(); services.AddSingleton<IReportObjectStore, S3ReportStore>();
@@ -50,13 +50,8 @@ public static class ReportingModule
             var result=await service.OpenAsync(Scope(http,classId,studentId,month),exportId,token??"",http.RequestAborted);
             return result.Value is { } file ? Results.File(file.Stream,"application/pdf",file.FileName,enableRangeProcessing:false) : Respond(result);
         });
-        group.MapGet("/exports", async (Guid classId, Guid studentId, string month, HttpContext http, IReportingRepository repo,IClassroomReportSource classroom) =>
-        {
-            var scope = Scope(http, classId, studentId, month); var result = new List<ExportView>();
-            if(await classroom.ReadAsync(scope,http.RequestAborted) is null) return Results.NotFound();
-            foreach (var export in await repo.ExportsAsync(scope, http.RequestAborted)) { var preview = await repo.PreviewAsync(scope, export.PreviewId, http.RequestAborted); if (preview is not null) result.Add(ExportService.View(export, preview)); }
-            return Results.Ok(result);
-        });
+        group.MapGet("/exports", async (Guid classId, Guid studentId, string month, HttpContext http, ExportFreshnessService service) =>
+            Respond(await service.ListAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapGet("/previews/{previewId:guid}/html", async (Guid classId, Guid studentId, string month, Guid previewId, HttpContext http, IReportingRepository repo, IBillingReportSource billing, IReportHtmlTemplate template, TimeProvider clock) =>
         {
             var scope = Scope(http, classId, studentId, month); var preview = await repo.PreviewAsync(scope, previewId, http.RequestAborted);

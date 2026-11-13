@@ -81,6 +81,10 @@ Kế hoạch theo tuần cho học sinh với tối đa hai kỹ năng ưu tiên
 **Nhận xét buổi / nhận xét tháng**:
 Lời nhận xét về một học sinh sau một buổi học hoặc trong báo cáo tháng gửi phụ huynh; có thể do AI soạn nhưng chỉ nội dung giáo viên đã duyệt được dùng và đưa vào PDF.
 
+**Bản xuất lỗi thời**:
+Bản PDF báo cáo tháng đã lưu mà dữ liệu nguồn (điểm danh, kết quả đánh giá, học phí, thông tin nhận tiền) hoặc bản nháp nhận xét đã thay đổi sau khi xuất. File đã xuất không bao giờ bị sửa; muốn cập nhật thì xuất bản mới từ dữ liệu hiện tại, bản cũ vẫn giữ và được đánh dấu lỗi thời. Khi học phí còn đang cập nhật thì chưa kết luận bản nào còn mới.
+_Avoid_: Bản hết hạn (hết hạn là việc của kỳ sử dụng và liên kết tải)
+
 **Lịch tuần**:
 Các ngày và khung giờ học lặp lại trong tuần của một lớp, áp dụng từ ngày hiệu lực.
 
