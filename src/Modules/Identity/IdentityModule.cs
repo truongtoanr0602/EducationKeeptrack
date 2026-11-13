@@ -25,8 +25,12 @@ public static class IdentityModule
         services.AddScoped<IAccountDirectory, AccountDirectory>();
         services.AddScoped<IAccountControl, AccountControl>();
         services.AddScoped<EmailTokens>();
-        services.AddSingleton<IEmailSender, LogEmailSender>();
-        services.AddOptions<EmailOptions>().BindConfiguration("Identity:Email");
+        // SMTP when Identity:Email:Smtp:Host is set; otherwise the placeholder that logs a warning and delivers nothing.
+        services.AddSingleton<IEmailSender>(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value.Smtp.Enabled
+            ? ActivatorUtilities.CreateInstance<SmtpEmailSender>(provider)
+            : ActivatorUtilities.CreateInstance<LogEmailSender>(provider));
+        services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<EmailOptions>, EmailOptionsValidator>();
+        services.AddOptions<EmailOptions>().BindConfiguration("Identity:Email").ValidateOnStart();
         services.AddAuthentication("session").AddCookie("session", o =>
         {
             o.Cookie.Name = "ekt.session";
