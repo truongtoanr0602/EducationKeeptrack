@@ -256,6 +256,12 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<Guid?>("ReplacementId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("ReservedVnd")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -284,6 +290,8 @@ namespace Billing.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Receipt_Amount", "\"AmountVnd\" > 0");
 
+                            t.HasCheckConstraint("CK_Receipt_Reserved", "\"ReservedVnd\" >= 0 AND \"ReservedVnd\" <= \"UnallocatedVnd\"");
+
                             t.HasCheckConstraint("CK_Receipt_Unallocated", "\"UnallocatedVnd\" >= 0 AND \"UnallocatedVnd\" <= \"AmountVnd\"");
                         });
                 });
@@ -305,6 +313,140 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("ReceiptAllocation", "billing", t =>
                         {
                             t.HasCheckConstraint("CK_Allocation_Amount", "\"AmountVnd\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveEvent", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("RequestId", "Version");
+
+                    b.ToTable("ReserveEvents", "billing");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("AbsentFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("AbsentTo")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecisionKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EvidenceNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("RequestedVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "CreateKey")
+                        .IsUnique();
+
+                    b.HasIndex("ClassId", "StudentId", "Status");
+
+                    b.ToTable("ReserveRequests", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reserve_Amount", "\"RequestedVnd\" > 0");
+
+                            t.HasCheckConstraint("CK_Reserve_Dates", "\"AbsentTo\" >= \"AbsentFrom\"");
+
+                            t.HasCheckConstraint("CK_Reserve_Status", "\"Status\" IN ('pending', 'approved', 'rejected')");
+                        });
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveSource", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AmountVnd")
+                        .HasPrecision(18)
+                        .HasColumnType("numeric(18,0)");
+
+                    b.HasKey("RequestId", "ReceiptId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.ToTable("ReserveSources", "billing", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReserveSource_Amount", "\"AmountVnd\" > 0");
                         });
                 });
 
@@ -476,6 +618,39 @@ namespace Billing.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveEvent", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.ReserveRequest", null)
+                        .WithMany("Events")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveRequest", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveSource", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Billing.Domain.Receipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EducationKeeptrack.Billing.Domain.ReserveRequest", null)
+                        .WithMany("Sources")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.SessionCharge", b =>
                 {
                     b.HasOne("EducationKeeptrack.Billing.Domain.TuitionLedger", null)
@@ -511,6 +686,13 @@ namespace Billing.Infrastructure.Migrations
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.Receipt", b =>
                 {
                     b.Navigation("Allocations");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Billing.Domain.ReserveRequest", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Billing.Domain.SessionCharge", b =>

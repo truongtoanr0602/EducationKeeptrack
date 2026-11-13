@@ -62,6 +62,9 @@ public sealed partial class PaymentService
                 return new(null, BillingFailure.Conflict, "Phí chưa đầy đủ. Vui lòng tải lại công nợ.");
             var adjustments = await repository.AdjustmentsAsync(owner, classId, ct);
             var affected = receipts.Where(x => x.StudentId == original.StudentId).ToList();
+            // Fixing one receipt replays all of the student's allocations, which could take back money a reserve already holds.
+            if (affected.Any(x => x.ReservedVnd > 0))
+                return new(null, BillingFailure.Conflict, "Học sinh này có tiền đã chuyển sang bảo lưu nên chưa thể sửa hoặc hủy khoản nhận tiền. Việc hủy bảo lưu chưa được hỗ trợ ở bước này.");
             var before = States(affected);
             var now = clock.GetUtcNow();
             Receipt? replacement = input.Action == "replace"

@@ -123,6 +123,12 @@ Phần nghĩa vụ học phí của một kỳ còn phải trả sau các khoả
 Phần tiền đã nhận chưa dùng trả nghĩa vụ học phí, được theo dõi riêng và chưa tự áp dụng cho kỳ sau hoặc hoàn trả.
 _Avoid_: Tiền bảo lưu, tiền mới thu
 
+**Đề nghị bảo lưu**:
+Đề nghị giữ lại một phần tiền đã thu của một học sinh vì nghỉ ốm, do giáo viên ghi thay phụ huynh: khoảng ngày nghỉ, lý do, ghi chú minh chứng tự do và số tiền. Chỉ có hiệu lực khi có tiền đã thu, chưa dùng cho học phí và chưa nằm trong bảo lưu hoặc đề nghị khác; vắng mặt không tự tạo bảo lưu. Giáo viên duyệt hoặc từ chối từng đề nghị kèm lý do.
+
+**Bảo lưu**:
+Phần tiền chưa phân bổ của các khoản nhận tiền thật được giáo viên duyệt giữ lại, ghi rõ lấy từ khoản nhận nào và bao nhiêu. Không phải tiền mới nhận, không tự trừ vào học phí kỳ sau và không tự hoàn trả. Số ngày nghỉ tối thiểu, minh chứng, hạn dùng, chuyển hoặc dừng lớp và hoàn tiền chưa có chính sách, nên mỗi trường hợp do giáo viên quyết định. Khoản nhận tiền còn bảo lưu chưa được sửa hoặc hủy.
+
 **Tiền giữ để đối chiếu**:
 Phần tiền đã phân bổ vượt nghĩa vụ sau khi phí giảm, được giữ riêng để xử lý rõ ràng; chưa được dùng lại, bảo lưu hoặc hoàn trả tự động.
 

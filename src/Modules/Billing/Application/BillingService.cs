@@ -29,6 +29,8 @@ public interface IBillingRepository
     void Add(BillingOutbox change);
     void Add(Receipt receipt);
     void Add(PaymentReview review);
+    Task<IReadOnlyList<ReserveRequest>> ReserveRequestsAsync(string owner, Guid classId, CancellationToken ct);
+    void Add(ReserveRequest request);
     void Remove(PaymentReview review);
     Task SaveAsync(CancellationToken ct);
     Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class;
