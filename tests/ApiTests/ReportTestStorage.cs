@@ -11,6 +11,7 @@ namespace ApiTests;
 public sealed class ReportTestStorage : IAsyncDisposable
 {
     private readonly string prefix = CreatePrefix();
+    public string Prefix => prefix;
 
     private static string CreatePrefix()
     {
