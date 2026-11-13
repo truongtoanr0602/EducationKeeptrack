@@ -4,6 +4,7 @@ import { today } from "./roster-api";
 import { Login } from "./Login";
 import { SubmissionForm } from "./SubmissionForm";
 import { SkillResults } from "./SkillResults";
+import { Progress } from "./Progress";
 import type { Assessment, AssessmentSummary } from "./learning-api";
 
 export function Learning({
@@ -209,6 +210,14 @@ export function Learning({
               onDenied={denied}
             />
           ))}
+          <Progress
+            classId={classroom.id}
+            students={assessment.submissions.map((x) => ({
+              id: x.studentId,
+              name: x.studentName,
+            }))}
+            onDenied={denied}
+          />
           <SkillResults
             classId={classroom.id}
             assessmentId={assessment.id}
