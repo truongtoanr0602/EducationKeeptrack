@@ -40,7 +40,7 @@ Sự cho phép dùng các chức năng AI do Admin bật hoặc tắt cho từng
 Số lượt được cấp theo từng loại tác vụ trong một kỳ quyền sử dụng.
 
 **Lượt AI**:
-Một lần xử lý AI được chấp nhận theo một trong ba loại, mỗi loại được theo dõi riêng: **chấm bài** (một bài của một học sinh), **nhận xét** (một nhận xét theo buổi hoặc theo tháng cho một học sinh) và **kế hoạch** (một kế hoạch ôn tập tuần hoặc một dự thảo kỹ năng). Tạo lại là lượt mới. Đơn vị lượt của kế hoạch tuần và của cảnh báo AI chưa được chốt.
+Một lần xử lý AI được chấp nhận theo một trong ba loại, mỗi loại được theo dõi riêng: **chấm bài** (một bài của một học sinh), **nhận xét** (một nhận xét theo buổi hoặc theo tháng cho một học sinh) và **kế hoạch** (một kế hoạch ôn tập tuần hoặc một dự thảo kỹ năng). Tạo lại là lượt mới. Một lần tạo kế hoạch ôn tập tuần cho cả lớp là một lượt kế hoạch (chốt 12/11/2026). Đơn vị lượt của cảnh báo AI chưa được chốt.
 
 **Lượt đang giữ**:
 Phần hạn mức đã dành cho yêu cầu AI được chấp nhận và chưa có kết quả cuối.
@@ -66,6 +66,10 @@ Nội dung luyện tập trong kho của giáo viên, gắn kỹ năng, độ kh
 
 **Kết quả theo kỹ năng**:
 Số nhiệm vụ và số đúng của một học sinh ở một kỹ năng trong một bài đánh giá, do giáo viên xác nhận; khác với kết quả cuối hai mức và không suy ra được từ hai mức đó.
+
+**Tiến độ học sinh**:
+Hai chuỗi độc lập theo thời gian, mức hoàn thành và mức làm đúng, lấy từ kết quả cuối của các bài đánh giá. Không làm bài hoặc không có câu đúng tính 0 ở chỉ số tương ứng; không giao bài và chưa đánh giá là khoảng trống, không tính 0 và không suy ra sa sút. Mỗi mức là nhóm giáo viên chọn, không phải tỷ lệ chính xác.
+_Avoid_: Điểm học lực
 
 **Hồ sơ năng lực**:
 Mức đạt, chưa đạt hoặc chưa đủ dữ liệu của một học sinh theo từng kỹ năng đã dạy, tính bằng quy tắc có phiên bản từ các kết quả theo kỹ năng đã xác nhận; AI không tự tính hay đổi.

@@ -7,6 +7,8 @@ public interface ILearningRepository
     Task<IReadOnlyList<Assessment>> ListAsync(string owner, Guid classId, CancellationToken ct);
     Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct);
     Task<Submission?> FindSubmissionAsync(string owner, Guid classId, Guid id, Guid studentId, CancellationToken ct);
+    /// <summary>Every assessment of the class with only this student's submission and its history loaded.</summary>
+    Task<IReadOnlyList<Assessment>> ListForStudentAsync(string owner, Guid classId, Guid studentId, CancellationToken ct);
     void Add(Assessment assessment);
     Task<bool> SaveAsync(CancellationToken ct);
 }
@@ -32,6 +34,22 @@ public sealed class LearningService(ILearningRepository repository, IClassroomLe
     {
         if (await classroom.ReadRosterAsync(owner, classId, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), ct) is null) return new(null, 404);
         return new(await repository.ListAsync(owner, classId, ct));
+    }
+    /// <summary>Two-indicator progress series for one student, built on read from confirmed results only.</summary>
+    public async Task<LearningResult<StudentProgress>> ProgressAsync(string owner, Guid classId, Guid studentId, DateOnly? from, DateOnly? to, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(7)).DateTime); // Asia/Ho_Chi_Minh has no DST
+        var end = to ?? today;
+        var start = from ?? end.AddDays(-180);
+        if (start > end || end.DayNumber - start.DayNumber > 366)
+            return new(null, 400, new() { ["range"] = ["Chọn khoảng ngày hợp lệ, tối đa 366 ngày."] });
+        var roster = await classroom.ReadRosterAsync(owner, classId, today, ct);
+        if (roster is null) return new(null, 404);
+        var assessments = await repository.ListForStudentAsync(owner, classId, studentId, ct);
+        var name = assessments.OrderByDescending(x => x.Date).SelectMany(x => x.Submissions).Where(x => x.StudentId == studentId).Select(x => x.StudentName).FirstOrDefault()
+            ?? roster.Students.FirstOrDefault(x => x.Id == studentId)?.Name;
+        if (name is null) return new(null, 404);
+        return new(ProgressSeries.Build(studentId, name, start, end, assessments));
     }
     public async Task<LearningResult<Assessment>> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct)
     {
