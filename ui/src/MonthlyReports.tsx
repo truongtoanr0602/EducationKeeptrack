@@ -69,12 +69,15 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
     try {
       const item = await api<MonthlyExport>(path + "/exports", "POST", command.current);
       command.current = null; setUncertain(false); setExports(items => [item, ...items.filter(x => x.id !== item.id)]); setNotice("PDF đã lưu trong kho riêng tư.");
+      // The list carries which saved PDFs are now outdated; the export response does not.
+      try { setExports(await api<MonthlyExport[]>(path + "/exports")); } catch { /* the saved export is already shown */ }
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && e.message !== "export-in-progress") { command.current = null; setUncertain(false); setPreview(null); }
       else setUncertain(true);
       throw e;
     }
   }
+  async function recheck() { setExports(await api<MonthlyExport[]>(path + "/exports")); }
   async function download(id: string) {
     const link = await api<{ url: string }>(`${path}/exports/${id}/download-link`, "POST", {});
     const anchor = document.createElement("a"); anchor.href = link.url; anchor.download = ""; anchor.referrerPolicy = "no-referrer"; document.body.append(anchor); anchor.click(); anchor.remove();
@@ -92,6 +95,6 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
       <a className="button-link" href={classHref(classId, "tuition")}>Đối chiếu học phí</a>
     </div>
     {preview && <ReportPreview preview={preview} path={path} />}
-    <ReportExports items={exports} busy={busy} onDownload={id => void act(() => download(id))} />
+    <ReportExports items={exports} busy={busy} canUpdate={!dirty && !uncertain} onDownload={id => void act(() => download(id))} onRecheck={() => void act(recheck)} onUpdate={() => void act(capture)} />
   </>;
 }
