@@ -38,7 +38,7 @@ public sealed class StatisticsService(IBillingRepository repository, IClassroomB
         if (!TryDate(month + "-01", out var period))
             return new(null, BillingFailure.Invalid, Errors: new() { ["month"] = ["Kỳ nghĩa vụ không hợp lệ (yyyy-MM)."] });
         var snapshot = await repository.SnapshotAsync(owner, classId, ct);
-        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments)
+        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments, snapshot.ReserveUses)
             .Where(x => x.Period == period).ToDictionary(x => x.StudentId);
         var students = source.Students.Select(student =>
         {

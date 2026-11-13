@@ -331,6 +331,7 @@ export function Tuition({
         <Reserve
           key={`reserve:${classroom.id}`}
           classId={classroom.id}
+          month={appliedMonth}
           refreshToken={`${refreshToken}:${report?.version ?? 0}`}
           canWrite={access.canWrite && !sessionExpired}
           onDenied={denied}

@@ -14,6 +14,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<PaymentReview> PaymentReviews => Set<PaymentReview>();
     public DbSet<ReserveRequest> ReserveRequests => Set<ReserveRequest>();
+    public DbSet<ReserveUse> ReserveUses => Set<ReserveUse>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("billing");
@@ -76,6 +77,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         var reserve = model.Entity<ReserveRequest>(); reserve.HasKey(x => x.Id); reserve.Property(x => x.Id).ValueGeneratedNever();
         reserve.Property(x => x.OwnerId).HasMaxLength(450); reserve.Property(x => x.Status).HasMaxLength(10);
         reserve.Property(x => x.Reason).HasMaxLength(1000); reserve.Property(x => x.EvidenceNote).HasMaxLength(1000); reserve.Property(x => x.DecisionReason).HasMaxLength(1000);
+        reserve.Property(x => x.CancelReason).HasMaxLength(1000);
         reserve.Property(x => x.RequestedVnd).HasPrecision(18, 0); reserve.Property(x => x.Version).IsConcurrencyToken();
         reserve.HasIndex(x => new { x.ClassId, x.CreateKey }).IsUnique();
         reserve.HasIndex(x => new { x.ClassId, x.StudentId, x.Status });
@@ -85,7 +87,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         reserve.ToTable("ReserveRequests", table =>
         {
             table.HasCheckConstraint("CK_Reserve_Amount", "\"RequestedVnd\" > 0");
-            table.HasCheckConstraint("CK_Reserve_Status", "\"Status\" IN ('pending', 'approved', 'rejected')");
+            table.HasCheckConstraint("CK_Reserve_Status", "\"Status\" IN ('pending', 'approved', 'rejected', 'cancelled')");
             table.HasCheckConstraint("CK_Reserve_Dates", "\"AbsentTo\" >= \"AbsentFrom\"");
         });
         var source = model.Entity<ReserveSource>(); source.HasKey(x => new { x.RequestId, x.ReceiptId }); source.Property(x => x.AmountVnd).HasPrecision(18, 0);
@@ -95,6 +97,21 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         reserveEvent.Property(x => x.Action).HasMaxLength(12); reserveEvent.Property(x => x.Reason).HasMaxLength(1000); reserveEvent.Property(x => x.ActorId).HasMaxLength(450);
         reserveEvent.Property(x => x.AmountVnd).HasPrecision(18, 0);
         reserveEvent.ToTable("ReserveEvents");
+        var use = model.Entity<ReserveUse>(); use.HasKey(x => x.Id); use.Property(x => x.Id).ValueGeneratedNever();
+        use.Property(x => x.OwnerId).HasMaxLength(450); use.Property(x => x.Status).HasMaxLength(10); use.Property(x => x.ReversalReason).HasMaxLength(1000);
+        use.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        use.HasIndex(x => new { x.ClassId, x.UseKey }).IsUnique();
+        use.HasIndex(x => new { x.ClassId, x.StudentId, x.Period });
+        use.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        use.HasMany(x => x.Sources).WithOne().HasForeignKey(x => x.UseId).OnDelete(DeleteBehavior.Cascade);
+        use.ToTable("ReserveUses", table =>
+        {
+            table.HasCheckConstraint("CK_ReserveUse_Amount", "\"AmountVnd\" > 0");
+            table.HasCheckConstraint("CK_ReserveUse_Status", "\"Status\" IN ('active', 'reversed')");
+        });
+        var useSource = model.Entity<ReserveUseSource>(); useSource.HasKey(x => new { x.UseId, x.RequestId }); useSource.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        useSource.HasOne<ReserveRequest>().WithMany().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Restrict);
+        useSource.ToTable("ReserveUseSources", table => table.HasCheckConstraint("CK_ReserveUseSource_Amount", "\"AmountVnd\" > 0"));
         review.ToTable("PaymentReviews", table => table.HasCheckConstraint("CK_PaymentReview_Amount", "\"AmountVnd\" > 0"));
     }
 }
@@ -109,6 +126,9 @@ public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
     public async Task<IReadOnlyList<ReserveRequest>> ReserveRequestsAsync(string owner, Guid classId, CancellationToken ct) =>
         await db.ReserveRequests.Include(x => x.Sources).Include(x => x.Events).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
     public void Add(ReserveRequest request) => db.ReserveRequests.Add(request);
+    public async Task<IReadOnlyList<ReserveUse>> ReserveUsesAsync(string owner, Guid classId, CancellationToken ct) =>
+        await db.ReserveUses.Include(x => x.Sources).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+    public void Add(ReserveUse use) => db.ReserveUses.Add(use);
     public void Remove(PaymentReview review) => db.PaymentReviews.Remove(review);
     public Task<TuitionLedger?> LedgerAsync(string owner, Guid classId, CancellationToken ct) => db.Ledgers.Include(x => x.Rates).SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId, ct);
     public async Task<IReadOnlyList<SessionCharge>> ChargesAsync(string owner, Guid classId, CancellationToken ct) => await db.Charges.Include(x => x.Fees).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
@@ -126,7 +146,8 @@ public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
         var receipts = await db.Receipts.AsNoTracking().Include(x => x.Allocations).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
         var reviews = await db.PaymentReviews.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
         var adjustments = await db.Adjustments.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
-        await transaction.CommitAsync(ct); return new(ledger, charges, receipts, reviews, adjustments);
+        var uses = await db.ReserveUses.AsNoTracking().Include(x => x.Sources).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+        await transaction.CommitAsync(ct); return new(ledger, charges, receipts, reviews, adjustments, uses);
     }
     public async Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class
     {

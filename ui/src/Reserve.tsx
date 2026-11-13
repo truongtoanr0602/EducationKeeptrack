@@ -8,6 +8,7 @@ import {
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { money } from "./tuition-api";
+import { CancelReserve, ReserveLedgerBlock } from "./ReserveLedger";
 import {
   reserveStatus,
   type ReserveDraft,
@@ -25,12 +26,14 @@ const text = (e: unknown) =>
 
 export function Reserve({
   classId,
+  month,
   refreshToken,
   canWrite,
   onDenied,
   onChanged,
 }: {
   classId: string;
+  month: string;
   refreshToken: string;
   canWrite: boolean;
   onDenied: (error: ApiError) => void;
@@ -43,7 +46,7 @@ export function Reserve({
     const current = ++request.current;
     try {
       const result = await api<ReserveReport>(
-        `/billing/classes/${classId}/reserve`,
+        `/billing/classes/${classId}/reserve?month=${encodeURIComponent(month)}`,
       );
       if (request.current === current) {
         setReport(result);
@@ -54,7 +57,7 @@ export function Reserve({
       setError(text(e));
       if (e instanceof ApiError) onDenied(e);
     }
-  }, [classId, onDenied]);
+  }, [classId, month, onDenied]);
   useEffect(() => {
     void load();
     return () => {
@@ -83,6 +86,7 @@ export function Reserve({
               key={student.studentId}
               classId={classId}
               student={student}
+              version={report.version}
               canWrite={canWrite}
               onDenied={onDenied}
               onChanged={changed}
@@ -97,12 +101,14 @@ export function Reserve({
 function StudentReserveCard({
   classId,
   student,
+  version,
   canWrite,
   onDenied,
   onChanged,
 }: {
   classId: string;
   student: StudentReserve;
+  version: number;
   canWrite: boolean;
   onDenied: (error: ApiError) => void;
   onChanged: () => void;
@@ -147,15 +153,38 @@ function StudentReserveCard({
           </tbody>
         </table>
       </div>
+      <ReserveLedgerBlock
+        classId={classId}
+        student={student}
+        version={version}
+        canWrite={canWrite}
+        onDenied={onDenied}
+        onChanged={onChanged}
+      />
       {student.requests.map((r) => (
-        <RequestCard
-          key={`${r.id}:${r.version}`}
-          classId={classId}
-          request={r}
-          canWrite={canWrite}
-          onDenied={onDenied}
-          onChanged={onChanged}
-        />
+        <div key={`${r.id}:${r.version}`}>
+          <RequestCard
+            classId={classId}
+            request={r}
+            canWrite={canWrite}
+            onDenied={onDenied}
+            onChanged={onChanged}
+          />
+          {r.status === "approved" && r.canCancel && canWrite && (
+            <CancelReserve
+              classId={classId}
+              request={r}
+              onDenied={onDenied}
+              onDone={onChanged}
+            />
+          )}
+          {r.status === "approved" && !r.canCancel && (
+            <p className="notice">
+              Đã khấu trừ {money(r.usedVnd)}, còn {money(r.remainingVnd)}. Hủy
+              các lần khấu trừ trước khi hủy bảo lưu.
+            </p>
+          )}
+        </div>
       ))}
       {canWrite && BigInt(student.availableVnd) > 0n && (
         <RequestForm
@@ -416,7 +445,9 @@ function RequestCard({
                 ? "Ghi đề nghị"
                 : h.action === "approved"
                   ? "Duyệt"
-                  : "Từ chối"}
+                  : h.action === "cancelled"
+                    ? "Hủy bảo lưu"
+                    : "Từ chối"}
               : {h.reason}
             </li>
           ))}

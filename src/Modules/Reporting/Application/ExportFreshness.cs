@@ -106,6 +106,8 @@ public sealed class ExportFreshnessService(IReportingRepository repository, ICla
         Add("Đã phân bổ cho tháng này", before.PeriodPaidVnd, after.PeriodPaidVnd);
         Add("Còn nợ của tháng", before.PeriodDebtVnd, after.PeriodDebtVnd);
         Add("Tiền chưa phân bổ", before.UnallocatedVnd, after.UnallocatedVnd);
+        Add("Bảo lưu đã khấu trừ vào học phí tháng này", before.ReserveAppliedVnd, after.ReserveAppliedVnd);
+        Add("Bảo lưu chuyển sang kỳ sau", before.ReserveCarriedVnd, after.ReserveCarriedVnd);
         return changes;
     }
 

@@ -7,7 +7,7 @@ namespace EducationKeeptrack.Billing.Application;
 public record AllocationView(string Month, string AmountVnd);
 public record ReceiptView(Guid Id, Guid StudentId, string AmountVnd, DateOnly ReceivedOn, string? Note,
     DateTimeOffset RecordedAt, string UnallocatedVnd, IReadOnlyList<AllocationView> Allocations, string Status, ReceiptCorrectionView? Correction);
-public record PeriodDebtView(string Month, string FeesVnd, string PaidVnd, string DebtVnd, string Status, string AllocationExcessVnd);
+public record PeriodDebtView(string Month, string FeesVnd, string PaidVnd, string DebtVnd, string Status, string AllocationExcessVnd, string ReserveAppliedVnd = "0");
 public record StudentPaymentsView(Guid StudentId, string Name, string OldDebtVnd, string CurrentDebtVnd,
     string TotalDebtVnd, string UnallocatedVnd, string AllocationExcessVnd, IReadOnlyList<PeriodDebtView> Periods, IReadOnlyList<ReceiptView> Receipts);
 public record PaymentsView(string Month, long Version, string Status, string TotalDebtVnd, IReadOnlyList<StudentPaymentsView> Students);
@@ -21,7 +21,7 @@ public sealed partial class PaymentService(IBillingRepository repository, IClass
         if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first))
             return new(null, BillingFailure.Invalid, Errors: new() { ["month"] = ["Tháng không hợp lệ."] });
         var snapshot = await repository.SnapshotAsync(owner, classId, ct);
-        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments);
+        var balances = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments, snapshot.ReserveUses);
         var students = source.Students.Select(student =>
         {
             var receipts = snapshot.Receipts.Where(x => x.StudentId == student.Id).ToArray();
@@ -31,7 +31,7 @@ public sealed partial class PaymentService(IBillingRepository repository, IClass
                 Money(periods.Where(x => x.Period == first).Sum(x => x.Debt)),
                 Money(periods.Sum(x => x.Debt)), Money(receipts.Where(x => x.Status == "active").Sum(x => x.UnallocatedVnd)), Money(periods.Sum(x => x.Held)),
                 periods.Select(x => new PeriodDebtView(Month(x.Period), Money(x.Fees), Money(x.Paid), Money(x.Debt),
-                    x.Debt == 0 ? "paid" : x.Paid > 0 ? "partial" : "unpaid", Money(x.Held))).ToArray(),
+                    x.Debt == 0 ? "paid" : x.Paid > 0 || x.ReserveApplied > 0 ? "partial" : "unpaid", Money(x.Held), Money(x.ReserveApplied))).ToArray(),
                 receipts.OrderByDescending(x => x.ReceivedOn).ThenByDescending(x => x.RecordedAt).ThenBy(x => x.Id).Select(View).ToArray());
         }).ToArray();
         return new(new PaymentsView(month, snapshot.Ledger?.Version ?? 0, Status(source, snapshot.Ledger, snapshot.Sessions, snapshot.PaymentReviews),
@@ -62,7 +62,7 @@ public sealed partial class PaymentService(IBillingRepository repository, IClass
                 return new(null, BillingFailure.Conflict, "Phí chưa đầy đủ hoặc có tiền cần đối chiếu sau thay đổi phí. Vui lòng tải lại công nợ.");
             if (ledger is null) { ledger = new TuitionLedger(owner, classId); repository.Add(ledger); }
             var receipt = new Receipt(owner, classId, input, clock.GetUtcNow());
-            foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews, await repository.AdjustmentsAsync(owner, classId, ct)).Where(x => x.StudentId == input.StudentId))
+            foreach (var period in PeriodBalance.Calculate(charges, receipts, reviews, await repository.AdjustmentsAsync(owner, classId, ct), await repository.ReserveUsesAsync(owner, classId, ct)).Where(x => x.StudentId == input.StudentId))
                 receipt.Allocate(period.Period, period.Debt);
             repository.Add(receipt); ledger.RecordProjection();
             repository.Add(new BillingOutbox(ledger, "receipt.recorded", clock.GetUtcNow()));

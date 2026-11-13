@@ -129,6 +129,12 @@ _Avoid_: Tiền bảo lưu, tiền mới thu
 **Bảo lưu**:
 Phần tiền chưa phân bổ của các khoản nhận tiền thật được giáo viên duyệt giữ lại, ghi rõ lấy từ khoản nhận nào và bao nhiêu. Không phải tiền mới nhận, không tự trừ vào học phí kỳ sau và không tự hoàn trả. Số ngày nghỉ tối thiểu, minh chứng, hạn dùng, chuyển hoặc dừng lớp và hoàn tiền chưa có chính sách, nên mỗi trường hợp do giáo viên quyết định. Khoản nhận tiền còn bảo lưu chưa được sửa hoặc hủy.
 
+**Khấu trừ bảo lưu**:
+Giáo viên áp một phần số dư bảo lưu vào nghĩa vụ học phí còn phải trả của một kỳ: tối đa bằng phần còn nợ của kỳ đó và tối đa bằng số dư bảo lưu còn lại, lấy từ bảo lưu duyệt sớm nhất trước. Làm giảm dư nợ kỳ nhưng không phải tiền mới nhận nên không vào thống kê thu tiền, và một khoản nhận tiền mới chỉ phân bổ phần nợ còn lại sau khấu trừ. Có thể hủy từng lần khấu trừ kèm lý do. Nếu học phí giảm sau đó làm phần đã khấu trừ vượt nghĩa vụ, phần vượt được báo để giáo viên hủy, không tự dùng lại.
+
+**Sổ bảo lưu**:
+Với mỗi học sinh và mỗi tháng: bảo lưu đầu kỳ, mới duyệt, đã dùng, đã hủy và chuyển sang kỳ sau, tính theo ngày duyệt, ngày khấu trừ và ngày hủy theo giờ Việt Nam. Hiển thị trong ứng dụng và trên PDF báo cáo tháng, cùng tổng cần thu đã trừ bảo lưu. Hủy bảo lưu chỉ được khi không còn lần khấu trừ nào đang áp dụng.
+
 **Tiền giữ để đối chiếu**:
 Phần tiền đã phân bổ vượt nghĩa vụ sau khi phí giảm, được giữ riêng để xử lý rõ ràng; chưa được dùng lại, bảo lưu hoặc hoàn trả tự động.
 
