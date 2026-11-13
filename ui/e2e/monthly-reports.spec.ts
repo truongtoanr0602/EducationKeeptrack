@@ -24,7 +24,7 @@ async function setup(page: Page, withFee = false) {
     await write(`/classes/${classroom.id}/sessions/${session.id}/attendance/${student.id}`, { status: "present", version: 0 }, "PUT");
     await expect.poll(async () => (await (await page.request.get(`/api/billing/classes/${classroom.id}/payments?month=2026-10`)).json()).status).toBe("ready");
   }
-  await page.goto(`/?reportClass=${classroom.id}&reportStudent=${student.id}&reportMonth=2026-10#${classroom.id}`);
+  await page.goto(`/?reportClass=${classroom.id}&reportStudent=${student.id}&reportMonth=2026-10#/classes/${classroom.id}/reports`);
   const region = page.getByRole("region", { name: "Báo cáo PDF tháng", exact: true });
   await expect(region.getByLabel("Nhận xét báo cáo")).toBeVisible();
   return { region, classroom, student, write };
@@ -57,8 +57,10 @@ test("teacher edits monthly draft, previews and downloads only selected student"
   expect(exports).toHaveLength(1);
   expect(bytes.byteLength).toBe(exports[0].byteLength);
   expect(createHash("sha256").update(bytes).digest("hex").toUpperCase()).toBe(exports[0].sha256);
-  await region.getByRole("button", { name: "Đối chiếu học phí" }).click();
-  expect(new URL(page.url()).hash).toBe(`#${classroom.id}`);
+  await region.getByRole("link", { name: "Đối chiếu học phí" }).click();
+  await expect.poll(() => new URL(page.url()).hash).toBe(`#/classes/${classroom.id}/tuition`);
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).hash).toBe(`#/classes/${classroom.id}/reports`);
   await page.reload();
   await expect(region.getByLabel("Nhận xét báo cáo")).toHaveValue(comment);
   await expect(region.getByLabel("Tháng báo cáo")).toHaveValue("2026-10");
@@ -105,5 +107,5 @@ test("uncertain export retries same command and source conflict preserves draft"
   await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
   await expect(region.getByRole("alert")).toContainText("làm mới");
   await expect(region.getByLabel("Nhận xét báo cáo")).toHaveValue("Giữ nội dung khi lỗi nguồn");
-  expect(new URL(page.url()).hash).toBe(`#${classroom.id}`);
+  expect(new URL(page.url()).hash).toBe(`#/classes/${classroom.id}/reports`);
 });
