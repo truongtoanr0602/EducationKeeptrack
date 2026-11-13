@@ -11,3 +11,6 @@
 .agents/
 *.user
 *.tsbuildinfo
+
+# Database dumps from tools/deploy/backup.sh contain personal data.
+backups/

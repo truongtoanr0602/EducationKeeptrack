@@ -1,11 +1,16 @@
 # Production: TLS terminates in the trusted UI proxy, so backend sees HTTPS
 # only from its allowlisted container IP. Certificates stay outside Git.
+# Locally the ports bind to 127.0.0.1. On a VPS set HTTPS_BIND=0.0.0.0, HTTPS_PORT=443,
+# HTTP_BIND=0.0.0.0 and HTTP_PORT=80 in .env (port 80 only redirects to HTTPS).
 services:
   backend:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      Identity__Email__PublicUrl: ${PUBLIC_URL:?Set PUBLIC_URL to the https origin users open, e.g. https://keeptrack.example.com}
   ui:
-    ports: !override ["127.0.0.1:${HTTPS_PORT:-8443}:443"]
+    ports: !override
+      - "${HTTPS_BIND:-127.0.0.1}:${HTTPS_PORT:-8443}:443"
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8081}:80"
     volumes:
       - ./ui/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
       - ${TLS_CERT_PATH:?Set TLS_CERT_PATH}:/etc/nginx/tls/cert.pem:ro
