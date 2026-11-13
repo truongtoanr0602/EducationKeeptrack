@@ -39,6 +39,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     private readonly bool reuseDatabase;
     private readonly bool ownsDatabase = true;
     private readonly ReportTestStorage reportStorage = new();
+    public string ReportPrefix => reportStorage.Prefix;
     public TestApplication() { }
     private TestApplication(TestApplication original, IClassroomChangeHandler? classroomHandler, ITuitionChangeHandler? tuitionHandler)
     {
