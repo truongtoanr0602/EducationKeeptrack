@@ -8,6 +8,9 @@ WORKDIR /app
 COPY --from=build /app ./
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN dotnet Host.dll --install-report-browser && /app/.playwright/node/linux-x64/node /app/.playwright/package/cli.js install-deps chromium
+# The driver binary ships as mode 744 owned by root, so the non-root app user could not start it ("Permission denied"
+# when exporting a PDF). Read/execute for everyone, no write.
+RUN chmod -R a+rX /app/.playwright /ms-playwright
 RUN mkdir /keys && chown $APP_UID /keys
 USER $APP_UID
 EXPOSE 8080
