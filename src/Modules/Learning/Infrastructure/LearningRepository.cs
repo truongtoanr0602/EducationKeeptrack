@@ -15,6 +15,9 @@ public sealed class LearningRepository(LearningDatabase db) : ILearningRepositor
     public Task<Submission?> FindSubmissionAsync(string owner, Guid classId, Guid id, Guid studentId, CancellationToken ct) =>
         db.Submissions.Include(x => x.History).SingleOrDefaultAsync(x => x.AssessmentId == id && x.StudentId == studentId
             && db.Assessments.Any(a => a.Id == id && a.OwnerId == owner && a.ClassId == classId), ct);
+    public async Task<IReadOnlyList<Assessment>> ListForStudentAsync(string owner, Guid classId, Guid studentId, CancellationToken ct) =>
+        await db.Assessments.AsNoTracking().Include(x => x.Submissions.Where(s => s.StudentId == studentId)).ThenInclude(x => x.History)
+            .Where(x => x.OwnerId == owner && x.ClassId == classId).OrderBy(x => x.Date).ThenBy(x => x.Id).ToListAsync(ct);
     public void Add(Assessment assessment) => db.Assessments.Add(assessment);
     public async Task<bool> SaveAsync(CancellationToken ct)
     {
