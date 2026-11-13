@@ -5,6 +5,7 @@ import { Login } from "./Login";
 import { RateForm } from "./RateForm";
 import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
+import { Reserve } from "./Reserve";
 import { CashflowStatistics } from "./CashflowStatistics";
 import {
   money,
@@ -322,6 +323,14 @@ export function Tuition({
           key={classroom.id}
           classId={classroom.id}
           month={appliedMonth}
+          refreshToken={`${refreshToken}:${report?.version ?? 0}`}
+          canWrite={access.canWrite && !sessionExpired}
+          onDenied={denied}
+          onChanged={() => void load(appliedMonth)}
+        />
+        <Reserve
+          key={`reserve:${classroom.id}`}
+          classId={classroom.id}
           refreshToken={`${refreshToken}:${report?.version ?? 0}`}
           canWrite={access.canWrite && !sessionExpired}
           onDenied={denied}
