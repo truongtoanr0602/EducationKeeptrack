@@ -13,6 +13,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
     public DbSet<FeeAdjustment> Adjustments => Set<FeeAdjustment>();
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<PaymentReview> PaymentReviews => Set<PaymentReview>();
+    public DbSet<ReserveRequest> ReserveRequests => Set<ReserveRequest>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("billing");
@@ -55,6 +56,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         receipt.HasIndex(x => new { x.ClassId, x.CorrectionKey }).IsUnique();
         receipt.Property(x => x.OwnerId).HasMaxLength(450); receipt.Property(x => x.Note).HasMaxLength(1000);
         receipt.Property(x => x.AmountVnd).HasPrecision(18, 0); receipt.Property(x => x.UnallocatedVnd).HasPrecision(18, 0);
+        receipt.Property(x => x.ReservedVnd).HasPrecision(18, 0).HasDefaultValue(0m); receipt.Ignore(x => x.AvailableForReserveVnd);
         receipt.HasIndex(x => new { x.ClassId, x.IdempotencyKey }).IsUnique();
         receipt.HasIndex(x => new { x.ClassId, x.StudentId, x.ReceivedOn });
         receipt.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
@@ -63,6 +65,7 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         {
             table.HasCheckConstraint("CK_Receipt_Amount", "\"AmountVnd\" > 0");
             table.HasCheckConstraint("CK_Receipt_Unallocated", "\"UnallocatedVnd\" >= 0 AND \"UnallocatedVnd\" <= \"AmountVnd\"");
+            table.HasCheckConstraint("CK_Receipt_Reserved", "\"ReservedVnd\" >= 0 AND \"ReservedVnd\" <= \"UnallocatedVnd\"");
         });
         var allocation = model.Entity<ReceiptAllocation>(); allocation.HasKey(x => new { x.ReceiptId, x.Period });
         allocation.Property(x => x.AmountVnd).HasPrecision(18, 0);
@@ -70,6 +73,28 @@ public sealed class BillingDatabase(DbContextOptions<BillingDatabase> options) :
         var review = model.Entity<PaymentReview>(); review.HasKey(x => new { x.ClassId, x.StudentId, x.Period });
         review.Property(x => x.OwnerId).HasMaxLength(450); review.Property(x => x.AmountVnd).HasPrecision(28, 0);
         review.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        var reserve = model.Entity<ReserveRequest>(); reserve.HasKey(x => x.Id); reserve.Property(x => x.Id).ValueGeneratedNever();
+        reserve.Property(x => x.OwnerId).HasMaxLength(450); reserve.Property(x => x.Status).HasMaxLength(10);
+        reserve.Property(x => x.Reason).HasMaxLength(1000); reserve.Property(x => x.EvidenceNote).HasMaxLength(1000); reserve.Property(x => x.DecisionReason).HasMaxLength(1000);
+        reserve.Property(x => x.RequestedVnd).HasPrecision(18, 0); reserve.Property(x => x.Version).IsConcurrencyToken();
+        reserve.HasIndex(x => new { x.ClassId, x.CreateKey }).IsUnique();
+        reserve.HasIndex(x => new { x.ClassId, x.StudentId, x.Status });
+        reserve.HasOne<TuitionLedger>().WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
+        reserve.HasMany(x => x.Sources).WithOne().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+        reserve.HasMany(x => x.Events).WithOne().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+        reserve.ToTable("ReserveRequests", table =>
+        {
+            table.HasCheckConstraint("CK_Reserve_Amount", "\"RequestedVnd\" > 0");
+            table.HasCheckConstraint("CK_Reserve_Status", "\"Status\" IN ('pending', 'approved', 'rejected')");
+            table.HasCheckConstraint("CK_Reserve_Dates", "\"AbsentTo\" >= \"AbsentFrom\"");
+        });
+        var source = model.Entity<ReserveSource>(); source.HasKey(x => new { x.RequestId, x.ReceiptId }); source.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        source.HasOne<Receipt>().WithMany().HasForeignKey(x => x.ReceiptId).OnDelete(DeleteBehavior.Restrict);
+        source.ToTable("ReserveSources", table => table.HasCheckConstraint("CK_ReserveSource_Amount", "\"AmountVnd\" > 0"));
+        var reserveEvent = model.Entity<ReserveEvent>(); reserveEvent.HasKey(x => new { x.RequestId, x.Version });
+        reserveEvent.Property(x => x.Action).HasMaxLength(12); reserveEvent.Property(x => x.Reason).HasMaxLength(1000); reserveEvent.Property(x => x.ActorId).HasMaxLength(450);
+        reserveEvent.Property(x => x.AmountVnd).HasPrecision(18, 0);
+        reserveEvent.ToTable("ReserveEvents");
         review.ToTable("PaymentReviews", table => table.HasCheckConstraint("CK_PaymentReview_Amount", "\"AmountVnd\" > 0"));
     }
 }
@@ -81,6 +106,9 @@ public sealed class BillingRepository(BillingDatabase db) : IBillingRepository
     public void Add(Receipt receipt) => db.Receipts.Add(receipt);
     public async Task<IReadOnlyList<PaymentReview>> PaymentReviewsAsync(string owner, Guid classId, CancellationToken ct) => await db.PaymentReviews.Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
     public void Add(PaymentReview review) => db.PaymentReviews.Add(review);
+    public async Task<IReadOnlyList<ReserveRequest>> ReserveRequestsAsync(string owner, Guid classId, CancellationToken ct) =>
+        await db.ReserveRequests.Include(x => x.Sources).Include(x => x.Events).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
+    public void Add(ReserveRequest request) => db.ReserveRequests.Add(request);
     public void Remove(PaymentReview review) => db.PaymentReviews.Remove(review);
     public Task<TuitionLedger?> LedgerAsync(string owner, Guid classId, CancellationToken ct) => db.Ledgers.Include(x => x.Rates).SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId, ct);
     public async Task<IReadOnlyList<SessionCharge>> ChargesAsync(string owner, Guid classId, CancellationToken ct) => await db.Charges.Include(x => x.Fees).Where(x => x.OwnerId == owner && x.ClassId == classId).ToListAsync(ct);
