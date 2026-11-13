@@ -56,6 +56,9 @@ public sealed class ReserveRequest
     public string? DecisionReason { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? DecidedAt { get; private set; }
+    public Guid? CancelKey { get; private set; }
+    public string? CancelReason { get; private set; }
+    public DateTimeOffset? CancelledAt { get; private set; }
     public List<ReserveSource> Sources { get; private set; } = [];
     public List<ReserveEvent> Events { get; private set; } = [];
     private ReserveRequest() { }
@@ -80,6 +83,15 @@ public sealed class ReserveRequest
         Decide("approved", "approved", input, actor, RequestedVnd, now);
     }
     public void Reject(ReserveDecisionInput input, string actor, DateTimeOffset now) => Decide("rejected", "rejected", input, actor, 0, now);
+
+    /// <summary>Gives the held money back to its receipts. The caller has checked that no active use still draws on this reserve.</summary>
+    public void Cancel(IEnumerable<Receipt> receipts, ReserveCorrectionInput input, string actor, DateTimeOffset now)
+    {
+        foreach (var source in Sources) receipts.Single(x => x.Id == source.ReceiptId).Release(source.AmountVnd);
+        Status = "cancelled"; CancelKey = input.IdempotencyKey; CancelReason = input.Reason!.Trim(); CancelledAt = now; Version++;
+        Events.Add(new ReserveEvent(Id, Version, "cancelled", CancelReason, actor, RequestedVnd, now));
+    }
+    public bool CancelMatches(ReserveCorrectionInput input) => Status == "cancelled" && CancelKey == input.IdempotencyKey && CancelReason == input.Reason?.Trim();
 
     private void Decide(string status, string action, ReserveDecisionInput input, string actor, decimal amount, DateTimeOffset now)
     {

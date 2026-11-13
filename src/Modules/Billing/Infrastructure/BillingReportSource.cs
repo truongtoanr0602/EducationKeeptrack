@@ -13,10 +13,12 @@ public sealed class BillingReportSource(IBillingRepository repository, BillingDa
         var source = await classroom.ReadClassAsync(scope.OwnerId, scope.ClassId, ct);
         if (source is null || !source.Students.Any(x => x.Id == scope.StudentId)) return null;
         var snapshot = await repository.SnapshotAsync(scope.OwnerId, scope.ClassId, ct);
-        var periods = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments).Where(x => x.StudentId == scope.StudentId).ToArray();
+        var periods = PeriodBalance.Calculate(snapshot.Sessions, snapshot.Receipts, snapshot.PaymentReviews, snapshot.Adjustments, snapshot.ReserveUses).Where(x => x.StudentId == scope.StudentId).ToArray();
         var current = periods.SingleOrDefault(x => x.Period == scope.Month);
         var receipts = snapshot.Receipts.Where(x => x.Status == "active" && x.StudentId == scope.StudentId).ToArray();
         var recipient = await db.Set<PaymentRecipient>().AsNoTracking().SingleOrDefaultAsync(x => x.OwnerId == scope.OwnerId, ct);
+        var requests = await repository.ReserveRequestsAsync(scope.OwnerId, scope.ClassId, ct);
+        var reserve = ReserveLedger.For(scope.StudentId, scope.Month, requests, snapshot.ReserveUses);
         var financial = ReportStamp.Financial(source);
         var stamp = ReportStamp.Of(new { scope, Version = snapshot.Ledger?.Version ?? 0, RecipientVersion = recipient?.Version ?? 0, Financial = financial });
         var end = scope.Month.AddMonths(1);
@@ -26,7 +28,8 @@ public sealed class BillingReportSource(IBillingRepository repository, BillingDa
         var allocations = receipts.OrderBy(x => x.ReceivedOn).ThenBy(x => x.Id).SelectMany(x => x.Allocations.Where(a => a.Period <= scope.Month).OrderBy(a => a.Period)
             .Select(a => new ReportAllocation(x.Id, x.ReceivedOn, a.Period.ToString("yyyy-MM", CultureInfo.InvariantCulture), a.AmountVnd))).ToArray();
         return new(stamp, financial, PaymentService.Status(source, snapshot.Ledger, snapshot.Sessions, snapshot.PaymentReviews), snapshot.Ledger?.Version ?? 0, recipient?.Version ?? 0,
-            new(periods.Where(x => x.Period < scope.Month).Sum(x => x.Debt), current?.Fees ?? 0, current?.Paid ?? 0, current?.Held ?? 0, current?.Debt ?? 0, receipts.Sum(x => x.UnallocatedVnd)), fees, adjustments, allocations,
+            new(periods.Where(x => x.Period < scope.Month).Sum(x => x.Debt), current?.Fees ?? 0, current?.Paid ?? 0, current?.Held ?? 0, current?.Debt ?? 0, receipts.Sum(x => x.UnallocatedVnd),
+                current?.ReserveApplied ?? 0, reserve.Opening, reserve.Approved, reserve.Used, reserve.Cancelled, reserve.Carried), fees, adjustments, allocations,
             recipient is null ? null : new(recipient.BankBin, recipient.BankName, recipient.AccountNo, recipient.AccountName));
     }
     public async Task<ReportPayment> PaymentAsync(ReportScope scope, BillingReportSnapshot snapshot, CancellationToken ct)

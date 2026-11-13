@@ -65,7 +65,16 @@ public static class BillingModule
         recipient.MapGet("", async (HttpContext http, PaymentQrService service) => Respond(await service.RecipientAsync(Owner(http), http.RequestAborted)));
         recipient.MapPost("", async (RecipientInput input, HttpContext http, PaymentQrService service) => Respond(await service.SaveAsync(Owner(http), input, http.RequestAborted)))
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(1500000));
-        group.MapGet("/reserve", async (Guid classId, HttpContext http, ReserveService service) => Respond(await service.ReportAsync(Owner(http), classId, http.RequestAborted)));
+        group.MapGet("/reserve", async (Guid classId, string? month, HttpContext http, ReserveService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
+        group.MapPost("/reserve/uses", async (Guid classId, ReserveUseInput input, HttpContext http, ReserveService service) =>
+        {
+            var result = await service.UseAsync(Owner(http), classId, input, http.RequestAborted);
+            return result.Failure is null ? Results.Created($"/api/billing/classes/{classId}/reserve", result.Value) : Respond(result);
+        });
+        group.MapPost("/reserve/uses/{useId:guid}/reversal", async (Guid classId, Guid useId, ReserveCorrectionInput input, HttpContext http, ReserveService service) =>
+            Respond(await service.ReverseUseAsync(Owner(http), classId, useId, input, http.RequestAborted)));
+        group.MapPost("/reserve/requests/{requestId:guid}/cancellation", async (Guid classId, Guid requestId, ReserveCorrectionInput input, HttpContext http, ReserveService service) =>
+            Respond(await service.CancelAsync(Owner(http), classId, requestId, input, http.RequestAborted)));
         group.MapPost("/reserve/requests", async (Guid classId, ReserveRequestInput input, HttpContext http, ReserveService service) =>
         {
             var result = await service.RequestAsync(Owner(http), classId, input, http.RequestAborted);

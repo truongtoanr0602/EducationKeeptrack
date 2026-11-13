@@ -10,7 +10,7 @@ export type MoneySource = {
 };
 export type ReserveEvent = {
   version: number;
-  action: "requested" | "approved" | "rejected";
+  action: "requested" | "approved" | "rejected" | "cancelled";
   reason: string;
   recordedBy: string;
   amountVnd: string;
@@ -23,13 +23,45 @@ export type ReserveRequest = {
   reason: string;
   evidenceNote: string | null;
   requestedVnd: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled";
   version: number;
   decisionReason: string | null;
   createdAt: string;
   decidedAt: string | null;
   sources: { receiptId: string; receivedOn: string; amountVnd: string }[];
   history: ReserveEvent[];
+  usedVnd: string;
+  remainingVnd: string;
+  canCancel: boolean;
+};
+export type ReserveBalance = {
+  approvedVnd: string;
+  usedVnd: string;
+  remainingVnd: string;
+};
+export type ReserveUse = {
+  id: string;
+  month: string;
+  usedOn: string;
+  amountVnd: string;
+  status: "active" | "reversed";
+  reversalReason: string | null;
+  createdAt: string;
+  reversedAt: string | null;
+};
+export type ReservePeriod = {
+  month: string;
+  debtVnd: string;
+  reserveAppliedVnd: string;
+  reserveExcessVnd: string;
+};
+export type ReserveMovements = {
+  month: string;
+  openingVnd: string;
+  approvedVnd: string;
+  usedVnd: string;
+  cancelledVnd: string;
+  carriedVnd: string;
 };
 export type StudentReserve = {
   studentId: string;
@@ -41,6 +73,10 @@ export type StudentReserve = {
   availableVnd: string;
   sources: MoneySource[];
   requests: ReserveRequest[];
+  reserve: ReserveBalance;
+  uses: ReserveUse[];
+  periods: ReservePeriod[];
+  movements: ReserveMovements;
 };
 export type ReserveReport = {
   version: number;
@@ -60,4 +96,5 @@ export const reserveStatus: Record<ReserveRequest["status"], string> = {
   pending: "Chờ quyết định",
   approved: "Đã duyệt bảo lưu",
   rejected: "Đã từ chối",
+  cancelled: "Đã hủy bảo lưu",
 };

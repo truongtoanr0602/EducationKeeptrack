@@ -69,6 +69,11 @@ public sealed class Receipt
         if (amount <= 0 || amount > AvailableForReserveVnd) throw new InvalidOperationException("The receipt cannot give that much to a reserve.");
         ReservedVnd += amount;
     }
+    public void Release(decimal amount)
+    {
+        if (amount <= 0 || amount > ReservedVnd) throw new InvalidOperationException("The receipt does not hold that much for a reserve.");
+        ReservedVnd -= amount;
+    }
     public void SaveCorrectionResult(string result) => CorrectionResult = result;
     public void Reallocate(IReadOnlyDictionary<DateOnly, decimal> amounts)
     {
