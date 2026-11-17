@@ -16,6 +16,7 @@ export type Route =
   | { name: "today" }
   | { name: "billing" }
   | { name: "reports" }
+  | { name: "student"; studentId: string }
   | { name: "classes" }
   | { name: "class"; classId: string; section: Section; tab?: PersonalTab }
   // Teacher: service status, payment reconciliation, AI quota, login email.
@@ -48,6 +49,8 @@ export function parse(hash: string): Route {
     return { name: "class", classId: raw, section: "students" };
   const [first, classId, section, tab] = raw.replace(/^\//, "").split("/");
   if (first === "account") return { name: "account" };
+  if (first === "students" && classId && guid.test(classId))
+    return { name: "student", studentId: classId };
   if (first === "billing") return { name: "billing" };
   if (first === "reports") return { name: "reports" };
   if (first === "admin" && classId === "settings")
@@ -72,6 +75,7 @@ export function parse(hash: string): Route {
 }
 
 export function href(route: Route): string {
+  if (route.name === "student") return `#/students/${route.studentId}`;
   if (route.name === "today") return "#/today";
   if (route.name === "billing") return "#/billing";
   if (route.name === "reports") return "#/reports";

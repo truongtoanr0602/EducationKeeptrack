@@ -16,6 +16,8 @@ import { CrossClass } from "./CrossClass";
 import { Today } from "./Today";
 import { Billing } from "./Billing";
 import { MonthReport } from "./MonthReport";
+import { StudentDetail } from "./StudentDetail";
+import { StudentList } from "./StudentList";
 import { aiVisible } from "./access";
 
 // Rarely used or role-specific screens load on demand so the first paint ships less code.
@@ -283,7 +285,7 @@ export function App() {
       ? sections.find((x) => x.id === route.section)?.label
       : undefined;
   const activeTab: MainTab =
-    route.name === "class"
+    route.name === "class" || route.name === "student"
       ? "classes"
       : route.name === "admin-teachers" || route.name === "admin-settings"
         ? "account"
@@ -415,15 +417,21 @@ export function App() {
           {route.name === "reports" && (
             <MonthReport me={me} classes={classes} />
           )}
+          {route.name === "student" && (
+            <StudentDetail me={me} studentId={route.studentId} />
+          )}
           {route.name === "classes" && (
-            <ClassesScreen
-              me={me}
-              classes={classes}
-              onCreate={() => {
-                setDraft(emptyDraft);
-                setCreating(true);
-              }}
-            />
+            <>
+              <ClassesScreen
+                me={me}
+                classes={classes}
+                onCreate={() => {
+                  setDraft(emptyDraft);
+                  setCreating(true);
+                }}
+              />
+              {me.access.canRead && classes.length > 0 && <StudentList />}
+            </>
           )}
           {route.name === "class" &&
             !current &&

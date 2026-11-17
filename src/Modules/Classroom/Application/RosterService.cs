@@ -12,8 +12,10 @@ public record EnrollmentView(Guid Id, Guid StudentId, DateOnly StartDate, DateOn
 }
 public record EnrollmentWithStudent(Enrollment Enrollment, Student Student);
 
+public record StudentClassView(Guid ClassId, string ClassName, string Subject, string Status, DateOnly StartDate, DateOnly? EndDate);
 public interface IRosterRepository
 {
+    Task<IReadOnlyList<StudentClassView>> StudentClassesAsync(string owner, Guid studentId, CancellationToken ct);
     Task<IReadOnlyList<Student>> ListStudentsAsync(string owner, CancellationToken ct);
     Task<Student?> FindStudentAsync(string owner, Guid id, CancellationToken ct);
     Task<bool> ClassExistsAsync(string owner, Guid classId, CancellationToken ct);
@@ -30,6 +32,12 @@ public sealed class RosterService(IRosterRepository repository, TimeProvider clo
 {
     public async Task<IReadOnlyList<StudentView>> ListStudentsAsync(string owner, CancellationToken ct) =>
         (await repository.ListStudentsAsync(owner, ct)).Select(StudentView.From).ToArray();
+    // Where one student is enrolled, across the teacher's classes (student profiles are shared between classes).
+    public async Task<ClassroomResult<IReadOnlyList<StudentClassView>>> StudentClassesAsync(string owner, Guid studentId, CancellationToken ct)
+    {
+        if (await repository.FindStudentAsync(owner, studentId, ct) is null) return new(null, ClassroomFailure.NotFound);
+        return new(await repository.StudentClassesAsync(owner, studentId, ct));
+    }
     public async Task<StudentView?> FindStudentAsync(string owner, Guid id, CancellationToken ct)
     {
         var student = await repository.FindStudentAsync(owner, id, ct);
