@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me, TeacherClass } from "./api";
 import { useAccess } from "./access";
-import { loadDebts, type DebtsView } from "./billing-api";
+import { loadDebts, type DebtItem, type DebtsView } from "./billing-api";
 import { ReceiptForm } from "./ReceiptForm";
 import { today } from "./roster-api";
 import { money } from "./tuition-api";
 import { classHref } from "./router";
+import { shareMonthlyReport } from "./share-report";
 
 const PAGE_SIZE = 20;
 const notReady: Record<string, string> = {
@@ -24,6 +25,8 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
   const [view, setView] = useState<DebtsView | null>(null);
   const [error, setError] = useState("");
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<string | null>(null);
+  const [shareNote, setShareNote] = useState<Record<string, string>>({});
   const load = useCallback(async () => {
     try {
       setView(await loadDebts(month, classId, page, PAGE_SIZE));
@@ -37,6 +40,35 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
     void load();
   }, [load]);
 
+  async function share(item: DebtItem, key: string) {
+    setSharing(key);
+    setShareNote((n) => ({ ...n, [key]: "" }));
+    try {
+      const result = await shareMonthlyReport(
+        item.classId,
+        item.studentId,
+        month,
+        item.name,
+      );
+      setShareNote((n) => ({
+        ...n,
+        [key]:
+          result === "shared"
+            ? "Đã mở bảng chia sẻ."
+            : result === "downloaded"
+              ? "Đã tải PDF về máy."
+              : "",
+      }));
+    } catch (e) {
+      setShareNote((n) => ({
+        ...n,
+        [key]: e instanceof Error ? e.message : "Không thể chia sẻ báo cáo.",
+      }));
+      denied(e);
+    } finally {
+      setSharing(null);
+    }
+  }
   const warnings = (view?.classes ?? []).filter((c) => c.status !== "ready");
   const pages = view ? Math.max(1, Math.ceil(view.count / view.pageSize)) : 1;
   return (
@@ -130,8 +162,15 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
                     >
                       Ghi nhận đã thu
                     </button>
+                    <button
+                      disabled={sharing !== null}
+                      onClick={() => void share(item, key)}
+                    >
+                      {sharing === key ? "Đang chuẩn bị…" : "Gửi báo cáo PDF"}
+                    </button>
                     <a href={classHref(item.classId, "tuition")}>Chi tiết</a>
                   </div>
+                  {shareNote[key] && <p role="status">{shareNote[key]}</p>}
                   {open && (
                     <ReceiptForm
                       classId={item.classId}
