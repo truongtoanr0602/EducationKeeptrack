@@ -14,6 +14,7 @@ import { Tuition } from "./Tuition";
 import { Learning } from "./Learning";
 import { CrossClass } from "./CrossClass";
 import { Today } from "./Today";
+import { Billing } from "./Billing";
 import { aiVisible } from "./access";
 
 // Rarely used or role-specific screens load on demand so the first paint ships less code.
@@ -409,7 +410,8 @@ export function App() {
             </>
           )}
           {route.name === "today" && <Today me={me} />}
-          {(route.name === "billing" || route.name === "reports") && (
+          {route.name === "billing" && <Billing me={me} classes={classes} />}
+          {route.name === "reports" && (
             <CrossClass kind={route.name} classes={classes} />
           )}
           {route.name === "classes" && (

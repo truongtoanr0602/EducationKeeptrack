@@ -16,7 +16,7 @@ public static class BillingModule
     {
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
-        services.AddScoped<PaymentService>(); services.AddScoped<AdjustmentService>();
+        services.AddScoped<PaymentService>(); services.AddScoped<DebtService>(); services.AddScoped<AdjustmentService>();
         services.AddScoped<StatisticsService>(); services.AddScoped<ReserveService>();
         services.AddScoped<IBillingReportSource, BillingReportSource>();
         services.AddScoped<PaymentQrService>();
@@ -54,6 +54,17 @@ public static class BillingModule
         group.MapPost("/payments/{receiptId:guid}/corrections", async (Guid classId, Guid receiptId, ReceiptCorrectionInput input, HttpContext http, PaymentService service) =>
             Respond(await service.CorrectAsync(Owner(http), classId, receiptId, input, http.RequestAborted)));
         group.MapPost("/transfer-request", async (Guid classId, TransferInput input, HttpContext http, PaymentQrService service) => Respond(await service.CreateAsync(Owner(http), classId, input, http.RequestAborted)));
+        // Cross-class debts for the "Hóa đơn" screen; reading stays allowed after expiry like the class reports.
+        var debts = endpoints.MapGroup("/api/billing/debts").RequireAuthorization(policy => policy.RequireRole("Teacher"));
+        debts.AddEndpointFilter(async (context, next) =>
+        {
+            var http = context.HttpContext;
+            var access = await http.RequestServices.GetRequiredService<IAccountAccess>().GetAsync(Owner(http), http.RequestAborted);
+            return access.CanRead ? await next(context)
+                : Results.Json(new { message = "Tài khoản hiện không được truy cập học phí.", status = access.Status }, statusCode: 403);
+        });
+        debts.MapGet("/", async (string month, Guid? classId, int? page, int? pageSize, HttpContext http, DebtService service) =>
+            Respond(await service.ListAsync(Owner(http), month, classId, page ?? 1, pageSize ?? 50, http.RequestAborted)));
         var recipient = endpoints.MapGroup("/api/billing/recipient").RequireAuthorization(policy => policy.RequireRole("Teacher"));
         recipient.AddEndpointFilter(async (context, next) =>
         {
