@@ -42,3 +42,37 @@ public sealed partial class TuitionTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/billing/debts?month=2026-10")).StatusCode);
     }
 }
+
+public sealed partial class TuitionTests
+{
+    [Fact]
+    public async Task Month_summary_combines_fees_cash_debt_and_attendance_for_the_owner_only()
+    {
+        var (client, classId, studentId) = await PaymentSetup();
+        var (other, _, _) = await PaymentSetup();
+        using (client) using (other)
+        {
+            var version = (await Payments(client, classId)).GetProperty("version").GetInt64();
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(client, $"/api/billing/classes/{classId}/payments", new { studentId, amountVnd = "200000", receivedOn = "2026-10-20", idempotencyKey = Guid.NewGuid(), version })).StatusCode);
+
+            var money = await client.GetFromJsonAsync<JsonElement>("/api/billing/summary?month=2026-10");
+            Assert.Equal("500000", money.GetProperty("feesVnd").GetString());
+            Assert.Equal("200000", money.GetProperty("receivedVnd").GetString());
+            Assert.Equal("300000", money.GetProperty("debtVnd").GetString());
+            Assert.Single(money.GetProperty("classes").EnumerateArray());
+            var november = await client.GetFromJsonAsync<JsonElement>("/api/billing/summary?month=2026-11");
+            Assert.Equal("0", november.GetProperty("receivedVnd").GetString());
+            Assert.Equal("300000", november.GetProperty("debtVnd").GetString());
+
+            var attendance = await client.GetFromJsonAsync<JsonElement>("/api/reports/attendance?month=2026-10");
+            Assert.Equal(1, attendance.GetProperty("held").GetInt32());
+            Assert.Equal(1, attendance.GetProperty("present").GetInt32());
+            Assert.Equal(0, attendance.GetProperty("absent").GetInt32());
+            Assert.Equal(1.0, attendance.GetProperty("attendanceRate").GetDouble());
+            Assert.Equal(JsonValueKind.Null, (await client.GetFromJsonAsync<JsonElement>("/api/reports/attendance?month=2026-09")).GetProperty("attendanceRate").ValueKind);
+
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/billing/summary?month=oops")).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/reports/attendance?month=oops")).StatusCode);
+        }
+    }
+}

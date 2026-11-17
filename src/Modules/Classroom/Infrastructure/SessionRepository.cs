@@ -30,6 +30,8 @@ public sealed class SessionRepository(ClassroomDatabase db) : ISessionRepository
                where session.OwnerId == owner && classroom.OwnerId == owner && session.Date == date
                orderby session.StartTime, classroom.Name, session.Id
                select new SessionWithClass(session, classroom.Name, classroom.Subject)).ToListAsync(ct);
+    public async Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct) =>
+        await db.Sessions.AsNoTracking().Where(x => x.OwnerId == owner && x.Date >= from && x.Date <= to).Select(x => new SessionStatusRow(x.Id, x.Status)).ToListAsync(ct);
     public async Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct) =>
         await db.Attendance.AsNoTracking().Where(x => x.OwnerId == owner && sessionIds.Contains(x.SessionId)).Select(x => new MarkRow(x.SessionId, x.StudentId, x.Status)).ToListAsync(ct);
     public async Task<IReadOnlyList<(Guid ClassId, Guid StudentId)>> EligibleAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly date, CancellationToken ct) =>

@@ -17,6 +17,8 @@ public record TodaySession(Guid ClassId, string ClassName, string Subject, Sessi
 public record TodayView(DateOnly Date, IReadOnlyList<TodaySession> Sessions);
 public record SessionWithClass(ClassSession Session, string ClassName, string Subject);
 public record MarkRow(Guid SessionId, Guid StudentId, string Status);
+public record MonthSummary(string Month, int Held, int Planned, int Cancelled, int Present, int Absent, double? AttendanceRate);
+public record SessionStatusRow(Guid Id, string Status);
 public record MissingAttendance(Guid SessionId, DateOnly Date, TimeOnly StartTime, Guid StudentId, string Name);
 
 public interface ISessionRepository
@@ -29,6 +31,7 @@ public interface ISessionRepository
     Task<IReadOnlyList<Student>> EligibleStudentsAsync(string owner, Guid classId, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<AttendanceWithStudent>> AttendanceAsync(string owner, Guid sessionId, CancellationToken ct);
     Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct);
+    Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct);
     Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct);
     Task<IReadOnlyList<(Guid ClassId, Guid StudentId)>> EligibleAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<SessionChange>> ChangesAsync(string owner, Guid sessionId, CancellationToken ct);
@@ -175,6 +178,19 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
             return new TodaySession(x.Session.ClassId, x.ClassName, x.Subject, SessionView.From(x.Session), students,
                 saved.Count(m => m.Status == "present"), saved.Count(m => m.Status == "absent"));
         }).ToArray()));
+    }
+    // Counts only: attendance rate is present / (present + absent); unmarked students are not guessed.
+    public async Task<ClassroomResult<MonthSummary>> MonthAsync(string owner, string month, CancellationToken ct)
+    {
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var first))
+            return new(null, ClassroomFailure.Invalid, Errors: new() { ["month"] = ["Tháng không hợp lệ (yyyy-MM)."] });
+        var sessions = await repository.StatusesAsync(owner, first, first.AddMonths(1).AddDays(-1), ct);
+        var heldIds = sessions.Where(x => x.Status == "held").Select(x => x.Id).ToArray();
+        var marks = await repository.MarksAsync(owner, heldIds, ct);
+        var present = marks.Count(x => x.Status == "present");
+        var absent = marks.Count(x => x.Status == "absent");
+        return new(new MonthSummary(month, heldIds.Length, sessions.Count(x => x.Status == "planned"), sessions.Count(x => x.Status == "cancelled"),
+            present, absent, present + absent == 0 ? null : (double)present / (present + absent)));
     }
     public async Task<ClassroomResult<IReadOnlyList<MissingAttendance>>> MissingAsync(string owner, Guid classId, SessionRange range, CancellationToken ct)
     {

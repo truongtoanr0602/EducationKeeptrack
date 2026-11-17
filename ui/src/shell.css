@@ -715,3 +715,11 @@ label.inline input {
 .billing-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .billing-actions button { min-height: 44px; }
 .billing-pager { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
+
+/* Báo cáo: month cards */
+.report-cards { list-style: none; margin: 12px 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.report-cards li { border: 1px solid var(--line, #d9dde3); border-radius: 12px; background: #fff; padding: 14px; display: grid; gap: 4px; }
+.report-cards strong { font-size: 1.35rem; }
+.report-cards small { color: #5b6573; }
+.report-sub { font-size: 1.05rem; margin: 20px 0 8px; }
+@media (min-width: 961px) { .report-cards { grid-template-columns: repeat(4, 1fr); } }

@@ -30,20 +30,24 @@ const copy = {
 export function CrossClass({
   kind,
   classes,
+  bare,
 }: {
   kind: keyof typeof copy;
   classes: TeacherClass[];
+  bare?: boolean;
 }) {
   const c = copy[kind];
   return (
     <>
-      <div className="page-heading compact">
-        <div>
-          <span className="eyebrow">{c.eyebrow}</span>
-          <h1>{c.title}</h1>
-          <p>{c.hint}</p>
+      {!bare && (
+        <div className="page-heading compact">
+          <div>
+            <span className="eyebrow">{c.eyebrow}</span>
+            <h1>{c.title}</h1>
+            <p>{c.hint}</p>
+          </div>
         </div>
-      </div>
+      )}
       {classes.length ? (
         <ul className="cross-class" aria-label="Danh sách lớp">
           {classes.map((item) => (

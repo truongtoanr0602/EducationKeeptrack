@@ -16,7 +16,7 @@ public static class BillingModule
     {
         services.AddDbContext<BillingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "billing")));
         services.AddScoped<IBillingRepository, BillingRepository>(); services.AddScoped<BillingService>();
-        services.AddScoped<PaymentService>(); services.AddScoped<DebtService>(); services.AddScoped<AdjustmentService>();
+        services.AddScoped<PaymentService>(); services.AddScoped<DebtService>(); services.AddScoped<MonthSummaryService>(); services.AddScoped<AdjustmentService>();
         services.AddScoped<StatisticsService>(); services.AddScoped<ReserveService>();
         services.AddScoped<IBillingReportSource, BillingReportSource>();
         services.AddScoped<PaymentQrService>();
@@ -65,6 +65,16 @@ public static class BillingModule
         });
         debts.MapGet("/", async (string month, Guid? classId, int? page, int? pageSize, HttpContext http, DebtService service) =>
             Respond(await service.ListAsync(Owner(http), month, classId, page ?? 1, pageSize ?? 50, http.RequestAborted)));
+        var summary = endpoints.MapGroup("/api/billing/summary").RequireAuthorization(policy => policy.RequireRole("Teacher"));
+        summary.AddEndpointFilter(async (context, next) =>
+        {
+            var http = context.HttpContext;
+            var access = await http.RequestServices.GetRequiredService<IAccountAccess>().GetAsync(Owner(http), http.RequestAborted);
+            return access.CanRead ? await next(context)
+                : Results.Json(new { message = "Tài khoản hiện không được truy cập học phí.", status = access.Status }, statusCode: 403);
+        });
+        summary.MapGet("/", async (string month, HttpContext http, MonthSummaryService service) =>
+            Respond(await service.MonthAsync(Owner(http), month, http.RequestAborted)));
         var recipient = endpoints.MapGroup("/api/billing/recipient").RequireAuthorization(policy => policy.RequireRole("Teacher"));
         recipient.AddEndpointFilter(async (context, next) =>
         {

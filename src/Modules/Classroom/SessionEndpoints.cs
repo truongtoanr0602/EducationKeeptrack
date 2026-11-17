@@ -39,14 +39,18 @@ public static class SessionEndpoints
     public static void MapToday(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/today").RequireAuthorization(policy => policy.RequireRole("Teacher"));
-        group.AddEndpointFilter(async (context, next) =>
-        {
-            var http = context.HttpContext;
-            var access = await http.RequestServices.GetRequiredService<IAccountAccess>().GetAsync(Owner(http), http.RequestAborted);
-            return access.CanRead ? await next(context)
-                : Results.Json(new { message = access.Status == "expired" ? "Quyền sử dụng đã hết hạn. Bạn chỉ có thể xem dữ liệu đã lưu." : "Quyền sử dụng hiện tại không cho phép thao tác này.", status = access.Status }, statusCode: 403);
-        });
+        group.AddEndpointFilter(ReadOnlyAccess);
         group.MapGet("/", async (DateOnly? date, HttpContext http, SessionService service) => Respond(await service.TodayAsync(Owner(http), date, http.RequestAborted)));
+        var reports = endpoints.MapGroup("/api/reports").RequireAuthorization(policy => policy.RequireRole("Teacher"));
+        reports.AddEndpointFilter(ReadOnlyAccess);
+        reports.MapGet("/attendance", async (string month, HttpContext http, SessionService service) => Respond(await service.MonthAsync(Owner(http), month, http.RequestAborted)));
+    }
+    private static async ValueTask<object?> ReadOnlyAccess(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var http = context.HttpContext;
+        var access = await http.RequestServices.GetRequiredService<IAccountAccess>().GetAsync(Owner(http), http.RequestAborted);
+        return access.CanRead ? await next(context)
+            : Results.Json(new { message = access.Status == "expired" ? "Quyền sử dụng đã hết hạn. Bạn chỉ có thể xem dữ liệu đã lưu." : "Quyền sử dụng hiện tại không cho phép thao tác này.", status = access.Status }, statusCode: 403);
     }
     private static string Owner(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     private static IResult Respond<T>(ClassroomResult<T> result) where T : class => result.Failure switch
