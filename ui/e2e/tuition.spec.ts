@@ -9,6 +9,7 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await page.getByRole("button", { name: "Tạo lớp mới", exact: true }).click();
   const name = `Lớp học phí ${Date.now()}`;
   await page.getByLabel("Tên lớp", { exact: true }).fill(name);

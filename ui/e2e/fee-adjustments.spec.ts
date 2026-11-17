@@ -9,6 +9,7 @@ test("fee adjustment shows its reason and matching debt after reload", async ({
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();

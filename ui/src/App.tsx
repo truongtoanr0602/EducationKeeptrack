@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   api,
   ApiError,
@@ -12,9 +12,17 @@ import { Roster } from "./Roster";
 import { Sessions } from "./Sessions";
 import { Tuition } from "./Tuition";
 import { Learning } from "./Learning";
-import { ReportsScreen } from "./ReportsScreen";
-import { Personalization } from "./Personalization";
-import { Admin } from "./Admin";
+import { CrossClass } from "./CrossClass";
+import { aiVisible } from "./access";
+
+// Rarely used or role-specific screens load on demand so the first paint ships less code.
+const ReportsScreen = lazy(() =>
+  import("./ReportsScreen").then((m) => ({ default: m.ReportsScreen })),
+);
+const Personalization = lazy(() =>
+  import("./Personalization").then((m) => ({ default: m.Personalization })),
+);
+const Admin = lazy(() => import("./Admin").then((m) => ({ default: m.Admin })));
 import { AccountScreen, ServiceNotice } from "./Service";
 import { Register } from "./Register";
 import { ForgotPassword } from "./AccountSettings";
@@ -30,6 +38,26 @@ import {
 } from "./router";
 
 const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
+
+// Four cross-class areas plus "Thêm" (account and service); see ADR 0005.
+type MainTab = "today" | "classes" | "billing" | "reports" | "account";
+const mainTabs: {
+  name: MainTab;
+  label: string;
+  short: string;
+  icon: string;
+}[] = [
+  { name: "today", label: "Hôm nay", short: "Hôm nay", icon: "☀" },
+  { name: "classes", label: "Lớp & học sinh", short: "Lớp", icon: "⌂" },
+  { name: "billing", label: "Hóa đơn", short: "Hóa đơn", icon: "₫" },
+  { name: "reports", label: "Báo cáo", short: "Báo cáo", icon: "▤" },
+  {
+    name: "account",
+    label: "Thêm · Tài khoản & dịch vụ",
+    short: "Thêm",
+    icon: "◈",
+  },
+];
 
 export function App() {
   const route = useRoute();
@@ -121,7 +149,7 @@ export function App() {
       route.name === "admin-teachers" || route.name === "admin-settings";
     if (me.role === "Admin" && !adminRoute)
       navigate({ name: "admin-teachers" });
-    if (me.role !== "Admin" && adminRoute) navigate({ name: "classes" });
+    if (me.role !== "Admin" && adminRoute) navigate({ name: "today" });
   }, [me, route.name]);
   // Keep the shell's access in sync when the account screen reloads the service profile.
   const syncAccess = useCallback((profile: ServiceProfile) => {
@@ -157,7 +185,7 @@ export function App() {
       setCreating(false);
       setResume(false);
       setMessage("");
-      navigate({ name: "classes" });
+      navigate({ name: "today" });
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setMe(null);
@@ -224,7 +252,20 @@ export function App() {
   if (me.role === "Admin")
     return route.name === "admin-teachers" ||
       route.name === "admin-settings" ? (
-      <Admin me={me} route={route} onLogout={logout} onExpired={sessionEnded} />
+      <Suspense
+        fallback={
+          <main className="loading" role="status">
+            Đang tải…
+          </main>
+        }
+      >
+        <Admin
+          me={me}
+          route={route}
+          onLogout={logout}
+          onExpired={sessionEnded}
+        />
+      </Suspense>
     ) : (
       <main className="loading" role="status">
         Đang chuyển tới khu vực quản trị…
@@ -238,6 +279,12 @@ export function App() {
     route.name === "class"
       ? sections.find((x) => x.id === route.section)?.label
       : undefined;
+  const activeTab: MainTab =
+    route.name === "class"
+      ? "classes"
+      : route.name === "admin-teachers" || route.name === "admin-settings"
+        ? "account"
+        : route.name;
   return (
     <div className={`app-shell${menuOpen ? " menu-open" : ""}`}>
       <a className="skip-link" href="#screen">
@@ -248,20 +295,16 @@ export function App() {
           Education Keeptrack
         </a>
         <nav aria-label="Không gian giảng dạy">
-          <a
-            className="nav-link"
-            href={href({ name: "classes" })}
-            aria-current={route.name === "classes" ? "page" : undefined}
-          >
-            <span aria-hidden="true">⌂</span> Lớp học của tôi
-          </a>
-          <a
-            className="nav-link"
-            href={href({ name: "account" })}
-            aria-current={route.name === "account" ? "page" : undefined}
-          >
-            <span aria-hidden="true">◈</span> Tài khoản & dịch vụ
-          </a>
+          {mainTabs.map((tab) => (
+            <a
+              key={tab.name}
+              className="nav-link"
+              href={href({ name: tab.name })}
+              aria-current={activeTab === tab.name ? "page" : undefined}
+            >
+              <span aria-hidden="true">{tab.icon}</span> {tab.label}
+            </a>
+          ))}
         </nav>
         {route.name === "class" && current && (
           <div className="sidebar-class">
@@ -285,7 +328,11 @@ export function App() {
                 ))}
               </select>
             </label>
-            <SectionNav route={route} label="Màn hình của lớp" />
+            <SectionNav
+              route={route}
+              label="Màn hình của lớp"
+              showAi={aiVisible(me.access)}
+            />
           </div>
         )}
         <div className="sidebar-account">
@@ -306,10 +353,12 @@ export function App() {
             ☰
           </button>
           <nav aria-label="Vị trí hiện tại" className="breadcrumb">
-            {route.name === "account" ? (
-              <span aria-current="page">Tài khoản & dịch vụ</span>
-            ) : (
+            {route.name === "class" ? (
               <a href={href({ name: "classes" })}>Lớp học</a>
+            ) : (
+              <span aria-current="page">
+                {mainTabs.find((tab) => tab.name === activeTab)?.label}
+              </span>
             )}
             {current && (
               <>
@@ -328,7 +377,11 @@ export function App() {
         </header>
         {route.name === "class" && current && (
           <div className="section-tabs">
-            <SectionNav route={route} label="Chuyển màn hình lớp" />
+            <SectionNav
+              route={route}
+              label="Chuyển màn hình lớp"
+              showAi={aiVisible(me.access)}
+            />
           </div>
         )}
         <main className="workspace" id="screen" tabIndex={-1}>
@@ -353,6 +406,11 @@ export function App() {
               </div>
               <AccountScreen onExpired={sessionEnded} onChanged={syncAccess} />
             </>
+          )}
+          {(route.name === "today" ||
+            route.name === "billing" ||
+            route.name === "reports") && (
+            <CrossClass kind={route.name} classes={classes} />
           )}
           {route.name === "classes" && (
             <ClassesScreen
@@ -389,6 +447,18 @@ export function App() {
           )}
         </main>
       </div>
+      <nav className="bottom-tabs" aria-label="Điều hướng nhanh">
+        {mainTabs.map((tab) => (
+          <a
+            key={tab.name}
+            href={href({ name: tab.name })}
+            aria-current={activeTab === tab.name ? "page" : undefined}
+          >
+            <span aria-hidden="true">{tab.icon}</span>
+            <span>{tab.short}</span>
+          </a>
+        ))}
+      </nav>
       {menuOpen && (
         <button
           className="menu-backdrop"
@@ -424,24 +494,28 @@ export function App() {
 function SectionNav({
   route,
   label,
+  showAi,
 }: {
   route: Extract<Route, { name: "class" }>;
   label: string;
+  showAi: boolean;
 }) {
   return (
     <nav aria-label={label}>
       <ul className="section-nav">
-        {sections.map((section) => (
-          <li key={section.id}>
-            <a
-              className="nav-link"
-              href={classHref(route.classId, section.id)}
-              aria-current={route.section === section.id ? "page" : undefined}
-            >
-              <span aria-hidden="true">{section.icon}</span> {section.label}
-            </a>
-          </li>
-        ))}
+        {sections
+          .filter((section) => showAi || section.id !== "personalization")
+          .map((section) => (
+            <li key={section.id}>
+              <a
+                className="nav-link"
+                href={classHref(route.classId, section.id)}
+                aria-current={route.section === section.id ? "page" : undefined}
+              >
+                <span aria-hidden="true">{section.icon}</span> {section.label}
+              </a>
+            </li>
+          ))}
       </ul>
     </nav>
   );
@@ -521,6 +595,13 @@ function ClassScreen({
   me: Me;
 }) {
   const section = sections.find((x) => x.id === route.section)!;
+  // A deep link to a hidden AI screen falls back to the roster instead of showing a locked page.
+  const aiHidden = route.section === "personalization" && !aiVisible(me.access);
+  useEffect(() => {
+    if (aiHidden)
+      navigate({ name: "class", classId: classroom.id, section: "students" });
+  }, [aiHidden, classroom.id]);
+  if (aiHidden) return null;
   return (
     <>
       <div className="page-heading compact">
@@ -541,16 +622,18 @@ function ClassScreen({
       {route.section === "assessments" && (
         <Learning classroom={classroom} me={me} />
       )}
-      {route.section === "personalization" && (
-        <Personalization
-          classroom={classroom}
-          me={me}
-          tab={route.tab ?? "curriculum"}
-        />
-      )}
-      {route.section === "reports" && (
-        <ReportsScreen classroom={classroom} me={me} />
-      )}
+      <Suspense fallback={<p role="status">Đang tải…</p>}>
+        {route.section === "personalization" && (
+          <Personalization
+            classroom={classroom}
+            me={me}
+            tab={route.tab ?? "curriculum"}
+          />
+        )}
+        {route.section === "reports" && (
+          <ReportsScreen classroom={classroom} me={me} />
+        )}
+      </Suspense>
     </>
   );
 }

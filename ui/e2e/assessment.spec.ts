@@ -9,6 +9,7 @@ test("teacher independently grades both levels, confirms and reloads history", a
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await expect(
     page.getByRole("button", { name: "Tạo lớp mới", exact: true }),
   ).toBeVisible();

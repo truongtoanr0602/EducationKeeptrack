@@ -12,6 +12,10 @@ export type Section =
   | "reports";
 export type PersonalTab = "curriculum" | "materials" | "competency" | "plans";
 export type Route =
+  // Cross-class top-level screens (ADR 0005): today's sessions, tuition owed, monthly reports.
+  | { name: "today" }
+  | { name: "billing" }
+  | { name: "reports" }
   | { name: "classes" }
   | { name: "class"; classId: string; section: Section; tab?: PersonalTab }
   // Teacher: service status, payment reconciliation, AI quota, login email.
@@ -44,14 +48,17 @@ export function parse(hash: string): Route {
     return { name: "class", classId: raw, section: "students" };
   const [first, classId, section, tab] = raw.replace(/^\//, "").split("/");
   if (first === "account") return { name: "account" };
+  if (first === "billing") return { name: "billing" };
+  if (first === "reports") return { name: "reports" };
   if (first === "admin" && classId === "settings")
     return { name: "admin-settings" };
   if (first === "admin")
     return section && guid.test(section)
       ? { name: "admin-teachers", teacherId: section }
       : { name: "admin-teachers" };
+  if (first === "classes" && !classId) return { name: "classes" };
   if (first !== "classes" || !classId || !guid.test(classId))
-    return { name: "classes" };
+    return { name: "today" };
   const known = sections.find((x) => x.id === section)?.id ?? "students";
   return {
     name: "class",
@@ -65,6 +72,9 @@ export function parse(hash: string): Route {
 }
 
 export function href(route: Route): string {
+  if (route.name === "today") return "#/today";
+  if (route.name === "billing") return "#/billing";
+  if (route.name === "reports") return "#/reports";
   if (route.name === "classes") return "#/classes";
   if (route.name === "account") return "#/account";
   if (route.name === "admin-settings") return "#/admin/settings";
