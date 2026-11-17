@@ -82,7 +82,7 @@ test("cashflow and period totals reconcile with details after correction and rel
   }
   const receipt = await receive("500000", "2026-11-05");
   await receive("100000", "2026-11-06");
-  await page.goto(`/?tuitionMonth=2026-10#${classId}`, {
+  await page.goto(`/?tuitionMonth=2026-10#/classes/${classId}/tuition`, {
     waitUntil: "domcontentloaded",
   });
   const stats = page.getByRole("region", {
@@ -131,7 +131,7 @@ test("cashflow and period totals reconcile with details after correction and rel
   await stats
     .getByRole("button", { name: "Mở lịch sử khoản nhận tiền", exact: true })
     .click();
-  expect(new URL(page.url()).hash).toBe(`#${classId}`);
+  expect(new URL(page.url()).hash).toBe(`#/classes/${classId}/tuition`);
   await stats
     .getByRole("button", { name: "Công nợ theo kỳ học", exact: true })
     .click();
@@ -149,6 +149,7 @@ test("cashflow and period totals reconcile with details after correction and rel
     name: "Chi tiết công nợ kỳ",
     exact: true,
   });
+  await expect(periods.locator("tbody tr").first()).toContainText("500.000");
   const paid = await periods
     .locator("tbody tr")
     .evaluateAll((rows) =>

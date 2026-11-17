@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("recipient preview and QR modes retain manual instructions without recording money", async ({
   page,
@@ -29,6 +30,7 @@ test("recipient preview and QR modes retain manual instructions without recordin
   await expect(
     page.getByRole("heading", { name: "An QR", exact: true }),
   ).toBeVisible();
+  await openSection(page, "tuition");
   const settings = page.getByRole("region", {
     name: "Tài khoản nhận tiền",
     exact: true,
@@ -52,7 +54,7 @@ test("recipient preview and QR modes retain manual instructions without recordin
       exact: true,
     }),
   ).toBeEnabled();
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const students = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
   ).json();

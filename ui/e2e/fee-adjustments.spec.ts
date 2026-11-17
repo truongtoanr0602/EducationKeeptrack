@@ -51,7 +51,7 @@ test("fee adjustment shows its reason and matching debt after reload", async ({
   );
   const attendance = `/classes/${classId}/sessions/${session.id}/attendance/${student.id}`;
   await write(attendance, { status: "present", version: 0 }, "PUT");
-  await page.goto(`/?tuitionMonth=2026-10#${classId}`, {
+  await page.goto(`/?tuitionMonth=2026-10#/classes/${classId}/tuition`, {
     waitUntil: "domcontentloaded",
   });
   const payments = page.getByRole("region", { name: "Thanh toán và công nợ" });

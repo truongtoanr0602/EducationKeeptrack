@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("teacher schedules sessions and sees saved present/absent rows with missing-attendance reminders", async ({
   page,
@@ -33,6 +34,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
       page.getByRole("heading", { name: student, exact: true }),
     ).toBeVisible();
   }
+  await openSection(page, "sessions");
   const workspace = page.getByRole("region", { name: "Lịch và điểm danh" });
   await workspace.getByRole("button", { name: "Thiết lập lịch tuần" }).click();
   await page.getByLabel("Lịch áp dụng từ ngày").fill("2026-10-01");
@@ -136,7 +138,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
     "Nội dung đang sửa",
   );
   await page.unroute("**/api/classes/*/sessions/*/attendance/*");
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const storedSessions = await (
     await page.request.get(
       `/api/classes/${classId}/sessions?from=2026-10-01&to=2026-10-31`,

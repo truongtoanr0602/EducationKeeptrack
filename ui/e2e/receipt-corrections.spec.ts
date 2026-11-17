@@ -54,7 +54,7 @@ test("receipt corrections preserve history and restore balances after reload", a
     { status: "present", version: 0 },
     "PUT",
   );
-  await page.goto(`/?tuitionMonth=2026-10#${classId}`, {
+  await page.goto(`/?tuitionMonth=2026-10#/classes/${classId}/tuition`, {
     waitUntil: "domcontentloaded",
   });
   const card = page.getByRole("article", { name: "Công nợ An sửa thu" });

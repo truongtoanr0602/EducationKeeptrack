@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf } from "./helpers";
 
 test("teacher manages a persistent roster and retains input after a failed save", async ({
   page,
@@ -95,7 +96,7 @@ test("teacher manages a persistent roster and retains input after a failed save"
   await expect(row).toContainText("Nguyễn Bình đã sửa");
   await row.getByText("Lịch sử theo học", { exact: true }).click();
   await expect(row).toContainText("2026-10-05");
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const roster = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
   ).json();

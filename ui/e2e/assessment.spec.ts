@@ -31,7 +31,7 @@ test("teacher independently grades both levels, confirms and reloads history", a
     studentId: student.id,
     startDate: "2026-10-01",
   });
-  await page.goto(`/#${classroom.id}`);
+  await page.goto(`/#/classes/${classroom.id}/assessments`);
   // The class was created via the API; refresh the app's class list.
   await page.reload();
   const learning = page.getByRole("region", { name: "Đánh giá học tập" });

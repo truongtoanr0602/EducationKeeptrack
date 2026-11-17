@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("teacher records partial receipts, retries a lost response once, and reloads debt history", async ({
   page,
@@ -29,9 +30,10 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     page.getByRole("heading", { name: "An công nợ", exact: true }),
   ).toBeVisible();
+  await openSection(page, "tuition");
   const payments = page.getByRole("region", { name: "Thanh toán và công nợ" });
   await expect(payments).toBeVisible();
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const enrollment = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
   ).json();

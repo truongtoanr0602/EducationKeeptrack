@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("teacher sets effective tuition, reloads the monthly breakdown, and sees corrected attendance", async ({
   page,
@@ -29,6 +30,7 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
   await expect(
     page.getByRole("heading", { name: "An học phí", exact: true }),
   ).toBeVisible();
+  await openSection(page, "tuition");
   const tuition = page.getByRole("region", { name: "Học phí theo buổi" });
   await tuition.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-01");
   await tuition.getByLabel("Đơn giá mỗi buổi (đồng)").fill("150000");
@@ -57,7 +59,7 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
   await expect(
     tuition.getByText("Đã lưu đơn giá.", { exact: true }),
   ).toBeVisible();
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const enrollments = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
   ).json();
