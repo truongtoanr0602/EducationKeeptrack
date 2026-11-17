@@ -685,3 +685,21 @@ label.inline input {
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
+
+/* Hôm nay: session cards with tap-to-flip attendance */
+.today-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.today-nav button { min-height: 44px; }
+.today-list, .today-students { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.today-card { border: 1px solid var(--line, #d9dde3); border-radius: 12px; background: #fff; overflow: hidden; }
+.today-card.status-cancelled { opacity: 0.65; }
+.today-head { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; width: 100%; padding: 14px 16px; min-height: 56px; text-align: left; background: none; border: 0; cursor: pointer; }
+.today-time { font-weight: 700; grid-row: span 2; align-self: center; }
+.today-title { display: grid; }
+.today-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.85rem; }
+.chip { padding: 2px 8px; border-radius: 999px; background: #eef2f7; }
+.today-body { padding: 0 16px 16px; display: grid; gap: 10px; }
+.today-student button { display: flex; justify-content: space-between; width: 100%; min-height: 52px; padding: 10px 14px; border-radius: 10px; border: 1px solid #b7e0c4; background: #eaf8ef; cursor: pointer; }
+.today-student.absent button { border-color: #d5d9df; background: #eef0f3; }
+.today-actions { display: flex; gap: 8px; position: sticky; bottom: calc(68px + env(safe-area-inset-bottom)); background: #fff; padding-top: 8px; }
+.today-actions button { min-height: 48px; flex: 1; }
+@media (min-width: 961px) { .today-actions { bottom: 0; } }

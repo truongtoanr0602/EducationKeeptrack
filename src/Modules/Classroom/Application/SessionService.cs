@@ -13,6 +13,10 @@ public record SessionView(Guid Id, DateOnly Date, TimeOnly StartTime, TimeOnly E
 }
 public record AttendanceView(Guid StudentId, string Name, string Status, string? Reason, bool Excused, int Version, int SessionVersion);
 public record AttendanceWithStudent(Attendance Attendance, Student Student);
+public record TodaySession(Guid ClassId, string ClassName, string Subject, SessionView Session, int Students, int Present, int Absent);
+public record TodayView(DateOnly Date, IReadOnlyList<TodaySession> Sessions);
+public record SessionWithClass(ClassSession Session, string ClassName, string Subject);
+public record MarkRow(Guid SessionId, Guid StudentId, string Status);
 public record MissingAttendance(Guid SessionId, DateOnly Date, TimeOnly StartTime, Guid StudentId, string Name);
 
 public interface ISessionRepository
@@ -24,6 +28,9 @@ public interface ISessionRepository
     Task<bool> HasReplacementAsync(string owner, Guid classId, Guid sourceId, CancellationToken ct);
     Task<IReadOnlyList<Student>> EligibleStudentsAsync(string owner, Guid classId, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<AttendanceWithStudent>> AttendanceAsync(string owner, Guid sessionId, CancellationToken ct);
+    Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct);
+    Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct);
+    Task<IReadOnlyList<(Guid ClassId, Guid StudentId)>> EligibleAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<SessionChange>> ChangesAsync(string owner, Guid sessionId, CancellationToken ct);
     void Add(WeeklySchedule schedule);
     void Add(ClassSession session);
@@ -153,6 +160,22 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
             await repository.SaveAsync(ct);
             return new(View(session, student, mark));
         }, ct);
+    // One read for the "Hôm nay" screen: every session of the owner on a Vietnam calendar date, with
+    // per-session attendance counts, in three queries instead of one request per class.
+    public async Task<ClassroomResult<TodayView>> TodayAsync(string owner, DateOnly? date, CancellationToken ct)
+    {
+        var day = date ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), TimeZoneInfo.FindSystemTimeZoneById(ClassSession.TimeZone)).DateTime);
+        var sessions = await repository.SessionsOnAsync(owner, day, ct);
+        var marks = (await repository.MarksAsync(owner, sessions.Select(x => x.Session.Id).ToArray(), ct)).ToLookup(x => x.SessionId);
+        var eligible = (await repository.EligibleAsync(owner, sessions.Select(x => x.Session.ClassId).Distinct().ToArray(), day, ct)).ToLookup(x => x.ClassId, x => x.StudentId);
+        return new(new TodayView(day, sessions.Select(x =>
+        {
+            var saved = marks[x.Session.Id].ToArray();
+            var students = eligible[x.Session.ClassId].Concat(saved.Select(m => m.StudentId)).Distinct().Count();
+            return new TodaySession(x.Session.ClassId, x.ClassName, x.Subject, SessionView.From(x.Session), students,
+                saved.Count(m => m.Status == "present"), saved.Count(m => m.Status == "absent"));
+        }).ToArray()));
+    }
     public async Task<ClassroomResult<IReadOnlyList<MissingAttendance>>> MissingAsync(string owner, Guid classId, SessionRange range, CancellationToken ct)
     {
         var sessions = await ListAsync(owner, classId, range, ct);

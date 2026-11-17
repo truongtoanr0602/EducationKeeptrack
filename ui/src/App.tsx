@@ -13,6 +13,7 @@ import { Sessions } from "./Sessions";
 import { Tuition } from "./Tuition";
 import { Learning } from "./Learning";
 import { CrossClass } from "./CrossClass";
+import { Today } from "./Today";
 import { aiVisible } from "./access";
 
 // Rarely used or role-specific screens load on demand so the first paint ships less code.
@@ -407,9 +408,8 @@ export function App() {
               <AccountScreen onExpired={sessionEnded} onChanged={syncAccess} />
             </>
           )}
-          {(route.name === "today" ||
-            route.name === "billing" ||
-            route.name === "reports") && (
+          {route.name === "today" && <Today me={me} />}
+          {(route.name === "billing" || route.name === "reports") && (
             <CrossClass kind={route.name} classes={classes} />
           )}
           {route.name === "classes" && (
