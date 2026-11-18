@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Me, TeacherClass } from "./api";
 import { useAccess } from "./access";
 import { loadDebts, type DebtItem, type DebtsView } from "./billing-api";
+import { useSwr } from "./swr";
 import { ReceiptForm } from "./ReceiptForm";
 import { today } from "./roster-api";
 import { money } from "./tuition-api";
@@ -22,23 +23,24 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
   const [month, setMonth] = useState(() => today().slice(0, 7));
   const [classId, setClassId] = useState("");
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<DebtsView | null>(null);
-  const [error, setError] = useState("");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [sharing, setSharing] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<Record<string, string>>({});
-  const load = useCallback(async () => {
-    try {
-      setView(await loadDebts(month, classId, page, PAGE_SIZE));
-      setError("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Không thể tải công nợ.");
-      denied(e);
-    }
-  }, [month, classId, page, denied]);
+  const {
+    data: view,
+    error: failure,
+    reload: load,
+  } = useSwr<DebtsView>(`debts:${month}:${classId}:${page}`, () =>
+    loadDebts(month, classId, page, PAGE_SIZE),
+  );
+  const error = failure
+    ? failure instanceof Error
+      ? failure.message
+      : "Không thể tải công nợ."
+    : "";
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (failure) denied(failure);
+  }, [failure, denied]);
 
   async function share(item: DebtItem, key: string) {
     setSharing(key);

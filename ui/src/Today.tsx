@@ -7,6 +7,7 @@ import {
   type ClassSession,
   sessionStatusNames,
 } from "./session-api";
+import { useSwr } from "./swr";
 import {
   loadToday,
   shiftDate,
@@ -120,20 +121,30 @@ function SessionCard({
         setVersion(held.version);
         setStatus("held");
       }
-      const done: Undo = [];
+      const changed = rows
+        .map((row, i) => ({ row, i, m: marks[row.studentId] }))
+        .filter(
+          ({ row, m }) =>
+            m && (m.status !== row.status || m.excused !== row.excused),
+        );
+      // Optimistic: the card shows the new marks at once; a failure below reloads the saved ones.
+      setRows((all) =>
+        all.map((row) => {
+          const m = marks[row.studentId];
+          return m ? { ...row, status: m.status, excused: m.excused } : row;
+        }),
+      );
+      // The server serializes writes per class, so sending them together only removes round trips.
+      const results = await Promise.all(
+        changed.map(({ row, m }) => put(row, m.status, m.excused, row.version)),
+      );
+      const done: Undo = changed.map(({ row }, k) => ({
+        studentId: row.studentId,
+        before: row,
+        version: results[k].version,
+      }));
       const next = [...rows];
-      for (const [i, row] of rows.entries()) {
-        const m = marks[row.studentId];
-        if (!m || (m.status === row.status && m.excused === row.excused))
-          continue;
-        const saved = await put(row, m.status, m.excused, row.version);
-        done.push({
-          studentId: row.studentId,
-          before: row,
-          version: saved.version,
-        });
-        next[i] = saved;
-      }
+      changed.forEach(({ i }, k) => (next[i] = results[k]));
       setRows(next);
       setUndo(done.length ? done : null);
       setNotice(
@@ -278,20 +289,19 @@ function SessionCard({
 export function Today({ me }: { me: Me }) {
   const { canWrite, denied } = useAccess(me);
   const [date, setDate] = useState<string | undefined>();
-  const [view, setView] = useState<TodayView | null>(null);
-  const [error, setError] = useState("");
-  const refresh = useCallback(async () => {
-    try {
-      setView(await loadToday(date));
-      setError("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Không thể tải buổi dạy.");
-      denied(e);
-    }
-  }, [date, denied]);
+  const {
+    data: view,
+    error: failure,
+    reload: refresh,
+  } = useSwr<TodayView>(`today:${date ?? ""}`, () => loadToday(date));
+  const error = failure
+    ? failure instanceof Error
+      ? failure.message
+      : "Không thể tải buổi dạy."
+    : "";
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (failure) denied(failure);
+  }, [failure, denied]);
   const current = view?.date;
   return (
     <>

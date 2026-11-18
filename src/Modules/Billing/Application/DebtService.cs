@@ -7,13 +7,14 @@ public record DebtClass(Guid ClassId, string ClassName, string Status, long Vers
 public record DebtsView(string Month, string TotalDebtVnd, int Count, int Page, int PageSize, IReadOnlyList<DebtClass> Classes, IReadOnlyList<DebtItem> Items);
 
 // Cross-class "Hóa đơn" read: every student of the owner who still owes tuition, largest debt first.
-// It reuses the per-class payment report so the figures can never disagree with the class screen.
-public sealed class DebtService(PaymentService payments, IClassroomBillingSource classroom)
+// Debt comes from the same PeriodBalance rules as the per-class payment report, so the figures agree.
+public sealed class DebtService(IBillingRepository repository, IClassroomBillingSource classroom)
 {
     public const int MaxPageSize = 100;
     public async Task<BillingResult<DebtsView>> ListAsync(string owner, string month, Guid? classId, int page, int pageSize, CancellationToken ct)
     {
         var errors = new Dictionary<string, string[]>();
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var first)) errors["month"] = ["Tháng không hợp lệ."];
         if (page < 1) errors["page"] = ["Trang phải từ 1."];
         if (pageSize is < 1 or > MaxPageSize) errors["pageSize"] = [$"Kích thước trang từ 1 đến {MaxPageSize}."];
         if (errors.Count > 0) return new(null, BillingFailure.Invalid, Errors: errors);
@@ -27,16 +28,23 @@ public sealed class DebtService(PaymentService payments, IClassroomBillingSource
         var states = new List<DebtClass>();
         foreach (var item in classes)
         {
-            var report = await payments.ReportAsync(owner, item.Id, month, ct);
-            if (report.Failure is not null) return new(null, report.Failure, report.Message, report.Errors);
-            states.Add(new(item.Id, item.Name, report.Value!.Status, report.Value.Version));
-            items.AddRange(report.Value.Students.Where(s => Parse(s.TotalDebtVnd) > 0)
-                .Select(s => new DebtItem(item.Id, item.Name, item.Subject, s.StudentId, s.Name, s.TotalDebtVnd, s.CurrentDebtVnd, s.OldDebtVnd, report.Value.Version)));
+            var scan = await MoneyScanner.ScanAsync(repository, classroom, owner, item.Id, ct);
+            if (scan is null) continue;
+            var version = scan.Snapshot.Ledger?.Version ?? 0;
+            states.Add(new(item.Id, item.Name, scan.Status, version));
+            foreach (var student in scan.Source.Students)
+            {
+                var own = scan.Balances.Where(x => x.StudentId == student.Id).ToArray();
+                var total = own.Sum(x => x.Debt);
+                if (total <= 0) continue;
+                items.Add(new(item.Id, item.Name, item.Subject, student.Id, student.Name, Text(total),
+                    Text(own.Where(x => x.Period == first).Sum(x => x.Debt)), Text(own.Where(x => x.Period < first).Sum(x => x.Debt)), version));
+            }
         }
         var ordered = items.OrderByDescending(x => Parse(x.TotalDebtVnd)).ThenBy(x => x.Name).ThenBy(x => x.StudentId).ToArray();
-        var total = ordered.Sum(x => Parse(x.TotalDebtVnd));
-        return new(new DebtsView(month, total.ToString("0", CultureInfo.InvariantCulture), ordered.Length, page, pageSize, states,
+        return new(new DebtsView(month, Text(ordered.Sum(x => Parse(x.TotalDebtVnd))), ordered.Length, page, pageSize, states,
             ordered.Skip((page - 1) * pageSize).Take(pageSize).ToArray()));
     }
     private static decimal Parse(string value) => decimal.Parse(value, CultureInfo.InvariantCulture);
+    private static string Text(decimal value) => value.ToString("0", CultureInfo.InvariantCulture);
 }

@@ -7,20 +7,39 @@ import {
   type TeacherClass,
 } from "./api";
 import { Login } from "./Login";
-import { CreateClass } from "./CreateClass";
-import { Roster } from "./Roster";
-import { Sessions } from "./Sessions";
-import { Tuition } from "./Tuition";
-import { Learning } from "./Learning";
-import { CrossClass } from "./CrossClass";
 import { Today } from "./Today";
-import { Billing } from "./Billing";
-import { MonthReport } from "./MonthReport";
-import { StudentDetail } from "./StudentDetail";
-import { StudentList } from "./StudentList";
 import { aiVisible } from "./access";
+import { prefetch } from "./swr";
+import { loadToday } from "./today-api";
 
 // Rarely used or role-specific screens load on demand so the first paint ships less code.
+const CreateClass = lazy(() =>
+  import("./CreateClass").then((m) => ({ default: m.CreateClass })),
+);
+const Roster = lazy(() =>
+  import("./Roster").then((m) => ({ default: m.Roster })),
+);
+const Sessions = lazy(() =>
+  import("./Sessions").then((m) => ({ default: m.Sessions })),
+);
+const Tuition = lazy(() =>
+  import("./Tuition").then((m) => ({ default: m.Tuition })),
+);
+const Learning = lazy(() =>
+  import("./Learning").then((m) => ({ default: m.Learning })),
+);
+const Billing = lazy(() =>
+  import("./Billing").then((m) => ({ default: m.Billing })),
+);
+const MonthReport = lazy(() =>
+  import("./MonthReport").then((m) => ({ default: m.MonthReport })),
+);
+const StudentDetail = lazy(() =>
+  import("./StudentDetail").then((m) => ({ default: m.StudentDetail })),
+);
+const StudentList = lazy(() =>
+  import("./StudentList").then((m) => ({ default: m.StudentList })),
+);
 const ReportsScreen = lazy(() =>
   import("./ReportsScreen").then((m) => ({ default: m.ReportsScreen })),
 );
@@ -28,10 +47,20 @@ const Personalization = lazy(() =>
   import("./Personalization").then((m) => ({ default: m.Personalization })),
 );
 const Admin = lazy(() => import("./Admin").then((m) => ({ default: m.Admin })));
-import { AccountScreen, ServiceNotice } from "./Service";
-import { Register } from "./Register";
-import { ForgotPassword } from "./AccountSettings";
-import { readTokenLink, TokenAction } from "./TokenAction";
+import { ServiceNotice } from "./Service";
+import { readTokenLink } from "./TokenAction";
+const AccountScreen = lazy(() =>
+  import("./Service").then((m) => ({ default: m.AccountScreen })),
+);
+const Register = lazy(() =>
+  import("./Register").then((m) => ({ default: m.Register })),
+);
+const ForgotPassword = lazy(() =>
+  import("./AccountSettings").then((m) => ({ default: m.ForgotPassword })),
+);
+const TokenAction = lazy(() =>
+  import("./TokenAction").then((m) => ({ default: m.TokenAction })),
+);
 import type { ServiceProfile } from "./service-api";
 import {
   classHref,
@@ -81,16 +110,26 @@ export function App() {
   );
   const [link, setLink] = useState(readTokenLink);
   const load = useCallback(async () => {
-    const user = await api<Me>("/auth/me");
-    const items =
-      user.role !== "Admin" && user.access.canRead
-        ? await api<TeacherClass[]>("/classes")
-        : [];
+    // Most users are teachers, so the class list is requested at the same time as the profile instead of
+    // after it. A failure here is ignored unless the profile says the list is needed (then it is retried).
+    const profile = api<Me>("/auth/me");
+    const early = api<TeacherClass[]>("/classes").then(
+      (value) => ({ value }),
+      () => null,
+    );
+    const user = await profile;
+    let items: TeacherClass[] = [];
+    if (user.role !== "Admin" && user.access.canRead) {
+      const done = await early;
+      items = done ? done.value : await api<TeacherClass[]>("/classes");
+    }
     setMe(user);
     setClasses(items);
     setError("");
   }, []);
   useEffect(() => {
+    // The landing screen's data is requested with the profile so it is ready when the shell appears.
+    if (route.name === "today") prefetch("today:", () => loadToday());
     load()
       .catch((e) => {
         if (!(e instanceof ApiError && e.status === 401))
@@ -98,6 +137,23 @@ export function App() {
       })
       .finally(() => setLoading(false));
   }, [load]);
+  // Once the landing screen is up, fetch the other tabs' code while the browser is idle so switching is instant.
+  useEffect(() => {
+    if (!me || me.role === "Admin") return;
+    const warm = () => {
+      void import("./Billing");
+      void import("./MonthReport");
+      void import("./Roster");
+      void import("./Sessions");
+    };
+    const idle = window.requestIdleCallback;
+    if (idle) {
+      const handle = idle(warm, { timeout: 4000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(warm, 2000);
+    return () => window.clearTimeout(timer);
+  }, [me]);
   // A user input, rather than a timer/poll, renews idle activity at most once/minute.
   useEffect(() => {
     if (!me) return;
@@ -210,24 +266,34 @@ export function App() {
   // re-read because confirming an email or resetting a password revokes existing sessions.
   if (link)
     return (
-      <TokenAction
-        link={link}
-        onDone={(text) => {
-          setLink(null);
-          setMessage(text);
-          setScreen("login");
-          if (me)
-            load().catch(() => {
-              setMe(null);
-              setClasses([]);
-            });
-        }}
-      />
+      <Suspense fallback={<p role="status">Đang tải…</p>}>
+        <TokenAction
+          link={link}
+          onDone={(text) => {
+            setLink(null);
+            setMessage(text);
+            setScreen("login");
+            if (me)
+              load().catch(() => {
+                setMe(null);
+                setClasses([]);
+              });
+          }}
+        />
+      </Suspense>
     );
   if (!me && screen === "register")
-    return <Register onBack={() => setScreen("login")} />;
+    return (
+      <Suspense fallback={<p role="status">Đang tải…</p>}>
+        <Register onBack={() => setScreen("login")} />
+      </Suspense>
+    );
   if (!me && screen === "forgot")
-    return <ForgotPassword onBack={() => setScreen("login")} />;
+    return (
+      <Suspense fallback={<p role="status">Đang tải…</p>}>
+        <ForgotPassword onBack={() => setScreen("login")} />
+      </Suspense>
+    );
   if (!me)
     return (
       <>
@@ -390,72 +456,77 @@ export function App() {
           </div>
         )}
         <main className="workspace" id="screen" tabIndex={-1}>
-          {route.name !== "account" && <ServiceNotice access={me.access} />}
-          {message && (
-            <p role="status" className="notice success">
-              {message}
-            </p>
-          )}
-          {error && (
-            <p role="alert" className="error">
-              {error}
-            </p>
-          )}
-          {route.name === "account" && (
-            <>
-              <div className="page-heading compact">
-                <div>
-                  <span className="eyebrow">{me.email.toUpperCase()}</span>
-                  <h1>Tài khoản & dịch vụ</h1>
-                </div>
-              </div>
-              <AccountScreen onExpired={sessionEnded} onChanged={syncAccess} />
-            </>
-          )}
-          {route.name === "today" && <Today me={me} />}
-          {route.name === "billing" && <Billing me={me} classes={classes} />}
-          {route.name === "reports" && (
-            <MonthReport me={me} classes={classes} />
-          )}
-          {route.name === "student" && (
-            <StudentDetail me={me} studentId={route.studentId} />
-          )}
-          {route.name === "classes" && (
-            <>
-              <ClassesScreen
-                me={me}
-                classes={classes}
-                onCreate={() => {
-                  setDraft(emptyDraft);
-                  setCreating(true);
-                }}
-              />
-              {me.access.canRead && classes.length > 0 && <StudentList />}
-            </>
-          )}
-          {route.name === "class" &&
-            !current &&
-            checked !== route.classId &&
-            me.access.canRead && <p role="status">Đang tải lớp…</p>}
-          {route.name === "class" &&
-            !current &&
-            (checked === route.classId || !me.access.canRead) && (
-              <section className="empty">
-                <h1>Không tìm thấy lớp</h1>
-                <p>Lớp không tồn tại hoặc không thuộc tài khoản của bạn.</p>
-                <a className="button-link" href={href({ name: "classes" })}>
-                  Về danh sách lớp
-                </a>
-              </section>
+          <Suspense fallback={<p role="status">Đang tải…</p>}>
+            {route.name !== "account" && <ServiceNotice access={me.access} />}
+            {message && (
+              <p role="status" className="notice success">
+                {message}
+              </p>
             )}
-          {route.name === "class" && current && (
-            <ClassScreen
-              key={`${current.id}/${route.section}`}
-              route={route}
-              classroom={current}
-              me={me}
-            />
-          )}
+            {error && (
+              <p role="alert" className="error">
+                {error}
+              </p>
+            )}
+            {route.name === "account" && (
+              <>
+                <div className="page-heading compact">
+                  <div>
+                    <span className="eyebrow">{me.email.toUpperCase()}</span>
+                    <h1>Tài khoản & dịch vụ</h1>
+                  </div>
+                </div>
+                <AccountScreen
+                  onExpired={sessionEnded}
+                  onChanged={syncAccess}
+                />
+              </>
+            )}
+            {route.name === "today" && <Today me={me} />}
+            {route.name === "billing" && <Billing me={me} classes={classes} />}
+            {route.name === "reports" && (
+              <MonthReport me={me} classes={classes} />
+            )}
+            {route.name === "student" && (
+              <StudentDetail me={me} studentId={route.studentId} />
+            )}
+            {route.name === "classes" && (
+              <>
+                <ClassesScreen
+                  me={me}
+                  classes={classes}
+                  onCreate={() => {
+                    setDraft(emptyDraft);
+                    setCreating(true);
+                  }}
+                />
+                {me.access.canRead && classes.length > 0 && <StudentList />}
+              </>
+            )}
+            {route.name === "class" &&
+              !current &&
+              checked !== route.classId &&
+              me.access.canRead && <p role="status">Đang tải lớp…</p>}
+            {route.name === "class" &&
+              !current &&
+              (checked === route.classId || !me.access.canRead) && (
+                <section className="empty">
+                  <h1>Không tìm thấy lớp</h1>
+                  <p>Lớp không tồn tại hoặc không thuộc tài khoản của bạn.</p>
+                  <a className="button-link" href={href({ name: "classes" })}>
+                    Về danh sách lớp
+                  </a>
+                </section>
+              )}
+            {route.name === "class" && current && (
+              <ClassScreen
+                key={`${current.id}/${route.section}`}
+                route={route}
+                classroom={current}
+                me={me}
+              />
+            )}
+          </Suspense>
         </main>
       </div>
       <nav className="bottom-tabs" aria-label="Điều hướng nhanh">
@@ -478,25 +549,27 @@ export function App() {
         />
       )}
       {creating && (
-        <CreateClass
-          initial={draft}
-          onClose={() => setCreating(false)}
-          onSaved={(item) => {
-            setClasses((items) => [...items, item]);
-            setCreating(false);
-            setDraft(emptyDraft);
-            setMessage("Đã tạo lớp thành công.");
-          }}
-          onExpired={(saved) => {
-            setDraft(saved);
-            setCreating(false);
-            setResume(true);
-            setMe(null);
-            setMessage(
-              "Phiên đã hết hạn. Đăng nhập lại để tiếp tục; thông tin lớp được giữ trong trang này.",
-            );
-          }}
-        />
+        <Suspense fallback={null}>
+          <CreateClass
+            initial={draft}
+            onClose={() => setCreating(false)}
+            onSaved={(item) => {
+              setClasses((items) => [...items, item]);
+              setCreating(false);
+              setDraft(emptyDraft);
+              setMessage("Đã tạo lớp thành công.");
+            }}
+            onExpired={(saved) => {
+              setDraft(saved);
+              setCreating(false);
+              setResume(true);
+              setMe(null);
+              setMessage(
+                "Phiên đã hết hạn. Đăng nhập lại để tiếp tục; thông tin lớp được giữ trong trang này.",
+              );
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

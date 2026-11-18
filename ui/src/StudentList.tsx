@@ -1,22 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "./api";
+import { useSwr } from "./swr";
 import type { Student } from "./roster-api";
 import { href } from "./router";
 
 // Every student of the teacher in one searchable list (profiles are shared between classes).
 export function StudentList() {
-  const [students, setStudents] = useState<Student[] | null>(null);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  useEffect(() => {
-    let live = true;
-    api<Student[]>("/students")
-      .then((items) => live && setStudents(items))
-      .catch(() => live && setError("Không thể tải danh sách học sinh."));
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { data: students, error: failure } = useSwr<Student[]>("students", () =>
+    api<Student[]>("/students"),
+  );
+  const error = failure ? "Không thể tải danh sách học sinh." : "";
   const shown = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("vi");
     return (students ?? []).filter(

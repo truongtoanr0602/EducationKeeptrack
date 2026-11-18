@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Me, TeacherClass } from "./api";
 import { useAccess } from "./access";
 import { CrossClass } from "./CrossClass";
 import { today } from "./roster-api";
 import { money } from "./tuition-api";
-import {
-  loadMonth,
-  type AttendanceMonth,
-  type MoneyMonth,
-} from "./reports-api";
+import { loadMonth } from "./reports-api";
+import { useSwr } from "./swr";
 import { classHref } from "./router";
 
 const notReady: Record<string, string> = {
@@ -27,21 +24,17 @@ export function MonthReport({
 }) {
   const { denied } = useAccess(me);
   const [month, setMonth] = useState(() => today().slice(0, 7));
-  const [data, setData] = useState<[AttendanceMonth, MoneyMonth] | null>(null);
-  const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    setData(null);
-    try {
-      setData(await loadMonth(month));
-      setError("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Không thể tải báo cáo.");
-      denied(e);
-    }
-  }, [month, denied]);
+  const { data, error: failure } = useSwr(`month:${month}`, () =>
+    loadMonth(month),
+  );
+  const error = failure
+    ? failure instanceof Error
+      ? failure.message
+      : "Không thể tải báo cáo."
+    : "";
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (failure) denied(failure);
+  }, [failure, denied]);
   const [attendance, moneyMonth] = data ?? [];
   const rate =
     attendance?.attendanceRate == null

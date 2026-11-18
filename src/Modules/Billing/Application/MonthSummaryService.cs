@@ -4,10 +4,10 @@ namespace EducationKeeptrack.Billing.Application;
 
 public record MonthMoney(string Month, string FeesVnd, string ReceivedVnd, string DebtVnd, IReadOnlyList<DebtClass> Classes);
 
-// Cross-class money figures for the "Báo cáo" cards. Each figure comes from the per-class service that
-// already owns it, so the totals match the class screens: fees and cash received in the month, and the
-// debt still open today across all periods.
-public sealed class MonthSummaryService(StatisticsService statistics, PaymentService payments, IClassroomBillingSource classroom)
+// Cross-class money figures for the "Báo cáo" cards: fees and cash received in the month, and the debt
+// still open today across all periods. Computed from one scan per class with the same rules as the
+// class screens (period balances; active receipts by received date).
+public sealed class MonthSummaryService(IBillingRepository repository, IClassroomBillingSource classroom)
 {
     public async Task<BillingResult<MonthMoney>> MonthAsync(string owner, string month, CancellationToken ct)
     {
@@ -18,15 +18,14 @@ public sealed class MonthSummaryService(StatisticsService statistics, PaymentSer
         var states = new List<DebtClass>();
         foreach (var item in await classroom.ListClassesAsync(owner, ct))
         {
-            var period = await statistics.PeriodAsync(owner, item.Id, month, ct);
-            var cash = await statistics.CashflowAsync(owner, item.Id, first.ToString("yyyy-MM-dd"), last.ToString("yyyy-MM-dd"), ct);
-            var open = await payments.ReportAsync(owner, item.Id, month, ct);
-            if (period.Failure is not null || cash.Failure is not null || open.Failure is not null) return new(null, BillingFailure.Conflict, "Không thể tổng hợp số liệu của một lớp.");
-            fees += Parse(period.Value!.TotalFeesVnd); received += Parse(cash.Value!.TotalReceivedVnd); debt += Parse(open.Value!.TotalDebtVnd);
-            states.Add(new(item.Id, item.Name, open.Value.Status, open.Value.Version));
+            var scan = await MoneyScanner.ScanAsync(repository, classroom, owner, item.Id, ct);
+            if (scan is null) continue;
+            fees += scan.Balances.Where(x => x.Period == first).Sum(x => x.Fees);
+            received += scan.Snapshot.Receipts.Where(x => x.Status == "active" && x.ReceivedOn >= first && x.ReceivedOn <= last).Sum(x => x.AmountVnd);
+            debt += scan.Balances.Sum(x => x.Debt);
+            states.Add(new(item.Id, item.Name, scan.Status, scan.Snapshot.Ledger?.Version ?? 0));
         }
         return new(new MonthMoney(month, Text(fees), Text(received), Text(debt), states));
     }
-    private static decimal Parse(string value) => decimal.Parse(value, CultureInfo.InvariantCulture);
     private static string Text(decimal value) => value.ToString("0", CultureInfo.InvariantCulture);
 }
