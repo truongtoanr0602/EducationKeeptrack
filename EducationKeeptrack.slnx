@@ -14,5 +14,5 @@
   <Folder Name="/tests/">
     <Project Path="tests/ApiTests/ApiTests.csproj" />
   </Folder>
-  <Folder Name="/tools/"><Project Path="tools/R2Ci/R2Ci.csproj" /></Folder>
+  <Folder Name="/tools/"><Project Path="tools/R2Ci/R2Ci.csproj" /><Project Path="tools/R2Migrate/R2Migrate.csproj" /></Folder>
 </Solution>

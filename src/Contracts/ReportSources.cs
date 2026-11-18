@@ -13,7 +13,9 @@ public interface IClassroomReportSource { Task<ClassroomReportSnapshot?> ReadAsy
 public record ReportAssessment(Guid Id, DateOnly Date, string Title, string Status, int? Completion, int? Correctness, bool HasConfirmedResult);
 public record LearningReportSnapshot(string Stamp, IReadOnlyList<ReportAssessment> Assessments);
 [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
-public record ReportFinance(decimal OldDebtVnd, decimal PeriodFeesVnd, decimal PeriodPaidVnd, decimal PeriodHeldVnd, decimal PeriodDebtVnd, decimal UnallocatedVnd);
+/// <summary>Reserve fields default to 0 so previews stored before reserves existed still read. Debt figures are already net of reserve applied.</summary>
+public record ReportFinance(decimal OldDebtVnd, decimal PeriodFeesVnd, decimal PeriodPaidVnd, decimal PeriodHeldVnd, decimal PeriodDebtVnd, decimal UnallocatedVnd,
+    decimal ReserveAppliedVnd = 0, decimal ReserveOpeningVnd = 0, decimal ReserveApprovedVnd = 0, decimal ReserveUsedVnd = 0, decimal ReserveCancelledVnd = 0, decimal ReserveCarriedVnd = 0);
 [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]
 public record ReportFeeLine(Guid SessionId, DateOnly Date, decimal? UnitPriceVnd, decimal? AmountVnd);
 [JsonNumberHandling(JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString)]

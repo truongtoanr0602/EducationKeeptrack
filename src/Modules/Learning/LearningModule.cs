@@ -17,12 +17,27 @@ public static class LearningModule
         services.AddDbContext<LearningDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "learning")));
         services.AddScoped<ILearningRepository, LearningRepository>();
         services.AddScoped<LearningService>();
+        services.AddScoped<ICurriculumRepository, CurriculumRepository>();
+        services.AddScoped<CurriculumService>();
+        services.AddScoped<IMaterialRepository, MaterialRepository>();
+        services.AddScoped<MaterialService>();
+        services.AddScoped<ISkillResultRepository, SkillResultRepository>();
+        services.AddScoped<SkillResultService>();
+        services.AddScoped<ICompetencyRepository, CompetencyRepository>();
+        services.AddScoped<CompetencyService>();
+        services.AddScoped<IReviewPlanRepository, ReviewPlanRepository>();
+        services.AddScoped<ReviewPlanService>();
         services.AddScoped<ILearningReportSource, LearningReportSource>();
         services.AddHostedService<LearningResultDispatcher>();
         return services;
     }
     public static void MapLearning(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapCurriculum();
+        endpoints.MapMaterials();
+        endpoints.MapSkillResults();
+        endpoints.MapCompetency();
+        endpoints.MapReviewPlans();
         var group = endpoints.MapGroup("/api/learning/classes/{classId:guid}/assessments").RequireAuthorization(p => p.RequireRole("Teacher"));
         group.AddEndpointFilter(async (context, next) =>
         {
@@ -38,6 +53,9 @@ public static class LearningModule
         });
         group.MapGet("/", async (Guid classId, HttpContext http, LearningService service) =>
             Respond(await service.ListAsync(Owner(http), classId, http.RequestAborted), items => items.Select(x => new { x.Id, x.Title, x.Date, x.DefaultMethod })));
+        // Declared before "/{id:guid}" is irrelevant to matching (the id constraint is a guid), kept next to the assessment routes.
+        group.MapGet("/progress/{studentId:guid}", async (Guid classId, Guid studentId, DateOnly? from, DateOnly? to, HttpContext http, LearningService service) =>
+            Respond(await service.ProgressAsync(Owner(http), classId, studentId, from, to, http.RequestAborted), ProgressView));
         group.MapGet("/{id:guid}", async (Guid classId, Guid id, HttpContext http, LearningService service) =>
             Respond(await service.FindAsync(Owner(http), classId, id, http.RequestAborted), View));
         group.MapPut("/{id:guid}/submissions/{studentId:guid}", async (Guid classId, Guid id, Guid studentId, ResultInput input, HttpContext http, LearningService service) =>
@@ -51,6 +69,11 @@ public static class LearningModule
         400 => Results.ValidationProblem(result.Errors!),
         409 => Results.Conflict(new { message = "Bài nộp đã thay đổi hoặc đã được xử lý. Tải lại trước khi lưu; nội dung đang nhập được giữ nguyên." }),
         _ => Results.Ok(view(result.Value!))
+    };
+    private static object ProgressView(StudentProgress p) => new
+    {
+        p.StudentId, p.StudentName, from = p.From.ToString("yyyy-MM-dd"), to = p.To.ToString("yyyy-MM-dd"), p.EnoughForTrend, p.Completeness,
+        points = p.Points.Select(x => new { x.AssessmentId, x.Title, date = x.Date.ToString("yyyy-MM-dd"), x.Method, x.Status, x.Completion, x.Correctness, x.Plotted, x.Confirmed, x.Reason })
     };
     private static object View(Assessment item) => new { item.Id, item.Title, item.Date, item.DefaultMethod, submissions = item.Submissions.OrderBy(x => x.StudentName).ThenBy(x => x.StudentId).Select(SubmissionView) };
     private static object SubmissionView(Submission item) => new { item.StudentId, item.StudentName, item.Method, item.Status, item.Completion, item.Correctness, item.Version,

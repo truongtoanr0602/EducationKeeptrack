@@ -43,3 +43,31 @@ export function resultText(
     ? `${assessmentStates[result.status]} · Không tính vào thống kê`
     : `Hoàn thành ${result.completion}% · Làm đúng ${result.correctness}%`;
 }
+
+export type ProgressPoint = {
+  assessmentId: string;
+  title: string;
+  date: string;
+  method: string;
+  status: AssessmentState;
+  completion: number | null;
+  correctness: number | null;
+  plotted: boolean;
+  confirmed: boolean;
+  reason: string;
+};
+export type StudentProgress = {
+  studentId: string;
+  studentName: string;
+  from: string;
+  to: string;
+  enoughForTrend: boolean;
+  completeness: {
+    total: number;
+    plotted: number;
+    notAssigned: number;
+    unconfirmed: number;
+    unassessed: number;
+  };
+  points: ProgressPoint[];
+};

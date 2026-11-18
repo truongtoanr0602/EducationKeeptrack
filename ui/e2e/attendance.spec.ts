@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("teacher schedules sessions and sees saved present/absent rows with missing-attendance reminders", async ({
   page,
@@ -9,6 +10,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await page.getByRole("button", { name: "Tạo lớp mới", exact: true }).click();
   const name = `Lớp điểm danh ${Date.now()}`;
   await page.getByLabel("Tên lớp", { exact: true }).fill(name);
@@ -32,6 +34,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
       page.getByRole("heading", { name: student, exact: true }),
     ).toBeVisible();
   }
+  await openSection(page, "sessions");
   const workspace = page.getByRole("region", { name: "Lịch và điểm danh" });
   await workspace.getByRole("button", { name: "Thiết lập lịch tuần" }).click();
   await page.getByLabel("Lịch áp dụng từ ngày").fill("2026-10-01");
@@ -135,7 +138,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
     "Nội dung đang sửa",
   );
   await page.unroute("**/api/classes/*/sessions/*/attendance/*");
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const storedSessions = await (
     await page.request.get(
       `/api/classes/${classId}/sessions?from=2026-10-01&to=2026-10-31`,

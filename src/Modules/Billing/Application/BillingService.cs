@@ -10,7 +10,7 @@ public record RatePlanView(int Version, IReadOnlyList<RateView> Rates);
 public record TuitionLine(Guid SessionId, DateOnly Date, TimeOnly StartTime, string Kind, string SessionStatus, string AttendanceStatus, string? UnitPriceVnd, string? AmountVnd, Guid? RateId, int SourceVersion);
 public record StudentTuition(Guid StudentId, string Name, string TotalVnd, IReadOnlyList<TuitionLine> Lines, IReadOnlyList<AdjustmentView> Adjustments);
 public record TuitionReport(string Month, long Version, int RateVersion, string Status, string TotalVnd, IReadOnlyList<StudentTuition> Students);
-public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions, IReadOnlyList<Receipt> Receipts, IReadOnlyList<PaymentReview> PaymentReviews, IReadOnlyList<FeeAdjustment> Adjustments);
+public record BillingSnapshot(TuitionLedger? Ledger, IReadOnlyList<SessionCharge> Sessions, IReadOnlyList<Receipt> Receipts, IReadOnlyList<PaymentReview> PaymentReviews, IReadOnlyList<FeeAdjustment> Adjustments, IReadOnlyList<ReserveUse> ReserveUses);
 public record ProjectionComplete;
 
 public interface IBillingRepository
@@ -29,6 +29,10 @@ public interface IBillingRepository
     void Add(BillingOutbox change);
     void Add(Receipt receipt);
     void Add(PaymentReview review);
+    Task<IReadOnlyList<ReserveRequest>> ReserveRequestsAsync(string owner, Guid classId, CancellationToken ct);
+    void Add(ReserveRequest request);
+    Task<IReadOnlyList<ReserveUse>> ReserveUsesAsync(string owner, Guid classId, CancellationToken ct);
+    void Add(ReserveUse use);
     void Remove(PaymentReview review);
     Task SaveAsync(CancellationToken ct);
     Task<BillingResult<T>> WithClassLockAsync<T>(Guid classId, Func<Task<BillingResult<T>>> action, CancellationToken ct) where T : class;

@@ -132,6 +132,7 @@ app.MapAuth();
 app.MapClassroom();
 app.MapRoster();
 app.MapSessions();
+app.MapToday();
 app.MapBilling();
 app.MapLearning();
 app.MapReporting();

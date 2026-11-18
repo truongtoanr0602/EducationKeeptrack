@@ -9,6 +9,7 @@ export function ReceiptForm({
   version,
   canWrite,
   canReplay,
+  suggested,
   onSaved,
   onDenied,
 }: {
@@ -17,10 +18,11 @@ export function ReceiptForm({
   version: number;
   canWrite: boolean;
   canReplay: boolean;
+  suggested?: string;
   onSaved: () => void;
   onDenied: (error: ApiError) => void;
 }) {
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(suggested ?? "");
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);

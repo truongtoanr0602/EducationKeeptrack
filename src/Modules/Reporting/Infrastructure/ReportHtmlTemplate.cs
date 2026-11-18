@@ -37,7 +37,17 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
         if (b.Adjustments.Count > 0) { html.Append("<h2>Điều chỉnh học phí</h2>"); Table(html, ["Chiều", "Số tiền", "Lý do"], b.Adjustments.Select(x => new[] { x.Direction == "increase" ? "Tăng" : "Giảm", M(x.AmountVnd), x.Reason })); }
         html.Append("<p>Học phí tháng sau điều chỉnh: ").Append(M(finance.PeriodFeesVnd)).Append("\nĐã thanh toán kỳ: ").Append(M(finance.PeriodPaidVnd))
             .Append("\nNợ trước tháng: ").Append(M(finance.OldDebtVnd)).Append("\nCòn nợ tháng: ").Append(M(finance.PeriodDebtVnd)).Append("\nTiền chưa phân bổ: ").Append(M(finance.UnallocatedVnd))
-            .Append("\nTiền giữ để đối chiếu kỳ: ").Append(M(finance.PeriodHeldVnd)).Append("</p><p class='total'>Tổng cần thu: ").Append(M(finance.OldDebtVnd + finance.PeriodDebtVnd)).Append("</p>");
+            .Append("\nTiền giữ để đối chiếu kỳ: ").Append(M(finance.PeriodHeldVnd)).Append("</p>");
+        // Reserve lines appear only when a reserve exists or moved, so reports without reserves look exactly as before.
+        if (finance.ReserveOpeningVnd != 0 || finance.ReserveApprovedVnd != 0 || finance.ReserveUsedVnd != 0 || finance.ReserveCancelledVnd != 0 || finance.ReserveCarriedVnd != 0 || finance.ReserveAppliedVnd != 0)
+        {
+            html.Append("<p>Bảo lưu đầu kỳ: ").Append(M(finance.ReserveOpeningVnd)).Append("\nBảo lưu mới duyệt trong tháng: ").Append(M(finance.ReserveApprovedVnd))
+                .Append("\nBảo lưu đã dùng trong tháng: ").Append(M(finance.ReserveUsedVnd));
+            if (finance.ReserveCancelledVnd != 0) html.Append("\nBảo lưu đã hủy trong tháng: ").Append(M(finance.ReserveCancelledVnd));
+            html.Append("\nBảo lưu chuyển sang kỳ sau: ").Append(M(finance.ReserveCarriedVnd))
+                .Append("\nĐã khấu trừ bảo lưu vào học phí tháng này: ").Append(M(finance.ReserveAppliedVnd)).Append("</p>");
+        }
+        html.Append("<p class='total'>Tổng cần thu: ").Append(M(finance.OldDebtVnd + finance.PeriodDebtVnd)).Append("</p>");
         html.Append("<h2>Phân bổ thanh toán</h2>"); Table(html, ["Ngày thực nhận", "Kỳ được trả", "Phân bổ"], b.Allocations.Select(x => new[] { x.ReceivedOn.ToString("yyyy-MM-dd"), x.Month, M(x.AmountVnd) }));
         if (payment.AmountVnd != "0")
         {

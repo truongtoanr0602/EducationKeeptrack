@@ -1,6 +1,11 @@
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
 services:
   db:
     image: postgres:18-alpine
+    restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_DB: education_keeptrack
       POSTGRES_USER: education_keeptrack
@@ -15,12 +20,15 @@ services:
   migrate:
     build: .
     command: ["--migrate"]
+    logging: *logging
     environment:
       ConnectionStrings__Database: Host=db;Database=education_keeptrack;Username=education_keeptrack;Password=${POSTGRES_PASSWORD}
     depends_on:
       db: { condition: service_healthy }
   backend:
     build: .
+    restart: unless-stopped
+    logging: *logging
     environment:
       ASPNETCORE_ENVIRONMENT: ${APP_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
@@ -32,12 +40,25 @@ services:
       Reporting__Bucket: ${R2_BUCKET:?Set R2_BUCKET to a pre-provisioned private bucket}
       Reporting__AccessKey: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
       Reporting__SecretKey: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
+      # Leave empty in production. It must equal the prefix the PDFs were stored under (see docs/verification/T30-r2-migration.md).
+      Reporting__KeyPrefix: ${R2_KEY_PREFIX:-}
+      # Origin used in emailed links. Required (https) by compose.https.yaml; the default only suits a local HTTP demo.
+      Identity__Email__PublicUrl: ${PUBLIC_URL:-http://127.0.0.1:8088}
+      # SMTP is used when SMTP_HOST is set (STARTTLS, usually port 587); otherwise no email is delivered.
+      Identity__Email__Smtp__Host: ${SMTP_HOST:-}
+      Identity__Email__Smtp__Port: ${SMTP_PORT:-587}
+      Identity__Email__Smtp__User: ${SMTP_USER:-}
+      Identity__Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Identity__Email__Smtp__From: ${SMTP_FROM:-}
+      Identity__Email__Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
     volumes:
       - session-keys:/keys
     depends_on:
       migrate: { condition: service_completed_successfully }
   ui:
     build: ./ui
+    restart: unless-stopped
+    logging: *logging
     ports: ["127.0.0.1:${UI_PORT:-8088}:80"]
     depends_on: [backend]
     networks:

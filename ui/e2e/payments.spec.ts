@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { classIdOf, openSection } from "./helpers";
 
 test("teacher records partial receipts, retries a lost response once, and reloads debt history", async ({
   page,
@@ -9,6 +10,7 @@ test("teacher records partial receipts, retries a lost response once, and reload
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await page.getByRole("button", { name: "Tạo lớp mới", exact: true }).click();
   const name = `Lớp công nợ ${Date.now()}`;
   await page.getByLabel("Tên lớp", { exact: true }).fill(name);
@@ -28,9 +30,10 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     page.getByRole("heading", { name: "An công nợ", exact: true }),
   ).toBeVisible();
+  await openSection(page, "tuition");
   const payments = page.getByRole("region", { name: "Thanh toán và công nợ" });
   await expect(payments).toBeVisible();
-  const classId = new URL(page.url()).hash.slice(1);
+  const classId = classIdOf(page);
   const enrollment = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
   ).json();
