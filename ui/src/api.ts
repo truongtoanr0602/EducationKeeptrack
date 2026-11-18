@@ -1,3 +1,5 @@
+import { clearCache } from "./cache";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -9,33 +11,75 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(
+// The antiforgery token is reused across writes: one round trip instead of two per write. It is tied
+// to the signed-in user, so it is dropped on any /auth write (login, logout, password change…) and
+// whenever the server says the form session expired.
+let csrfToken: Promise<string> | null = null;
+export function resetCsrf() {
+  csrfToken = null;
+}
+function fetchCsrf(): Promise<string> {
+  csrfToken ??= fetch("/api/auth/csrf", {
+    credentials: "same-origin",
+    cache: "no-store",
+  })
+    .then(async (response) => {
+      if (!response.ok)
+        throw new ApiError(
+          response.status,
+          "Không thể mở phiên biểu mẫu. Vui lòng thử lại.",
+        );
+      return ((await response.json()) as { token: string }).token;
+    })
+    .catch((e) => {
+      csrfToken = null;
+      throw e;
+    });
+  return csrfToken;
+}
+const csrfExpired = "Phiên biểu mẫu đã hết hạn. Vui lòng thử lại.";
+
+async function send(
   path: string,
-  method = "GET",
-  body?: unknown,
-): Promise<T> {
+  method: string,
+  body: unknown,
+): Promise<Response> {
   const headers: Record<string, string> = {};
   if (method !== "GET") {
-    const csrfResponse = await fetch("/api/auth/csrf", {
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-    if (!csrfResponse.ok)
-      throw new ApiError(
-        csrfResponse.status,
-        "Không thể mở phiên biểu mẫu. Vui lòng thử lại.",
-      );
-    const csrf: { token: string } = await csrfResponse.json();
-    headers["X-CSRF-TOKEN"] = csrf.token;
+    headers["X-CSRF-TOKEN"] = await fetchCsrf();
     headers["Content-Type"] = "application/json";
   }
-  const response = await fetch(`/api${path}`, {
+  return fetch(`/api${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
     cache: "no-store",
   });
+}
+
+export async function api<T>(
+  path: string,
+  method = "GET",
+  body?: unknown,
+): Promise<T> {
+  let response = await send(path, method, body);
+  if (response.status === 400 && method !== "GET") {
+    // A stale token is rejected before the request runs, so one retry with a fresh token cannot repeat a write.
+    const rejected = await response
+      .clone()
+      .json()
+      .catch(() => ({}) as { message?: string });
+    if ((rejected as { message?: string }).message === csrfExpired) {
+      resetCsrf();
+      response = await send(path, method, body);
+    }
+  }
+  if (method !== "GET") {
+    if (path.startsWith("/auth/")) resetCsrf();
+    // Any write may change what cached reads show, so cached reads are dropped.
+    if (response.ok) clearCache();
+  }
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as {
       message?: string;

@@ -135,6 +135,13 @@ Giáo viên áp một phần số dư bảo lưu vào nghĩa vụ học phí cò
 **Sổ bảo lưu**:
 Với mỗi học sinh và mỗi tháng: bảo lưu đầu kỳ, mới duyệt, đã dùng, đã hủy và chuyển sang kỳ sau, tính theo ngày duyệt, ngày khấu trừ và ngày hủy theo giờ Việt Nam. Hiển thị trong ứng dụng và trên PDF báo cáo tháng, cùng tổng cần thu đã trừ bảo lưu. Hủy bảo lưu chỉ được khi không còn lần khấu trừ nào đang áp dụng.
 
+**Hôm nay**:
+Màn hình đầu của giáo viên: các buổi học của mọi lớp trong ngày hiện tại theo giờ Việt Nam, kèm điểm danh nhanh. Không phải bảng thống kê.
+
+**Hóa đơn** (tên mục trong giao diện):
+Mục xuyên lớp liệt kê dư nợ kỳ của từng học sinh, nơi giáo viên ghi nhận Giao dịch nhận tiền và chia sẻ PDF hoặc mã QR cho phụ huynh. Không phải một thực thể riêng trong dữ liệu; chưa có phiếu thu PDF riêng ngoài báo cáo tháng.
+_Avoid_: Phí dịch vụ
+
 **Tiền giữ để đối chiếu**:
 Phần tiền đã phân bổ vượt nghĩa vụ sau khi phí giảm, được giữ riêng để xử lý rõ ràng; chưa được dùng lại, bảo lưu hoặc hoàn trả tự động.
 

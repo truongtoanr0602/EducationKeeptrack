@@ -8,6 +8,12 @@ public sealed class RosterRepository(ClassroomDatabase db) : IRosterRepository
 {
     public async Task<IReadOnlyList<Student>> ListStudentsAsync(string owner, CancellationToken ct) =>
         await db.Students.AsNoTracking().Where(x => x.OwnerId == owner).OrderBy(x => x.Name).ThenBy(x => x.Id).ToListAsync(ct);
+    public async Task<IReadOnlyList<StudentClassView>> StudentClassesAsync(string owner, Guid studentId, CancellationToken ct) =>
+        await (from enrollment in db.Enrollments.AsNoTracking()
+               join classroom in db.Classes.AsNoTracking() on enrollment.ClassId equals classroom.Id
+               where enrollment.OwnerId == owner && classroom.OwnerId == owner && enrollment.StudentId == studentId
+               orderby enrollment.StartDate descending, classroom.Name, enrollment.Id
+               select new StudentClassView(classroom.Id, classroom.Name, classroom.Subject, enrollment.Status, enrollment.StartDate, enrollment.EndDate)).ToListAsync(ct);
     public Task<Student?> FindStudentAsync(string owner, Guid id, CancellationToken ct) =>
         db.Students.SingleOrDefaultAsync(x => x.OwnerId == owner && x.Id == id, ct);
     public Task<bool> ClassExistsAsync(string owner, Guid classId, CancellationToken ct) =>

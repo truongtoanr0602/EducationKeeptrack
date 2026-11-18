@@ -9,6 +9,7 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
     .getByLabel("Mật khẩu", { exact: true })
     .fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await expect(
     page.getByRole("heading", { name: "Lớp học của tôi" }),
   ).toBeVisible();
@@ -50,7 +51,7 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
   );
   const attendance = `/classes/${classId}/sessions/${session.id}/attendance/${student.id}`;
   await write(attendance, { status: "present", version: 0 }, "PUT");
-  await page.goto(`/?tuitionMonth=2026-10#${classId}`, {
+  await page.goto(`/?tuitionMonth=2026-10#/classes/${classId}/tuition`, {
     waitUntil: "domcontentloaded",
   });
   const payments = page.getByRole("region", { name: "Thanh toán và công nợ" });

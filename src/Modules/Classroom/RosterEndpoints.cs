@@ -28,6 +28,8 @@ public static class RosterEndpoints
             var student = await roster.FindStudentAsync(Owner(http), id, http.RequestAborted);
             return student is null ? Results.NotFound() : Results.Ok(student);
         });
+        group.MapGet("/students/{id:guid}/classes", async (Guid id, HttpContext http, RosterService roster) =>
+            Respond(await roster.StudentClassesAsync(Owner(http), id, http.RequestAborted)));
         group.MapPost("/students", async (StudentInput input, HttpContext http, RosterService roster) =>
         {
             var result = await roster.SaveStudentAsync(Owner(http), null, input, http.RequestAborted);

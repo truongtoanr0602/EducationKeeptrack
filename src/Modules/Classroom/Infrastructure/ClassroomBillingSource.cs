@@ -6,6 +6,13 @@ namespace EducationKeeptrack.Classroom.Infrastructure;
 
 public sealed class ClassroomBillingSource(IServiceScopeFactory scopes) : IClassroomBillingSource
 {
+    public async Task<IReadOnlyList<BillingClassRef>> ListClassesAsync(string owner, CancellationToken ct)
+    {
+        using var scope = scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ClassroomDatabase>();
+        return await db.Classes.AsNoTracking().Where(x => x.OwnerId == owner).OrderBy(x => x.Name).ThenBy(x => x.Id)
+            .Select(x => new BillingClassRef(x.Id, x.Name, x.Subject)).ToListAsync(ct);
+    }
     public Task<BillingClassSource?> ReadClassAsync(string owner, Guid classId, CancellationToken ct) => ReadAsync(owner, classId, null, ct);
     public async Task<BillingSessionSource?> ReadSessionAsync(string owner, Guid classId, Guid sessionId, CancellationToken ct) =>
         (await ReadAsync(owner, classId, sessionId, ct))?.Sessions.SingleOrDefault();

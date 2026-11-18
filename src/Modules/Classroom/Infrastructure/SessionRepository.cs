@@ -24,6 +24,19 @@ public sealed class SessionRepository(ClassroomDatabase db) : ISessionRepository
                where attendance.OwnerId == owner && attendance.SessionId == sessionId && student.OwnerId == owner
                orderby student.Name, student.Id
                select new AttendanceWithStudent(attendance, student)).ToListAsync(ct);
+    public async Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct) =>
+        await (from session in db.Sessions.AsNoTracking()
+               join classroom in db.Classes.AsNoTracking() on session.ClassId equals classroom.Id
+               where session.OwnerId == owner && classroom.OwnerId == owner && session.Date == date
+               orderby session.StartTime, classroom.Name, session.Id
+               select new SessionWithClass(session, classroom.Name, classroom.Subject)).ToListAsync(ct);
+    public async Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct) =>
+        await db.Sessions.AsNoTracking().Where(x => x.OwnerId == owner && x.Date >= from && x.Date <= to).Select(x => new SessionStatusRow(x.Id, x.Status)).ToListAsync(ct);
+    public async Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct) =>
+        await db.Attendance.AsNoTracking().Where(x => x.OwnerId == owner && sessionIds.Contains(x.SessionId)).Select(x => new MarkRow(x.SessionId, x.StudentId, x.Status)).ToListAsync(ct);
+    public async Task<IReadOnlyList<(Guid ClassId, Guid StudentId)>> EligibleAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly date, CancellationToken ct) =>
+        (await db.Enrollments.AsNoTracking().Where(e => e.OwnerId == owner && classIds.Contains(e.ClassId) && e.StartDate <= date && (e.EndDate == null || e.EndDate >= date)).Select(e => new { e.ClassId, e.StudentId }).ToListAsync(ct))
+            .Select(x => (x.ClassId, x.StudentId)).ToArray();
     public async Task<IReadOnlyList<SessionChange>> ChangesAsync(string owner, Guid sessionId, CancellationToken ct) =>
         await db.SessionChanges.AsNoTracking().Where(x => x.OwnerId == owner && x.SessionId == sessionId).OrderBy(x => x.SessionVersion).ToListAsync(ct);
     public async Task SaveAsync(CancellationToken ct) => await db.SaveChangesAsync(ct);

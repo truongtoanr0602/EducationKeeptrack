@@ -5,6 +5,7 @@ test("teacher sees prepaid sources, records a sick-leave request and approves it
   await page.getByLabel("Email", { exact: true }).fill(process.env.REPORT_EMAIL ?? process.env.DEMO_EMAIL!);
   await page.getByLabel("Mật khẩu", { exact: true }).fill(process.env.DEMO_PASSWORD!);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.evaluate(() => (window.location.hash = "#/classes"));
   await expect(page.getByRole("heading", { name: "Lớp học của tôi" })).toBeVisible();
   async function write(path: string, data: unknown, method = "POST") {
     const csrf = await (await page.request.get("/api/auth/csrf")).json();

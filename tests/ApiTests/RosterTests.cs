@@ -28,6 +28,30 @@ public sealed class RosterTests(TestApplication app) : IClassFixture<TestApplica
     }
 
     [Fact]
+    public async Task Student_classes_lists_only_the_owners_enrollments_across_classes()
+    {
+        var (client, classId, studentId) = await Setup();
+        var (other, otherClassId, otherStudentId) = await Setup();
+        using (client) using (other)
+        {
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(client, $"/api/classes/{classId}/enrollments", new { studentId, startDate = "2026-10-01" })).StatusCode);
+            var second = await (await TestApplication.Post(client, "/api/classes", new { name = "Lớp thứ hai", subject = "Lý" })).Content.ReadFromJsonAsync<JsonElement>();
+            var secondId = second.GetProperty("id").GetString()!;
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(client, $"/api/classes/{secondId}/enrollments", new { studentId, startDate = "2026-11-01" })).StatusCode);
+
+            var classes = await client.GetFromJsonAsync<JsonElement>($"/api/students/{studentId}/classes");
+            Assert.Equal(2, classes.GetArrayLength());
+            Assert.Equal(new[] { secondId, classId }, classes.EnumerateArray().Select(x => x.GetProperty("classId").GetString()));
+            Assert.Equal("Lý", classes[0].GetProperty("subject").GetString());
+            Assert.Equal("active", classes[0].GetProperty("status").GetString());
+
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/students/{otherStudentId}/classes")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/students/{Guid.NewGuid()}/classes")).StatusCode);
+            Assert.DoesNotContain(classes.EnumerateArray(), x => x.GetProperty("classId").GetString() == otherClassId);
+        }
+    }
+
+    [Fact]
     public async Task Duplicate_enrollments_are_rejected_including_concurrent_requests()
     {
         var (client, classId, studentId) = await Setup();
