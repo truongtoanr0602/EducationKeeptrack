@@ -1,114 +1,123 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "./api";
 import {
+  saveAttendance,
   type Attendance,
   type AttendanceStatus,
   type ClassSession,
 } from "./session-api";
 
+type Draft = { status: AttendanceStatus; reason: string; excused: boolean };
+type Board = { rows: Attendance[]; drafts: Record<string, Draft> };
+
+const choices: [AttendanceStatus, string][] = [
+  ["present", "Có mặt"],
+  ["absent", "Vắng"],
+  ["unmarked", "Chưa điểm danh"],
+];
+const savedLabel = (row: Attendance) =>
+  row.status === "present"
+    ? "Có mặt"
+    : row.status === "absent"
+      ? row.excused
+        ? "Vắng · Nghỉ có phép"
+        : "Vắng"
+      : "Chưa điểm danh";
+const toDraft = (row: Attendance): Draft => ({
+  status: row.status,
+  reason: row.reason ?? "",
+  excused: row.excused,
+});
+// Reason and excused only count for an absent mark; the server drops them otherwise.
+const isDirty = (row: Attendance, draft: Draft | undefined) =>
+  !!draft &&
+  (draft.status !== row.status ||
+    (draft.status === "absent" &&
+      (draft.excused !== row.excused ||
+        (draft.reason.trim() || null) !== row.reason)));
+const message = (e: unknown) =>
+  e instanceof ApiError
+    ? Object.values(e.errors ?? {})
+        .flat()
+        .join(" ") || e.message
+    : "Không thể lưu điểm danh. Vui lòng thử lại.";
+
 function AttendanceRow({
   row,
-  path,
-  canWrite,
-  onSaved,
-  onDenied,
+  draft,
+  sessionId,
+  disabled,
+  onChange,
 }: {
   row: Attendance;
-  path: string;
-  canWrite: boolean;
-  onSaved: () => void;
-  onDenied: (error: ApiError) => void;
+  draft: Draft;
+  sessionId: string;
+  disabled: boolean;
+  onChange: (draft: Draft) => void;
 }) {
-  const [status, setStatus] = useState<AttendanceStatus>(row.status);
-  const [reason, setReason] = useState(row.reason ?? "");
-  const [excused, setExcused] = useState(row.excused);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  async function save() {
-    setBusy(true);
-    setError("");
-    try {
-      await api(`${path}/${row.studentId}`, "PUT", {
-        status,
-        reason: status === "absent" ? reason : null,
-        excused: status === "absent" && excused,
-        version: row.version,
-      });
-      onSaved();
-    } catch (e) {
-      setError(
-        e instanceof ApiError
-          ? Object.values(e.errors ?? {})
-              .flat()
-              .join(" ") || e.message
-          : "Không thể lưu điểm danh. Vui lòng thử lại.",
-      );
-      if (e instanceof ApiError) onDenied(e);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const dirty = isDirty(row, draft);
   return (
-    <tr className={`attendance-row ${row.status}`}>
+    <tr className={`attendance-row ${row.status}${dirty ? " dirty" : ""}`}>
       <td>
         {row.name}
-        <strong className="attendance-label">
-          {row.status === "present"
-            ? "Có mặt"
-            : row.status === "absent"
-              ? row.excused
-                ? "Vắng · Nghỉ có phép"
-                : "Vắng"
-              : "Chưa điểm danh"}
-        </strong>
+        <strong className="attendance-label">{savedLabel(row)}</strong>
+        {dirty && <small className="attendance-dirty">Chưa lưu</small>}
       </td>
       <td>
-        <select
+        <div
+          role="radiogroup"
           aria-label={`Điểm danh ${row.name}`}
-          value={status}
-          disabled={busy || !canWrite}
-          onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
+          className="attendance-choices"
         >
-          <option value="unmarked">Chưa điểm danh</option>
-          <option value="present">Có mặt</option>
-          <option value="absent">Vắng</option>
-        </select>
-        {status === "absent" && (
-          <>
+          {choices.map(([value, label]) => (
+            <label key={value} className={`attendance-choice ${value}`}>
+              <input
+                type="radio"
+                name={`attendance-${sessionId}-${row.studentId}`}
+                value={value}
+                checked={draft.status === value}
+                disabled={disabled}
+                onChange={() =>
+                  onChange({
+                    ...draft,
+                    status: value,
+                    excused: value === "absent" && draft.excused,
+                  })
+                }
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+        {draft.status === "absent" && (
+          <div className="attendance-absence">
             <input
               aria-label={`Lý do vắng ${row.name}`}
               placeholder="Lý do vắng (tùy chọn)"
               maxLength={1000}
-              value={reason}
-              disabled={busy || !canWrite}
-              onChange={(e) => setReason(e.target.value)}
+              value={draft.reason}
+              disabled={disabled}
+              onChange={(e) => onChange({ ...draft, reason: e.target.value })}
             />
             <label className="checkbox-label">
               <input
                 type="checkbox"
                 aria-label={`Nghỉ có phép ${row.name}`}
-                checked={excused}
-                disabled={busy || !canWrite}
-                onChange={(e) => setExcused(e.target.checked)}
+                checked={draft.excused}
+                disabled={disabled}
+                onChange={(e) =>
+                  onChange({ ...draft, excused: e.target.checked })
+                }
               />
               Nghỉ có phép
             </label>
-          </>
-        )}
-      </td>
-      <td>
-        <button disabled={busy || !canWrite} onClick={() => void save()}>
-          {busy ? "Đang lưu…" : "Lưu điểm danh"}
-        </button>
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
+          </div>
         )}
       </td>
     </tr>
   );
 }
+
 export function AttendanceBoard({
   classId,
   session,
@@ -122,15 +131,31 @@ export function AttendanceBoard({
   onChanged: () => void;
   onDenied: (error: ApiError) => void;
 }) {
-  const [rows, setRows] = useState<Attendance[]>([]);
+  const [board, setBoard] = useState<Board>({ rows: [], drafts: {} });
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const path = `/classes/${classId}/sessions/${session.id}/attendance`;
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      setRows(await api<Attendance[]>(path));
+      const data = await api<Attendance[]>(path);
+      // Reloading refreshes saved rows and versions but never discards a mark the teacher has not saved yet.
+      setBoard((old) => ({
+        rows: data,
+        drafts: Object.fromEntries(
+          data.map((row) => {
+            const before = old.rows.find((r) => r.studentId === row.studentId);
+            const draft = old.drafts[row.studentId];
+            return [
+              row.studentId,
+              before && isDirty(before, draft) ? draft : toDraft(row),
+            ];
+          }),
+        ),
+      }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không thể tải điểm danh.");
       if (e instanceof ApiError) onDenied(e);
@@ -141,10 +166,72 @@ export function AttendanceBoard({
   useEffect(() => {
     void load();
   }, [load, session.version]);
-  function saved() {
-    void load();
-    onChanged();
+
+  const { rows, drafts } = board;
+  const writable = canWrite && session.status === "held";
+  const changed = rows.filter((row) => isDirty(row, drafts[row.studentId]));
+  const setDraft = (studentId: string, draft: Draft) => {
+    setNotice("");
+    setBoard((b) => ({ ...b, drafts: { ...b.drafts, [studentId]: draft } }));
+  };
+  const allPresent = () => {
+    setNotice("");
+    setBoard((b) => ({
+      ...b,
+      drafts: Object.fromEntries(
+        b.rows.map((row) => [
+          row.studentId,
+          {
+            ...(b.drafts[row.studentId] ?? toDraft(row)),
+            status: "present",
+            excused: false,
+          },
+        ]),
+      ),
+    }));
+  };
+  const discard = () => {
+    setNotice("");
+    setError("");
+    setBoard((b) => ({
+      ...b,
+      drafts: Object.fromEntries(b.rows.map((r) => [r.studentId, toDraft(r)])),
+    }));
+  };
+
+  async function save() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const saved = await saveAttendance(
+        classId,
+        session.id,
+        changed.map((row) => {
+          const d = drafts[row.studentId];
+          return {
+            studentId: row.studentId,
+            status: d.status,
+            reason: d.status === "absent" ? d.reason : null,
+            excused: d.status === "absent" && d.excused,
+            version: row.version,
+          };
+        }),
+      );
+      setBoard({
+        rows: saved,
+        drafts: Object.fromEntries(saved.map((r) => [r.studentId, toDraft(r)])),
+      });
+      setNotice(`Đã lưu điểm danh (${changed.length} học sinh).`);
+      onChanged();
+    } catch (e) {
+      setError(message(e));
+      if (e instanceof ApiError) onDenied(e);
+    } finally {
+      setBusy(false);
+    }
   }
+
   return (
     <div className="attendance-board">
       <div className="roster-actions">
@@ -161,17 +248,11 @@ export function AttendanceBoard({
         </p>
       )}
       {loading && <p role="status">Đang tải điểm danh…</p>}
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
       <table aria-label="Điểm danh học sinh">
         <thead>
           <tr>
             <th>Học sinh / đã lưu</th>
-            <th>Thay đổi điểm danh</th>
-            <th>Lưu</th>
+            <th>Điểm danh</th>
           </tr>
         </thead>
         <tbody>
@@ -179,16 +260,48 @@ export function AttendanceBoard({
             <AttendanceRow
               key={row.studentId}
               row={row}
-              path={path}
-              canWrite={canWrite && session.status === "held"}
-              onSaved={saved}
-              onDenied={onDenied}
+              draft={drafts[row.studentId] ?? toDraft(row)}
+              sessionId={session.id}
+              disabled={busy || !writable}
+              onChange={(d) => setDraft(row.studentId, d)}
             />
           ))}
         </tbody>
       </table>
       {!loading && !error && rows.length === 0 && (
         <p>Không có học sinh đăng ký trong ngày buổi học.</p>
+      )}
+      {(rows.length > 0 || error) && (
+        <div className="attendance-actions">
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          {notice && <p role="status">{notice}</p>}
+          <div className="attendance-buttons">
+            <button
+              disabled={busy || !writable || rows.length === 0}
+              onClick={allPresent}
+            >
+              Tất cả có mặt
+            </button>
+            <button disabled={busy || changed.length === 0} onClick={discard}>
+              Bỏ thay đổi
+            </button>
+            <button
+              className="primary"
+              disabled={busy || !writable || changed.length === 0}
+              onClick={() => void save()}
+            >
+              {busy
+                ? "Đang lưu…"
+                : changed.length
+                  ? `Lưu điểm danh (${changed.length} thay đổi)`
+                  : "Lưu điểm danh"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

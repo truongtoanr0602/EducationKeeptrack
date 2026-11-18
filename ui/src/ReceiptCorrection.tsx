@@ -240,28 +240,30 @@ export function ReceiptCorrection({
               {error}
             </p>
           )}
-          <button
-            className="primary"
-            disabled={busy || !(canWrite || (uncertain && canReplay))}
-          >
-            {busy
-              ? "Đang lưu…"
-              : uncertain
-                ? "Thử lại sửa/hủy"
-                : mode === "cancel"
-                  ? "Xác nhận hủy khoản nhận tiền"
-                  : "Lưu sửa khoản nhận tiền"}
-          </button>
-          <button
-            type="button"
-            disabled={busy || uncertain}
-            onClick={() => {
-              setMode(null);
-              setError("");
-            }}
-          >
-            Đóng
-          </button>
+          <div className="form-actions">
+            <button
+              className="primary"
+              disabled={busy || !(canWrite || (uncertain && canReplay))}
+            >
+              {busy
+                ? "Đang lưu…"
+                : uncertain
+                  ? "Thử lại sửa/hủy"
+                  : mode === "cancel"
+                    ? "Xác nhận hủy khoản nhận tiền"
+                    : "Lưu sửa khoản nhận tiền"}
+            </button>
+            <button
+              type="button"
+              disabled={busy || uncertain}
+              onClick={() => {
+                setMode(null);
+                setError("");
+              }}
+            >
+              Đóng
+            </button>
+          </div>
         </form>
       )}
     </>

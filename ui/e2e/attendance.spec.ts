@@ -61,10 +61,17 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   const table = workspace.getByRole("table", { name: "Điểm danh học sinh" });
   const an = table.getByRole("row").filter({ hasText: "An điểm danh" });
   const binh = table.getByRole("row").filter({ hasText: "Bình điểm danh" });
+  // One save for the whole session, below the table.
+  const save = workspace.getByRole("button", { name: /^Lưu điểm danh/ });
+  const alert = workspace.locator(".attendance-actions").getByRole("alert");
+  const pick = (row: typeof an, name: string) =>
+    row.getByRole("radiogroup").getByText(name, { exact: true }).click();
+  const choice = (row: typeof an, name: string) =>
+    row.getByRole("radio", { name, exact: true });
   await expect(an).toContainText("Chưa điểm danh");
-  await expect(
-    an.getByRole("button", { name: "Lưu điểm danh" }),
-  ).toBeDisabled();
+  await expect(choice(an, "Chưa điểm danh")).toBeChecked();
+  await expect(choice(an, "Có mặt")).toBeDisabled();
+  await expect(save).toBeDisabled();
   await page.getByLabel("Trạng thái buổi").selectOption("held");
   await page.getByRole("button", { name: "Lưu trạng thái buổi" }).click();
   await expect(
@@ -72,20 +79,17 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
       exact: true,
     }),
   ).toBeVisible();
-  await an
-    .getByLabel("Điểm danh An điểm danh", { exact: true })
-    .selectOption("present");
-  await an.getByRole("button", { name: "Lưu điểm danh" }).click();
-  await expect(an.getByRole("strong")).toHaveText("Có mặt");
-  await binh
-    .getByLabel("Điểm danh Bình điểm danh", { exact: true })
-    .selectOption("absent");
+  await pick(an, "Có mặt");
+  await pick(binh, "Vắng");
   await binh.getByLabel("Lý do vắng Bình điểm danh").fill("Bị ốm");
   await binh.getByLabel("Nghỉ có phép Bình điểm danh").check();
-  await binh.getByRole("button", { name: "Lưu điểm danh" }).click();
+  await expect(save).toHaveText("Lưu điểm danh (2 thay đổi)");
+  await save.click();
+  await expect(an.getByRole("strong")).toHaveText("Có mặt");
   await expect(
     binh.getByText("Vắng · Nghỉ có phép", { exact: true }),
   ).toBeVisible();
+  await expect(save).toBeDisabled();
   await expect(
     workspace.getByText("Không còn điểm danh thiếu ở các buổi đã diễn ra.", {
       exact: true,
@@ -117,11 +121,10 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await expect(binh.getByLabel("Lý do vắng Bình điểm danh")).toHaveValue(
     "Bị ốm",
   );
-  await an
-    .getByLabel("Điểm danh An điểm danh", { exact: true })
-    .selectOption("absent");
+  await pick(an, "Vắng");
   await an.getByLabel("Lý do vắng An điểm danh").fill("Nội dung đang sửa");
-  await page.route("**/api/classes/*/sessions/*/attendance/*", (route) =>
+  const batchRoute = "**/api/classes/*/sessions/*/attendance";
+  await page.route(batchRoute, (route) =>
     route.request().method() === "PUT"
       ? route.fulfill({
           status: 503,
@@ -132,12 +135,12 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
         })
       : route.continue(),
   );
-  await an.getByRole("button", { name: "Lưu điểm danh" }).click();
-  await expect(an.getByRole("alert")).toContainText("Vui lòng thử lại");
+  await save.click();
+  await expect(alert).toContainText("Vui lòng thử lại");
   await expect(an.getByLabel("Lý do vắng An điểm danh")).toHaveValue(
     "Nội dung đang sửa",
   );
-  await page.unroute("**/api/classes/*/sessions/*/attendance/*");
+  await page.unroute(batchRoute);
   const classId = classIdOf(page);
   const storedSessions = await (
     await page.request.get(
@@ -165,27 +168,28 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
       )
     ).ok(),
   ).toBeTruthy();
-  await an.getByRole("button", { name: "Lưu điểm danh" }).click();
-  await expect(an.getByRole("alert")).toContainText("tab khác");
+  await save.click();
+  await expect(alert).toContainText("tab khác");
+  // Reload refreshes the saved state but keeps the unsaved choice and reason.
   await workspace.getByRole("button", { name: "Tải lại điểm danh" }).click();
   await expect(an.getByRole("strong")).toHaveText("Chưa điểm danh");
-  await expect(
-    an.getByLabel("Điểm danh An điểm danh", { exact: true }),
-  ).toHaveValue("absent");
+  await expect(choice(an, "Vắng")).toBeChecked();
   await expect(an.getByLabel("Lý do vắng An điểm danh")).toHaveValue(
     "Nội dung đang sửa",
   );
-  await an.getByRole("button", { name: "Lưu điểm danh" }).click();
+  await save.click();
   await expect(an.getByRole("strong")).toHaveText("Vắng");
-  await expect(an.getByRole("alert")).toHaveCount(0);
-  // A denied write refreshes capability flags while retaining the open row draft.
+  await expect(alert).toHaveCount(0);
+  // A denied write refreshes capability flags while retaining the draft.
   await an.getByLabel("Lý do vắng An điểm danh").fill("Chưa lưu khi hết hạn");
-  await page.route("**/api/classes/*/sessions/*/attendance/*", (route) =>
-    route.fulfill({
-      status: 403,
-      contentType: "application/json",
-      body: JSON.stringify({ message: "Quyền sử dụng đã hết hạn." }),
-    }),
+  await page.route(batchRoute, (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Quyền sử dụng đã hết hạn." }),
+        })
+      : route.continue(),
   );
   await page.route("**/api/auth/me", (route) =>
     route.fulfill({
@@ -202,15 +206,13 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
       }),
     }),
   );
-  await an.getByRole("button", { name: "Lưu điểm danh" }).click();
-  await expect(an.getByRole("alert")).toContainText("hết hạn");
+  await save.click();
+  await expect(alert).toContainText("hết hạn");
   await expect(an.getByLabel("Lý do vắng An điểm danh")).toHaveValue(
     "Chưa lưu khi hết hạn",
   );
-  await expect(
-    an.getByRole("button", { name: "Lưu điểm danh" }),
-  ).toBeDisabled();
-  await page.unroute("**/api/classes/*/sessions/*/attendance/*");
+  await expect(save).toBeDisabled();
+  await page.unroute(batchRoute);
   await page.unroute("**/api/auth/me");
   await page.reload({ waitUntil: "domcontentloaded" });
   await workspace
@@ -222,9 +224,8 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await page.getByLabel("Trạng thái buổi").selectOption("cancelled");
   await page.getByLabel("Lý do thay đổi / hủy buổi").fill("Giáo viên bận");
   await page.getByRole("button", { name: "Lưu trạng thái buổi" }).click();
-  await expect(
-    an.getByRole("button", { name: "Lưu điểm danh" }),
-  ).toBeDisabled();
+  await expect(choice(an, "Có mặt")).toBeDisabled();
+  await expect(save).toBeDisabled();
   await workspace
     .getByRole("button", { name: "Tạo học bù cho buổi này" })
     .click();

@@ -31,6 +31,7 @@ public static class SessionEndpoints
         });
         group.MapPut("/sessions/{id:guid}", async (Guid classId, Guid id, SessionStatusInput input, HttpContext http, SessionService service) => Respond(await service.ChangeStatusAsync(Owner(http), classId, id, input, http.RequestAborted)));
         group.MapGet("/sessions/{id:guid}/attendance", async (Guid classId, Guid id, HttpContext http, SessionService service) => Respond(await service.AttendanceAsync(Owner(http), classId, id, http.RequestAborted)));
+        group.MapPut("/sessions/{id:guid}/attendance", async (Guid classId, Guid id, AttendanceBatchInput input, HttpContext http, SessionService service) => Respond(await service.MarkManyAsync(Owner(http), classId, id, input, http.RequestAborted)));
         group.MapPut("/sessions/{id:guid}/attendance/{studentId:guid}", async (Guid classId, Guid id, Guid studentId, AttendanceInput input, HttpContext http, SessionService service) => Respond(await service.MarkAsync(Owner(http), classId, id, studentId, input, http.RequestAborted)));
         group.MapGet("/attendance-missing", async (Guid classId, DateOnly from, DateOnly to, HttpContext http, SessionService service) => Respond(await service.MissingAsync(Owner(http), classId, new(from, to), http.RequestAborted)));
         group.MapGet("/sessions/{id:guid}/history", async (Guid classId, Guid id, HttpContext http, SessionService service) => Respond(await service.HistoryAsync(Owner(http), classId, id, http.RequestAborted)));

@@ -31,8 +31,18 @@ p {
 }
 button,
 input,
+select,
 textarea {
   font: inherit;
+}
+a {
+  color: #4059aa;
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+/* :where keeps this at element specificity so class-styled links keep their own hover colors. */
+a:where(:hover) {
+  color: #00236f;
 }
 button {
   min-height: 44px;
@@ -65,6 +75,7 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 input:focus,
+select:focus,
 textarea:focus {
   outline: 3px solid #4059aa;
   outline-offset: 3px;
@@ -85,6 +96,33 @@ textarea {
 }
 textarea {
   resize: vertical;
+}
+/* Native selects otherwise render at browser size next to styled inputs. */
+select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #757682;
+  border-radius: 7px;
+  background: #fff;
+  color: #0d1c2f;
+}
+select:disabled {
+  opacity: 0.6;
+}
+label > select {
+  display: block;
+  width: 100%;
+}
+/* Label above control, both full width. */
+.field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.field input,
+.field select {
+  width: 100%;
 }
 input[aria-invalid="true"],
 textarea[aria-invalid="true"] {
@@ -294,6 +332,14 @@ dialog::backdrop {
   box-sizing: border-box;
   min-width: 0;
 }
+.reserve-inline-form {
+  max-width: 620px;
+  margin-top: 0.5rem;
+}
+/* A submit button right after the last field needs air; two in a row need a gap. */
+.roster-form > button {
+  margin: 1rem 0.6rem 0 0;
+}
 .roster-form select {
   padding: 0.8rem;
   border: 1px solid #b9becc;
@@ -346,6 +392,17 @@ dialog::backdrop {
   flex-wrap: wrap;
   align-items: end;
   margin: 1rem 0;
+}
+/* In end-aligned rows the label's bottom margin lifts the input above sibling buttons. */
+:is(
+    .session-range,
+    .session-status-form,
+    .skill-form,
+    .plan-row,
+    .assessment-create
+  )
+  > label {
+  margin: 0;
 }
 .sessions-workspace input,
 .sessions-workspace select {
@@ -403,11 +460,92 @@ dialog::backdrop {
 .attendance-board td {
   background: transparent;
 }
-.attendance-board td input:not([type="checkbox"]),
-.attendance-board td select {
-  width: 100%;
-  margin-bottom: 0.5rem;
-  box-sizing: border-box;
+.attendance-board th:first-child {
+  width: 38%;
+}
+/* Three always-visible choices instead of a dropdown: one tap per student. */
+.attendance-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.attendance-choice {
+  position: relative;
+  margin: 0;
+  font-weight: 600;
+}
+/* Visually hidden but focusable; the pill is the hit target. */
+.attendance-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+.attendance-choice span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid #c5c5d3;
+  border-radius: 999px;
+  background: #fff;
+  color: #00236f;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.attendance-choice input:focus-visible + span {
+  outline: 3px solid #4059aa;
+  outline-offset: 2px;
+}
+.attendance-choice input:disabled + span {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.attendance-choice.present input:checked + span {
+  background: #1f7a4d;
+  border-color: #1f7a4d;
+  color: #fff;
+}
+.attendance-choice.absent input:checked + span {
+  background: #5b5e6b;
+  border-color: #5b5e6b;
+  color: #fff;
+}
+.attendance-choice.unmarked input:checked + span {
+  background: #eff4ff;
+  border-color: #00236f;
+}
+.attendance-absence {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.attendance-dirty {
+  color: #8a5a00;
+  font-weight: 700;
+}
+.attendance-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+  background: #fff;
+  border-top: 1px solid #c7cbd5;
+}
+.attendance-actions p {
+  margin: 0 0 0.5rem;
+}
+.attendance-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
 }
 .attendance-row.present {
   background: #e0f1e7;
@@ -485,8 +623,22 @@ dialog::backdrop {
     display: block;
     border: 0;
   }
-  .attendance-board td button {
+  .attendance-board th:first-child {
+    width: auto;
+  }
+  .attendance-choice {
+    flex: 1 1 0;
+  }
+  .attendance-choice span {
+    justify-content: center;
     width: 100%;
+    padding: 0.5rem 0.6rem;
+  }
+  .attendance-buttons button {
+    flex: 1 1 auto;
+  }
+  .attendance-buttons .primary {
+    flex-basis: 100%;
   }
 }
 small {

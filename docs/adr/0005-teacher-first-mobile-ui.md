@@ -18,6 +18,7 @@
 - Không thêm thư viện fetch hay state. Viết cache nhỏ kiểu stale-while-revalidate, cache CSRF token để bỏ lượt `GET /api/auth/csrf` thừa trước mỗi lần ghi, và optimistic update cho điểm danh.
 - Tách chunk bằng `React.lazy` theo route (AI, admin, báo cáo).
 - Backend chỉ thêm endpoint đọc tổng hợp xuyên lớp và phân trang; không đổi domain hay dữ liệu.
+  Ngoại lệ (18/11/2026, theo yêu cầu người dùng): `PUT /api/classes/{classId}/sessions/{id}/attendance` lưu điểm danh cả buổi trong một lần, có hoặc không. Endpoint chỉ gom các lệnh ghi điểm danh đã có: mỗi học sinh thay đổi vẫn tăng một phiên bản buổi và sinh một sự kiện; không đổi schema.
 - Mốc đo trên mobile giả lập 4G chậm: "Hôm nay" tương tác được dưới 2 giây ở lần tải đầu; điểm danh lớp 15 học sinh dưới 5 chạm; bundle ban đầu dưới 150 KB gzip. Đo bằng Lighthouse và Playwright, kèm viewport mobile cho các luồng chính.
 - Không làm offline hoặc PWA trong đợt này.
 

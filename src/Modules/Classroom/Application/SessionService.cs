@@ -137,13 +137,41 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
         if (session is null) return new(null, ClassroomFailure.NotFound);
         var students = await repository.EligibleStudentsAsync(owner, classId, session.Date, ct);
         var saved = await repository.AttendanceAsync(owner, id, ct);
-        var all = students.Concat(saved.Select(x => x.Student)).DistinctBy(x => x.Id).OrderBy(x => x.Name).ThenBy(x => x.Id);
-        return new(all.Select(student =>
-        {
-            var mark = saved.SingleOrDefault(x => x.Student.Id == student.Id)?.Attendance;
-            return View(session, student, mark);
-        }).ToArray());
+        return new(List(session, students, saved));
     }
+    // Saves every changed mark of one session in a single transaction: a stale or unknown row rejects the whole batch.
+    public async Task<ClassroomResult<IReadOnlyList<AttendanceView>>> MarkManyAsync(string owner, Guid classId, Guid id, AttendanceBatchInput input, CancellationToken ct) =>
+        await repository.WithClassLockAsync<IReadOnlyList<AttendanceView>>(classId, async () =>
+        {
+            var session = await repository.FindSessionAsync(owner, classId, id, ct);
+            if (session is null) return new(null, ClassroomFailure.NotFound);
+            if (session.Status != "held") return new(null, ClassroomFailure.Conflict, "Chỉ điểm danh buổi đã diễn ra. Buổi dự kiến hoặc đã hủy không được điểm danh.");
+            var errors = input.Validate();
+            if (errors.Count > 0) return new(null, ClassroomFailure.Invalid, Errors: errors);
+            var students = await repository.EligibleStudentsAsync(owner, classId, session.Date, ct);
+            var saved = (await repository.AttendanceAsync(owner, id, ct)).ToList();
+            var known = students.Concat(saved.Select(x => x.Student)).DistinctBy(x => x.Id).ToDictionary(x => x.Id);
+            var marks = saved.ToDictionary(x => x.Student.Id, x => x.Attendance);
+            foreach (var item in input.Marks!)
+            {
+                if (!known.TryGetValue(item.StudentId, out var student)) return new(null, ClassroomFailure.NotFound);
+                if (item.Version != (marks.GetValueOrDefault(item.StudentId)?.Version ?? 0))
+                    return new(null, ClassroomFailure.Conflict, $"Điểm danh của {student.Name} đã thay đổi ở tab khác. Vui lòng tải lại; nội dung đang nhập được giữ.");
+            }
+            foreach (var item in input.Marks!)
+            {
+                var existing = marks.GetValueOrDefault(item.StudentId);
+                if (Attendance.Same(existing, item.Input)) continue;
+                var mark = existing ?? new Attendance(owner, id, item.StudentId);
+                mark.TryMark(item.Input);
+                if (existing is null) { repository.Add(mark); saved.Add(new(mark, known[item.StudentId])); }
+                // One session version per changed mark keeps the outbox ordered per student (unique SessionId+SessionVersion).
+                session.RecordAttendanceChange();
+                repository.Add(new SessionChange(session, "attendance.changed", clock.GetUtcNow(), mark));
+            }
+            await repository.SaveAsync(ct);
+            return new(List(session, students, saved));
+        }, ct);
     public async Task<ClassroomResult<AttendanceView>> MarkAsync(string owner, Guid classId, Guid id, Guid studentId, AttendanceInput input, CancellationToken ct) =>
         await repository.WithClassLockAsync<AttendanceView>(classId, async () =>
         {
@@ -210,5 +238,8 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
         return new((await repository.ChangesAsync(owner, id, ct)).Select(ChangeView).ToArray());
     }
     public static ClassroomChange ChangeView(SessionChange x) => new(x.Id, x.OwnerId, x.ClassId, x.SessionId, x.SessionVersion, x.Kind, x.RecordedAt, x.SessionStatus, x.StudentId, x.AttendanceVersion, x.AttendanceStatus, x.Excused, x.Reason);
+    private static AttendanceView[] List(ClassSession session, IEnumerable<Student> students, IReadOnlyCollection<AttendanceWithStudent> saved) =>
+        students.Concat(saved.Select(x => x.Student)).DistinctBy(x => x.Id).OrderBy(x => x.Name).ThenBy(x => x.Id)
+            .Select(student => View(session, student, saved.SingleOrDefault(x => x.Student.Id == student.Id)?.Attendance)).ToArray();
     private static AttendanceView View(ClassSession session, Student student, Attendance? mark) => new(student.Id, student.Name, mark?.Status ?? "unmarked", mark?.Reason, mark?.Excused ?? false, mark?.Version ?? 0, session.Version);
 }

@@ -170,7 +170,12 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
                     >
                       {sharing === key ? "Đang chuẩn bị…" : "Gửi báo cáo PDF"}
                     </button>
-                    <a href={classHref(item.classId, "tuition")}>Chi tiết</a>
+                    <a
+                      className="button-link"
+                      href={classHref(item.classId, "tuition")}
+                    >
+                      Chi tiết
+                    </a>
                   </div>
                   {shareNote[key] && <p role="status">{shareNote[key]}</p>}
                   {open && (

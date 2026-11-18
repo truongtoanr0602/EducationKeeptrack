@@ -1,3 +1,5 @@
+import { api } from "./api";
+
 export type WeeklySlot = {
   dayOfWeek: number;
   startTime: string;
@@ -48,6 +50,24 @@ export type Attendance = {
   version: number;
   sessionVersion: number;
 };
+export type AttendanceMark = {
+  studentId: string;
+  status: AttendanceStatus;
+  reason: string | null;
+  excused: boolean;
+  version: number;
+};
+// Saves every changed mark of one session at once; a stale row rejects the whole batch.
+export const saveAttendance = (
+  classId: string,
+  sessionId: string,
+  marks: AttendanceMark[],
+) =>
+  api<Attendance[]>(
+    `/classes/${classId}/sessions/${sessionId}/attendance`,
+    "PUT",
+    { marks },
+  );
 export type MissingAttendance = {
   sessionId: string;
   date: string;

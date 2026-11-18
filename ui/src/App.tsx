@@ -649,9 +649,21 @@ function ClassesScreen({
                 >
                   Danh sách học sinh
                 </button>
-                <a href={classHref(item.id, "sessions")}>Lịch học</a>
-                <a href={classHref(item.id, "tuition")}>Học phí</a>
-                <a href={classHref(item.id, "personalization")}>Cá nhân hoá</a>
+                <a
+                  className="button-link"
+                  href={classHref(item.id, "sessions")}
+                >
+                  Lịch học
+                </a>
+                <a className="button-link" href={classHref(item.id, "tuition")}>
+                  Học phí
+                </a>
+                <a
+                  className="button-link"
+                  href={classHref(item.id, "personalization")}
+                >
+                  Cá nhân hoá
+                </a>
               </div>
             </article>
           ))}

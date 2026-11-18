@@ -94,6 +94,59 @@ public sealed class AttendanceTests(TestApplication app) : IClassFixture<TestApp
     }
 
     [Fact]
+    public async Task Batch_save_writes_every_changed_mark_at_once_or_none()
+    {
+        var (client, classId, anId) = await Setup();
+        var (other, _, foreignId) = await Setup();
+        using (client) using (other)
+        {
+            var path = $"/api/classes/{classId}";
+            var binh = await (await TestApplication.Post(client, "/api/students", new { name = "Bình" })).Content.ReadFromJsonAsync<JsonElement>();
+            var binhId = binh.GetProperty("id").GetString()!;
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(client, $"{path}/enrollments", new { studentId = binhId, startDate = "2026-10-01" })).StatusCode);
+            var session = await (await TestApplication.Post(client, $"{path}/sessions", new { date = "2026-10-05", startTime = "18:00:00", endTime = "19:00:00", kind = "regular" })).Content.ReadFromJsonAsync<JsonElement>();
+            var id = session.GetProperty("id").GetString();
+            var batch = $"{path}/sessions/{id}/attendance";
+            var both = new { marks = new object[] { new { studentId = anId, status = "present", version = 0 }, new { studentId = binhId, status = "absent", reason = " Bị ốm ", excused = true, version = 0 } } };
+            Assert.Equal(HttpStatusCode.Conflict, (await Put(client, batch, both)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"{path}/sessions/{id}", new { status = "held", version = 1 })).StatusCode);
+
+            Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, batch, new { marks = Array.Empty<object>() })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, batch, new { marks = new[] { new { studentId = anId, status = "present", version = 0 }, new { studentId = anId, status = "absent", version = 0 } } })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, batch, new { marks = new[] { new { studentId = anId, status = "present", excused = true, version = 0 } } })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await Put(client, batch, new { marks = new[] { new { studentId = foreignId, status = "present", version = 0 } } })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await Put(other, batch, both)).StatusCode);
+
+            var saved = await Put(client, batch, both);
+            Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+            var rows = await saved.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal(new[] { "An", "Bình" }, rows.EnumerateArray().Select(x => x.GetProperty("name").GetString()));
+            Assert.Equal("present", rows[0].GetProperty("status").GetString());
+            Assert.Equal("absent", rows[1].GetProperty("status").GetString());
+            Assert.Equal("Bị ốm", rows[1].GetProperty("reason").GetString());
+            Assert.True(rows[1].GetProperty("excused").GetBoolean());
+            Assert.All(rows.EnumerateArray(), x => Assert.Equal(1, x.GetProperty("version").GetInt32()));
+
+            // A stale row rejects the whole batch: An's fresh change is not written either.
+            var stale = new { marks = new object[] { new { studentId = anId, status = "absent", version = 1 }, new { studentId = binhId, status = "present", version = 0 } } };
+            var conflict = await Put(client, batch, stale);
+            Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+            Assert.Contains("Bình", (await conflict.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("message").GetString());
+            Assert.Equal("present", (await client.GetFromJsonAsync<JsonElement>(batch))[0].GetProperty("status").GetString());
+
+            // Unchanged rows are skipped: no version bump, no extra event.
+            var same = await (await Put(client, batch, new { marks = new object[] { new { studentId = anId, status = "present", version = 1 }, new { studentId = binhId, status = "absent", reason = "Bị ốm", excused = true, version = 1 } } })).Content.ReadFromJsonAsync<JsonElement>();
+            Assert.All(same.EnumerateArray(), x => Assert.Equal(1, x.GetProperty("version").GetInt32()));
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, batch, new { marks = new[] { new { studentId = anId, status = "unmarked", version = 1 } } })).StatusCode);
+
+            // One outbox event per changed student, each with its own session version.
+            var history = await client.GetFromJsonAsync<JsonElement>($"{path}/sessions/{id}/history");
+            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, history.EnumerateArray().Select(x => x.GetProperty("sessionVersion").GetInt32()));
+            Assert.Equal(new[] { "present", "absent", "unmarked" }, history.EnumerateArray().Where(x => x.GetProperty("kind").GetString() == "attendance.changed").Select(x => x.GetProperty("attendanceStatus").GetString()));
+        }
+    }
+
+    [Fact]
     public async Task Invalid_schedules_stale_schedule_versions_and_foreign_references_are_rejected()
     {
         var (client, classId, studentId) = await Setup();
@@ -145,6 +198,7 @@ public sealed class AttendanceTests(TestApplication app) : IClassFixture<TestApp
             Assert.Equal(HttpStatusCode.Forbidden, (await TestApplication.Post(expired, $"{path}/sessions", new { date = "2026-10-06", startTime = "18:00:00", endTime = "19:00:00", kind = "regular" })).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await Put(expired, $"{path}/sessions/{id}", new { status = "held", version = 1 })).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await Put(expired, $"{path}/sessions/{id}/attendance/{studentId}", new { status = "present", version = 0 })).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await Put(expired, $"{path}/sessions/{id}/attendance", new { marks = new[] { new { studentId, status = "present", version = 0 } } })).StatusCode);
             using var scope = app.Services.CreateScope();
             var users = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
             var account = (await users.FindByEmailAsync(email))!;
