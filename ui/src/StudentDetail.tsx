@@ -53,7 +53,7 @@ export function StudentDetail({
   const ai = aiVisible(me.access);
   return (
     <>
-      <p>
+      <p className="breadcrumb">
         <a href={href({ name: "classes" })}>← Lớp & học sinh</a>
       </p>
       {error && (
@@ -84,7 +84,10 @@ export function StudentDetail({
               !student.email &&
               !student.notes && <p>Chưa có thông tin liên hệ.</p>}
             {classes[0] && (
-              <a href={classHref(classes[0].classId, "students")}>
+              <a
+                className="button-link"
+                href={classHref(classes[0].classId, "students")}
+              >
                 Sửa hồ sơ trong danh sách lớp
               </a>
             )}
@@ -104,11 +107,27 @@ export function StudentDetail({
                   </span>
                 </div>
                 <div className="billing-actions">
-                  <a href={classHref(c.classId, "sessions")}>Điểm danh</a>
-                  <a href={classHref(c.classId, "tuition")}>Học phí</a>
-                  <a href={classHref(c.classId, "assessments")}>Đánh giá</a>
+                  <a
+                    className="button-link"
+                    href={classHref(c.classId, "sessions")}
+                  >
+                    Điểm danh
+                  </a>
+                  <a
+                    className="button-link"
+                    href={classHref(c.classId, "tuition")}
+                  >
+                    Học phí
+                  </a>
+                  <a
+                    className="button-link"
+                    href={classHref(c.classId, "assessments")}
+                  >
+                    Đánh giá
+                  </a>
                   {ai && (
                     <a
+                      className="button-link"
                       href={classHref(
                         c.classId,
                         "personalization",

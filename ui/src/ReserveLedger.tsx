@@ -272,10 +272,15 @@ function ReverseUse({
       setBusy(false);
     }
   }
+  // Rendered inside a list item after the use's text, so it always starts on its own line.
   if (!open)
-    return <button onClick={() => setOpen(true)}>Hủy lần khấu trừ</button>;
+    return (
+      <div className="form-actions">
+        <button onClick={() => setOpen(true)}>Hủy lần khấu trừ</button>
+      </div>
+    );
   return (
-    <span>
+    <div className="reserve-inline-form">
       <label className="field">
         Lý do hủy khấu trừ
         <input
@@ -286,14 +291,16 @@ function ReverseUse({
         />
       </label>
       {error && (
-        <span role="alert" className="error">
+        <p role="alert" className="error">
           {error}
-        </span>
+        </p>
       )}
-      <button disabled={busy} onClick={() => void submit()}>
-        Xác nhận hủy khấu trừ
-      </button>
-    </span>
+      <div className="form-actions">
+        <button disabled={busy} onClick={() => void submit()}>
+          Xác nhận hủy khấu trừ
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -357,9 +364,14 @@ export function CancelReserve({
       setBusy(false);
     }
   }
-  if (!open) return <button onClick={() => setOpen(true)}>Hủy bảo lưu</button>;
+  if (!open)
+    return (
+      <div className="form-actions">
+        <button onClick={() => setOpen(true)}>Hủy bảo lưu</button>
+      </div>
+    );
   return (
-    <div>
+    <div className="reserve-inline-form">
       <label className="field">
         Lý do hủy bảo lưu
         <input
@@ -374,9 +386,11 @@ export function CancelReserve({
           {error}
         </p>
       )}
-      <button disabled={busy} onClick={() => void submit()}>
-        Xác nhận hủy bảo lưu
-      </button>
+      <div className="form-actions">
+        <button disabled={busy} onClick={() => void submit()}>
+          Xác nhận hủy bảo lưu
+        </button>
+      </div>
     </div>
   );
 }

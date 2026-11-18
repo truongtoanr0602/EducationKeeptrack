@@ -74,15 +74,18 @@ export function RecipientSettings({
   }, []);
   return (
     <section aria-label="Tài khoản nhận tiền">
-      <h4>Tài khoản nhận tiền</h4>
+      <div className="card-heading">
+        <h4>Tài khoản nhận tiền</h4>
+        <button disabled={busy} onClick={() => void load()}>
+          Tải lại tài khoản nhận tiền
+        </button>
+      </div>
       <p>
         Xem trước theo thông tin bạn nhập; chưa xác minh tên người nhận với ngân
         hàng.
       </p>
-      <button disabled={busy} onClick={() => void load()}>
-        Tải lại tài khoản nhận tiền
-      </button>
       <form
+        className="roster-form"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -167,23 +170,25 @@ export function RecipientSettings({
             alt="Xem trước QR tĩnh"
           />
         )}
-        <button
-          type="button"
-          disabled={!canWrite || busy}
-          onClick={() => {
-            setImage("");
-            setHasQr(false);
-          }}
-        >
-          Xóa QR tĩnh khi lưu
-        </button>
         <p>
           Xem trước người nhận: {draft.bankName} · {draft.accountNo} ·{" "}
           {draft.accountName}
         </p>
-        <button disabled={!canWrite || busy || !loaded}>
-          Lưu tài khoản nhận tiền
-        </button>
+        <div className="form-actions">
+          <button className="primary" disabled={!canWrite || busy || !loaded}>
+            Lưu tài khoản nhận tiền
+          </button>
+          <button
+            type="button"
+            disabled={!canWrite || busy}
+            onClick={() => {
+              setImage("");
+              setHasQr(false);
+            }}
+          >
+            Xóa QR tĩnh khi lưu
+          </button>
+        </div>
       </form>
       {error && <p role="alert">{error}</p>}
     </section>

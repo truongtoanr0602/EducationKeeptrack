@@ -469,16 +469,18 @@ function RequestCard({
               {error}
             </p>
           )}
-          <button
-            className="primary"
-            disabled={busy}
-            onClick={() => void decide("approve")}
-          >
-            Duyệt bảo lưu
-          </button>
-          <button disabled={busy} onClick={() => void decide("reject")}>
-            Từ chối
-          </button>
+          <div className="form-actions">
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => void decide("approve")}
+            >
+              Duyệt bảo lưu
+            </button>
+            <button disabled={busy} onClick={() => void decide("reject")}>
+              Từ chối
+            </button>
+          </div>
         </div>
       )}
     </div>

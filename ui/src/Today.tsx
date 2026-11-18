@@ -5,6 +5,7 @@ import {
   type Attendance,
   type AttendanceStatus,
   type ClassSession,
+  saveAttendance,
   sessionStatusNames,
 } from "./session-api";
 import { useSwr } from "./swr";
@@ -95,19 +96,18 @@ function SessionCard({
     return m && (m.status !== r.status || m.excused !== r.excused);
   });
 
-  function put(
+  const mark = (
     row: Attendance,
     to: AttendanceStatus,
     excused: boolean,
     v: number,
-  ) {
-    return api<Attendance>(`${base}/attendance/${row.studentId}`, "PUT", {
-      status: to,
-      reason: to === "absent" ? row.reason : null,
-      excused: to === "absent" && excused,
-      version: v,
-    });
-  }
+  ) => ({
+    studentId: row.studentId,
+    status: to,
+    reason: to === "absent" ? row.reason : null,
+    excused: to === "absent" && excused,
+    version: v,
+  });
   async function save() {
     setBusy(true);
     setError("");
@@ -122,7 +122,7 @@ function SessionCard({
         setStatus("held");
       }
       const changed = rows
-        .map((row, i) => ({ row, i, m: marks[row.studentId] }))
+        .map((row) => ({ row, m: marks[row.studentId] }))
         .filter(
           ({ row, m }) =>
             m && (m.status !== row.status || m.excused !== row.excused),
@@ -134,17 +134,21 @@ function SessionCard({
           return m ? { ...row, status: m.status, excused: m.excused } : row;
         }),
       );
-      // The server serializes writes per class, so sending them together only removes round trips.
-      const results = await Promise.all(
-        changed.map(({ row, m }) => put(row, m.status, m.excused, row.version)),
-      );
-      const done: Undo = changed.map(({ row }, k) => ({
+      // One request for the whole card: the server saves every change or none.
+      const next = changed.length
+        ? await saveAttendance(
+            item.classId,
+            session.id,
+            changed.map(({ row, m }) =>
+              mark(row, m.status, m.excused, row.version),
+            ),
+          )
+        : rows;
+      const done: Undo = changed.map(({ row }) => ({
         studentId: row.studentId,
         before: row,
-        version: results[k].version,
+        version: next.find((r) => r.studentId === row.studentId)!.version,
       }));
-      const next = [...rows];
-      changed.forEach(({ i }, k) => (next[i] = results[k]));
       setRows(next);
       setUndo(done.length ? done : null);
       setNotice(
@@ -166,10 +170,18 @@ function SessionCard({
     setBusy(true);
     setError("");
     try {
-      for (const step of undo) {
-        const row = rows.find((r) => r.studentId === step.studentId)!;
-        await put(row, step.before.status, step.before.excused, step.version);
-      }
+      await saveAttendance(
+        item.classId,
+        session.id,
+        undo.map((step) =>
+          mark(
+            step.before,
+            step.before.status,
+            step.before.excused,
+            step.version,
+          ),
+        ),
+      );
       setUndo(null);
       setNotice("Đã hoàn tác.");
       await load();

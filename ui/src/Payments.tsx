@@ -62,7 +62,12 @@ export function Payments({
   }, [report, loading, error, load]);
   return (
     <section aria-label="Thanh toán và công nợ" className="payments-workspace">
-      <h3>Thanh toán và công nợ</h3>
+      <div className="card-heading">
+        <h3>Thanh toán và công nợ</h3>
+        <button onClick={() => void load()} disabled={loading}>
+          Tải lại công nợ
+        </button>
+      </div>
       <RecipientSettings
         canWrite={canWrite}
         onDenied={onDenied}
@@ -72,9 +77,6 @@ export function Payments({
         Trả kỳ nợ cũ nhất trước. Tiền dư được giữ riêng, chưa tự dùng cho kỳ sau
         hoặc hoàn tiền. Quét QR hay ảnh chuyển khoản chưa xác nhận đã nhận tiền.
       </p>
-      <button onClick={() => void load()} disabled={loading}>
-        Tải lại công nợ
-      </button>
       {loading && <p role="status">Đang tải công nợ…</p>}
       {error && (
         <p role="alert" className="error">
