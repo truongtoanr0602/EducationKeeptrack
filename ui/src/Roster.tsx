@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { EnrollmentForm } from "./EnrollmentForm";
+import { PasteStudents } from "./PasteStudents";
 import { StudentForm } from "./StudentForm";
 import { Login } from "./Login";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
@@ -15,6 +16,7 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
   const [form, setForm] = useState<
     | { kind: "student"; student?: Student }
     | { kind: "enrollment"; item?: Enrollment }
+    | { kind: "paste" }
     | null
   >(null);
   const denied = useCallback(
@@ -114,6 +116,12 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
             </button>
             <button
               disabled={!access.canWrite || !!form}
+              onClick={() => setForm({ kind: "paste" })}
+            >
+              Dán danh sách
+            </button>
+            <button
+              disabled={!access.canWrite || !!form}
               onClick={() => setForm({ kind: "enrollment" })}
             >
               Chọn học sinh đã có
@@ -142,6 +150,17 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
             canWrite={access.canWrite}
             onSaved={saved}
             onCancel={() => setForm(null)}
+            onDenied={denied}
+          />
+        )}
+        {form?.kind === "paste" && (
+          <PasteStudents
+            classId={classroom.id}
+            students={students}
+            enrolledIds={items.map((item) => item.studentId)}
+            canWrite={access.canWrite}
+            onChanged={() => void load()}
+            onClose={() => setForm(null)}
             onDenied={denied}
           />
         )}

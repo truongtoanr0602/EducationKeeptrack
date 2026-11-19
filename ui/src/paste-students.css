@@ -1,0 +1,50 @@
+/* Pasted student list. Loaded with the component, so it only costs the pages that can paste students. */
+.paste-students {
+  max-width: 760px;
+}
+.paste-students textarea {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #b9becc;
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+.paste-students table {
+  width: 100%;
+  margin: 0.75rem 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.paste-students th,
+.paste-students td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #e3e6ee;
+  text-align: left;
+  vertical-align: top;
+}
+.paste-students th {
+  background: #eff4ff;
+  color: #00236f;
+}
+.paste-students td span {
+  display: block;
+}
+.paste-students tr.bad {
+  background: #fff4f2;
+}
+.paste-students .warn {
+  color: #765200;
+}
+.paste-students .paste-result ul {
+  padding-left: 1.2rem;
+}
+.paste-students .muted {
+  color: #555968;
+}
+@media (max-width: 560px) {
+  .paste-students th:first-child,
+  .paste-students td:first-child {
+    display: none;
+  }
+}
