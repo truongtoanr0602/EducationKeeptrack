@@ -43,7 +43,7 @@ public sealed class AiGradingTests(TestApplication app) : IClassFixture<TestAppl
             var photoContent = new ByteArrayContent(fakePhoto);
             photoContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
             form.Add(photoContent, "file", "bai_tap.jpg");
-            var uploadRes = await client.PostAsync($"{submissionPath}/photos", form);
+            var uploadRes = await TestApplication.PostForm(client, $"{submissionPath}/photos", form);
             Assert.Equal(HttpStatusCode.Created, uploadRes.StatusCode);
 
             // Still missing rubric returns 400

@@ -9,10 +9,13 @@ public sealed class LearningRepository(LearningDatabase db) : ILearningRepositor
     public async Task<IReadOnlyList<Assessment>> ListAsync(string owner, Guid classId, CancellationToken ct) =>
         await db.Assessments.AsNoTracking().Where(x => x.OwnerId == owner && x.ClassId == classId)
             .OrderByDescending(x => x.Date).ThenBy(x => x.Id).ToListAsync(ct);
-    public Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct) =>
-        db.Assessments.AsNoTracking().Include(x => x.Submissions).ThenInclude(x => x.History)
-            .Include(x => x.Submissions).ThenInclude(x => x.Photos)
+    public Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, bool track, CancellationToken ct)
+    {
+        var query = db.Assessments.Include(x => x.Submissions).ThenInclude(x => x.History)
+            .Include(x => x.Submissions).ThenInclude(x => x.Photos).AsQueryable();
+        return (track ? query : query.AsNoTracking())
             .SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId && x.Id == id, ct);
+    }
     public Task<Submission?> FindSubmissionAsync(string owner, Guid classId, Guid id, Guid studentId, CancellationToken ct) =>
         db.Submissions.Include(x => x.History).Include(x => x.Photos).SingleOrDefaultAsync(x => x.AssessmentId == id && x.StudentId == studentId
             && db.Assessments.Any(a => a.Id == id && a.OwnerId == owner && a.ClassId == classId), ct);

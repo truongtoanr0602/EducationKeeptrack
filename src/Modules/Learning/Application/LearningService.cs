@@ -9,7 +9,8 @@ namespace EducationKeeptrack.Learning.Application;
 public interface ILearningRepository
 {
     Task<IReadOnlyList<Assessment>> ListAsync(string owner, Guid classId, CancellationToken ct);
-    Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct);
+    /// <summary>`track` must be true when the caller changes the assessment and saves; untracked reads are for views.</summary>
+    Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, bool track, CancellationToken ct);
     Task<Submission?> FindSubmissionAsync(string owner, Guid classId, Guid id, Guid studentId, CancellationToken ct);
     Task<SubmissionPhoto?> FindPhotoAsync(Guid photoId, CancellationToken ct);
     /// <summary>Every assessment of the class with only this student's submission and its history loaded.</summary>
@@ -72,13 +73,13 @@ public sealed class LearningService(
 
     public async Task<LearningResult<Assessment>> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct)
     {
-        var assessment = await repository.FindAsync(owner, classId, id, ct);
+        var assessment = await repository.FindAsync(owner, classId, id, false, ct);
         return new(assessment, assessment is null ? 404 : 200);
     }
 
     public async Task<LearningResult<Assessment>> UpdateRubricAsync(string owner, Guid classId, Guid id, RubricInput input, CancellationToken ct)
     {
-        var assessment = await repository.FindAsync(owner, classId, id, ct);
+        var assessment = await repository.FindAsync(owner, classId, id, true, ct);
         if (assessment is null) return new(null, 404);
         var rubric = input.Rubric?.Trim() ?? "";
         if (rubric.Length > 5000)
@@ -204,7 +205,7 @@ public sealed class LearningService(
     {
         var submission = await repository.FindSubmissionAsync(owner, classId, id, studentId, ct);
         if (submission is null) return new(null, 404);
-        var assessment = await repository.FindAsync(owner, classId, id, ct);
+        var assessment = await repository.FindAsync(owner, classId, id, false, ct);
         if (assessment is null) return new(null, 404);
 
         if (submission.Photos.Count == 0)
