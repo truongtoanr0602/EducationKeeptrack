@@ -14,6 +14,8 @@ public record SessionView(Guid Id, DateOnly Date, TimeOnly StartTime, TimeOnly E
 public record AttendanceView(Guid StudentId, string Name, string Status, string? Reason, bool Excused, int Version, int SessionVersion);
 public record AttendanceWithStudent(Attendance Attendance, Student Student);
 public record TodaySession(Guid ClassId, string ClassName, string Subject, SessionView Session, int Students, int Present, int Absent);
+/// <summary>One class's weekly schedule in effect, for the cross-class week view.</summary>
+public record ClassScheduleView(Guid ClassId, string ClassName, DateOnly EffectiveFrom, IReadOnlyList<ScheduleSlotInput> Slots);
 public record TodayView(DateOnly Date, IReadOnlyList<TodaySession> Sessions);
 public record SessionWithClass(ClassSession Session, string ClassName, string Subject);
 public record MarkRow(Guid SessionId, Guid StudentId, string Status);
@@ -30,6 +32,8 @@ public interface ISessionRepository
     Task<bool> HasReplacementAsync(string owner, Guid classId, Guid sourceId, CancellationToken ct);
     Task<IReadOnlyList<Student>> EligibleStudentsAsync(string owner, Guid classId, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<AttendanceWithStudent>> AttendanceAsync(string owner, Guid sessionId, CancellationToken ct);
+    /// <summary>For each of the owner's classes, its latest schedule revision already in effect on <paramref name="date"/>.</summary>
+    Task<IReadOnlyList<(string ClassName, WeeklySchedule Schedule)>> ActiveSchedulesAsync(string owner, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct);
     Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct);
@@ -193,6 +197,14 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
         }, ct);
     // One read for the "Hôm nay" screen: every session of the owner on a Vietnam calendar date, with
     // per-session attendance counts, in three queries instead of one request per class.
+    // Read-only and owner-scoped: only the teacher's own classes, only schedules already in effect.
+    public async Task<ClassroomResult<IReadOnlyList<ClassScheduleView>>> ActiveSchedulesAsync(string owner, Guid? exceptClassId, CancellationToken ct)
+    {
+        var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), TimeZoneInfo.FindSystemTimeZoneById(ClassSession.TimeZone)).DateTime);
+        var rows = await repository.ActiveSchedulesAsync(owner, day, ct);
+        return new(rows.Where(x => x.Schedule.ClassId != exceptClassId && x.Schedule.Slots.Count > 0).OrderBy(x => x.ClassName).ThenBy(x => x.Schedule.ClassId)
+            .Select(x => new ClassScheduleView(x.Schedule.ClassId, x.ClassName, x.Schedule.EffectiveFrom, ScheduleView.From(x.Schedule).Slots)).ToArray());
+    }
     public async Task<ClassroomResult<TodayView>> TodayAsync(string owner, DateOnly? date, CancellationToken ct)
     {
         var day = date ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.GetUtcNow(), TimeZoneInfo.FindSystemTimeZoneById(ClassSession.TimeZone)).DateTime);

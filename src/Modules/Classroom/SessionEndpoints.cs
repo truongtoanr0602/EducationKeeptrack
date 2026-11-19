@@ -42,6 +42,10 @@ public static class SessionEndpoints
         var group = endpoints.MapGroup("/api/today").RequireAuthorization(policy => policy.RequireRole("Teacher"));
         group.AddEndpointFilter(ReadOnlyAccess);
         group.MapGet("/", async (DateOnly? date, HttpContext http, SessionService service) => Respond(await service.TodayAsync(Owner(http), date, http.RequestAborted)));
+        // Other classes' weekly schedules, so a new slot can be checked against them (UX8-7). Owner-scoped read.
+        var schedules = endpoints.MapGroup("/api/schedules").RequireAuthorization(policy => policy.RequireRole("Teacher"));
+        schedules.AddEndpointFilter(ReadOnlyAccess);
+        schedules.MapGet("/", async (Guid? exceptClassId, HttpContext http, SessionService service) => Respond(await service.ActiveSchedulesAsync(Owner(http), exceptClassId, http.RequestAborted)));
         var reports = endpoints.MapGroup("/api/reports").RequireAuthorization(policy => policy.RequireRole("Teacher"));
         reports.AddEndpointFilter(ReadOnlyAccess);
         reports.MapGet("/attendance", async (string month, HttpContext http, SessionService service) => Respond(await service.MonthAsync(Owner(http), month, http.RequestAborted)));

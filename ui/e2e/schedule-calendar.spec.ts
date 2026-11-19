@@ -276,12 +276,16 @@ test.describe("weekly schedule editor", () => {
       el.scrollIntoView({ block: "start" });
     });
     const box = (await column.boundingBox())!;
-    // The grid shows 06:00-22:00 at 22px an hour: 18:00 is 264px down, 19:30 is 297px.
+    // The grid is 22px an hour from its first hour label (06:00 by default; other classes' earlier slots widen it).
+    const firstHour = Number(
+      await page.locator(".week-hours span").first().textContent(),
+    );
+    const at = (hour: number) => (hour - firstHour) * 22;
     const x = box.x + box.width / 2;
-    await page.mouse.move(x, box.y + 264);
+    await page.mouse.move(x, box.y + at(18));
     await page.mouse.down();
-    await page.mouse.move(x, box.y + 280, { steps: 4 });
-    await page.mouse.move(x, box.y + 297, { steps: 4 });
+    await page.mouse.move(x, box.y + at(18) + 16, { steps: 4 });
+    await page.mouse.move(x, box.y + at(19.5), { steps: 4 });
     await page.mouse.up();
     await expect(slotList(page)).toContainText("Thứ Hai · 18:00–19:30");
   });

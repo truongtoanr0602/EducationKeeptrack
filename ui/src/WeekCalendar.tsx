@@ -10,6 +10,7 @@ import {
   weekOrder,
   type Slot,
 } from "./schedule-calendar";
+import type { OtherSlot } from "./schedule-overlap";
 
 const HOUR_PX = 22;
 
@@ -20,6 +21,10 @@ type Props = {
   /** Desktop only: dragging on a day column proposes a slot. */
   onDraw?: (day: number, start: string, end: string) => void;
   disabled?: boolean;
+  /** Slots of the teacher's other classes, drawn grey behind this class's blocks. */
+  others?: OtherSlot[];
+  /** Indexes of `slots` that overlap another class. */
+  clashing?: Set<number>;
 };
 
 /**
@@ -33,8 +38,10 @@ export function WeekCalendar({
   onSelect,
   onDraw,
   disabled,
+  others = [],
+  clashing,
 }: Props) {
-  const range = gridHours(slots);
+  const range = gridHours([...slots, ...others]);
   const hours = range.toHour - range.fromHour;
   const total = hours * 60;
   const [ghost, setGhost] = useState<{
@@ -106,11 +113,26 @@ export function WeekCalendar({
             }}
             onPointerCancel={() => setGhost(null)}
           >
+            {others.map((slot, index) =>
+              slot.dayOfWeek === day ? (
+                <div
+                  key={`other-${index}`}
+                  className="week-block other"
+                  title={`${slot.className} · ${hhmm(slot.startTime)}–${hhmm(slot.endTime)}`}
+                  style={{
+                    top: `${blockPosition(slot, range).top}%`,
+                    height: `${blockPosition(slot, range).height}%`,
+                  }}
+                >
+                  <span>{slot.className}</span>
+                </div>
+              ) : null,
+            )}
             {slots.map((slot, index) =>
               slot.dayOfWeek === day ? (
                 <div
                   key={index}
-                  className={`week-block${selected === index ? " selected" : ""}`}
+                  className={`week-block${selected === index ? " selected" : ""}${clashing?.has(index) ? " clash" : ""}`}
                   data-slot={index}
                   title={slotLabel(slot)}
                   style={{

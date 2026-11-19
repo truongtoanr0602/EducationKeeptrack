@@ -385,6 +385,7 @@ export function CreateClass({
             weeks={generate ? weeks : undefined}
             emptyHint="Chưa có khung giờ nào. Lớp sẽ được tạo mà chưa có lịch; bạn đặt lịch sau cũng được."
             onPendingChange={setPending}
+            exceptClassId={progress.classId}
           >
             <div className="field fee-field">
               <label htmlFor="class-fee">
