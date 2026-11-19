@@ -18,6 +18,7 @@ import {
   type Material,
   type PlanActivity,
   type PlanContent,
+  type PlanDraftResponse,
   type PlanProgress,
   type PlanSummary,
   type ReviewPlan,
@@ -182,6 +183,7 @@ function PlanEditor({
   const [error, setError] = useState("");
   const [conflict, setConflict] = useState(false);
   const [message, setMessage] = useState("");
+  const [ai, setAi] = useState<PlanDraftResponse | null>(null);
   const dirty = !!draft && (!plan || JSON.stringify(draft) !== JSON.stringify(plan.content));
   const editable = canWrite && !busy && (!plan || plan.execution.length === 0);
   const names = useMemo(() => new Map(profile.students.map((s) => [s.studentId, s.name])), [profile]);
@@ -214,6 +216,22 @@ function PlanEditor({
       setBusy(false);
     }
   }
+  async function askAi() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const value = await api<PlanDraftResponse>(`${base}/review-plans/draft`, "POST", { weekStart: week, requestKey: crypto.randomUUID() });
+      setAi(value);
+      setDraft(value.content);
+      setMessage("AI đã soạn dự thảo. Xem lý do bên dưới, chỉnh sửa rồi lưu; chưa có gì được lưu hay áp dụng.");
+    } catch (e) {
+      setError(errorText(e, "Không thể nhờ AI lúc này. Bạn vẫn có thể lập kế hoạch thủ công."));
+      denied(e);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function approve() {
     if (!plan) return;
     setBusy(true);
@@ -240,7 +258,18 @@ function PlanEditor({
         </p>
         <button className="primary" disabled={!canWrite} onClick={() => setDraft(suggestedContent(week, profile, sessions))}>
           Lập kế hoạch tuần này
+        </button>{" "}
+        <button disabled={!canWrite || busy} onClick={() => void askAi()}>
+          Gợi ý bằng AI
         </button>
+        <p className="hint">
+          AI chọn tối đa {MAX_GOALS} kỹ năng ưu tiên cho mỗi học sinh bằng mô hình xác suất và chỉ dùng học liệu đã duyệt. Mỗi lần gợi ý dùng 1 lượt kế hoạch; dự thảo không tự lưu.
+        </p>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
       </section>
     );
 
@@ -256,6 +285,7 @@ function PlanEditor({
 
   return (
     <>
+      {ai && <AiWhy ai={ai} names={names} skillName={(id) => skills.find((k) => k.id === id)?.name ?? "Kỹ năng"} />}
       <section className="card plan-status" aria-label="Trạng thái kế hoạch">
         <div className="card-heading">
           <div>
@@ -845,6 +875,38 @@ function Progress({ base, planId, version, denied }: { base: string; planId: str
           </table>
         </div>
       )}
+    </section>
+  );
+}
+
+function AiWhy({ ai, names, skillName }: { ai: PlanDraftResponse; names: Map<string, string>; skillName: (id: string) => string }) {
+  const byStudent = new Map<string, PlanDraftResponse["trace"]>();
+  for (const row of ai.trace) byStudent.set(row.studentId, [...(byStudent.get(row.studentId) ?? []), row]);
+  const p = ai.model.parameters;
+  const source = ai.model.paramSource === "default" ? "tham số mặc định" : `tham số học từ ${ai.model.paramSource.replace("fitted:", "")} lịch sử`;
+  return (
+    <section className="card ai-why" aria-label="Vì sao AI chọn các kỹ năng này">
+      <h3>Vì sao AI chọn các kỹ năng này</h3>
+      <p>
+        Mô hình theo dõi tri thức Bayes ({source}: học {Math.round(p.pLearn * 100)}%, đoán {Math.round(p.pGuess * 100)}%, nhầm {Math.round(p.pSlip * 100)}%). Quy tắc mức đạt vẫn quyết định kỹ năng nào đã đạt; mô hình chỉ xếp thứ tự ưu tiên trong các kỹ năng chưa đạt.
+      </p>
+      <ul>
+        {[...byStudent.entries()].map(([studentId, rows]) => (
+          <li key={studentId}>
+            <strong>{names.get(studentId) ?? "Học sinh"}</strong>
+            <ul>
+              {rows
+                .slice()
+                .sort((a, b) => b.score - a.score)
+                .map((r) => (
+                  <li key={r.skillId}>
+                    {r.selected ? "Chọn" : "Không chọn"} · {skillName(r.skillId)}: xác suất nắm {r.pKnown >= 0.995 ? "trên 99" : Math.round(r.pKnown * 100)}% sau {r.attempts} lần đánh giá, điểm ưu tiên {r.score.toFixed(2)}
+                  </li>
+                ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -16,6 +16,10 @@ public sealed record CompetencyProfile(bool Configured, MasteryRule? Rule, int C
 
 public sealed class CompetencyService(ICurriculumRepository curricula, ICompetencyRepository evidence, IClassroomLearningSource classroom, TimeProvider clock)
 {
+    /// <summary>Confirmed results of the class; the model reads attempts from here, never anything unconfirmed.</summary>
+    public Task<IReadOnlyList<StudentSkillResult>> ConfirmedAsync(string owner, Guid classId, CancellationToken ct) =>
+        evidence.ListConfirmedAsync(owner, classId, ct);
+
     public async Task<LearningResult<CompetencyProfile>> ProfileAsync(string owner, Guid classId, CancellationToken ct)
     {
         var roster = await classroom.ReadRosterAsync(owner, classId, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), ct);
