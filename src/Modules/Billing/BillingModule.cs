@@ -86,6 +86,7 @@ public static class BillingModule
         recipient.MapGet("", async (HttpContext http, PaymentQrService service) => Respond(await service.RecipientAsync(Owner(http), http.RequestAborted)));
         recipient.MapPost("", async (RecipientInput input, HttpContext http, PaymentQrService service) => Respond(await service.SaveAsync(Owner(http), input, http.RequestAborted)))
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(1500000));
+        recipient.MapPost("/sample-qr", async (SampleQrInput input, HttpContext http, PaymentQrService service) => Respond(await service.SampleAsync(Owner(http), input, http.RequestAborted)));
         group.MapGet("/reserve", async (Guid classId, string? month, HttpContext http, ReserveService service) => Respond(await service.ReportAsync(Owner(http), classId, month, http.RequestAborted)));
         group.MapPost("/reserve/uses", async (Guid classId, ReserveUseInput input, HttpContext http, ReserveService service) =>
         {
