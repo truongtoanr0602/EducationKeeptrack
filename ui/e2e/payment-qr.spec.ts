@@ -35,13 +35,12 @@ test("recipient preview and QR modes retain manual instructions without recordin
     name: "Tài khoản nhận tiền",
     exact: true,
   });
-  await expect(settings.getByLabel("Mã BIN ngân hàng")).toBeEnabled();
-  await settings.getByLabel("Mã BIN ngân hàng").fill("970415");
-  await settings.getByLabel("Ngân hàng", { exact: true }).fill("VietinBank");
+  const bank = settings.getByRole("combobox", { name: "Ngân hàng" });
+  await expect(bank).toBeEnabled();
+  await bank.fill("vietin");
+  await settings.getByRole("option", { name: /VietinBank/ }).click();
   await settings.getByLabel("Số tài khoản", { exact: true }).fill("123456789");
-  await settings
-    .getByLabel("Tên người nhận (viết hoa không dấu)")
-    .fill("NGUYEN VAN AN");
+  await settings.getByLabel("Tên chủ tài khoản").fill("Nguyễn Văn An");
   await expect(settings).toContainText(
     "Xem trước người nhận: VietinBank · 123456789 · NGUYEN VAN AN",
   );

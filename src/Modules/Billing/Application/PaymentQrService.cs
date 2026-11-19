@@ -10,6 +10,8 @@ public record RecipientView(string BankBin, string BankName, string AccountNo, s
 public record TransferInput(Guid StudentId, string Month, long Version, long RecipientVersion);
 public record TransferView(string BankBin, string BankName, string AccountNo, string AccountName, string AmountVnd,
     string Content, string QrKind, string? QrDataUrl, string? StaticQrDataUrl, long Version, long RecipientVersion);
+public record SampleQrInput(string? AmountVnd);
+public record SampleQrView(string AmountVnd, string Content, string QrKind, string? QrDataUrl);
 public interface IVietQrGenerator
 {
     Task<byte[]?> GenerateAsync(RecipientView recipient, string amountVnd, string content, CancellationToken ct);
@@ -67,11 +69,7 @@ public sealed class PaymentQrService(BillingDatabase db, PaymentService payments
             return Stale();
         if (student.TotalDebtVnd == "0") return new(null, BillingFailure.Invalid, Errors: new() { ["amount"] = ["Không còn dư nợ; không tạo yêu cầu chuyển khoản."] });
         var content = $"HP{input.Month.Replace("-", "")}{input.StudentId:N}"[..24];
-        byte[]? qr = null;
-        try { qr = await generator.GenerateAsync(View(recipient), student.TotalDebtVnd, content, ct); }
-        catch (HttpRequestException) { }
-        catch (IOException) { }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
+        var qr = await TryGenerateAsync(View(recipient), student.TotalDebtVnd, content, ct);
         var kind = QrImages.IsPng(qr) ? "vietqr" : QrImages.IsPng(recipient.StaticQr) ? "static" : "manual";
         qr = kind == "vietqr" ? qr : kind == "static" ? recipient.StaticQr : null;
         var after = await payments.ReportAsync(owner, classId, input.Month, ct);
@@ -79,6 +77,34 @@ public sealed class PaymentQrService(BillingDatabase db, PaymentService payments
         if (after.Value?.Status != "ready" || after.Value.Version != before.Value.Version || current?.Version != recipient.Version) return Stale();
         return new(new TransferView(recipient.BankBin, recipient.BankName, recipient.AccountNo, recipient.AccountName,
             student.TotalDebtVnd, content, kind, DataUrl(qr), QrImages.IsPng(recipient.StaticQr) ? DataUrl(recipient.StaticQr) : null, before.Value.Version, recipient.Version));
+    }
+    // Fixed ASCII text that fits the 25 characters VietQR allows; the sample never refers to a student or a debt.
+    public const string SampleContent = "EKT QR MAU";
+
+    /// <summary>
+    /// A QR for the saved receiving account and an amount the teacher types, so they can check that the account is
+    /// right. It writes nothing and records no payment. When VietQR is unavailable the answer falls back to the
+    /// uploaded static QR (which carries no amount) or to no image, exactly as a transfer request does.
+    /// </summary>
+    public async Task<BillingResult<SampleQrView>> SampleAsync(string owner, SampleQrInput input, CancellationToken ct)
+    {
+        var amount = input.AmountVnd?.Trim() ?? "";
+        if (!Regex.IsMatch(amount, "^[1-9][0-9]{0,12}$"))
+            return new(null, BillingFailure.Invalid, Errors: new() { ["amountVnd"] = ["Nhập số tiền là số nguyên đồng dương, tối đa 13 chữ số."] });
+        var recipient = await db.Set<PaymentRecipient>().AsNoTracking().SingleOrDefaultAsync(x => x.OwnerId == owner, ct);
+        if (recipient is null) return new(null, BillingFailure.Invalid, Errors: new() { ["recipient"] = ["Chưa cấu hình tài khoản nhận tiền."] });
+        var qr = await TryGenerateAsync(View(recipient), amount, SampleContent, ct);
+        var kind = QrImages.IsPng(qr) ? "vietqr" : QrImages.IsPng(recipient.StaticQr) ? "static" : "manual";
+        qr = kind == "vietqr" ? qr : kind == "static" ? recipient.StaticQr : null;
+        return new(new SampleQrView(amount, SampleContent, kind, DataUrl(qr)));
+    }
+
+    private async Task<byte[]?> TryGenerateAsync(RecipientView recipient, string amountVnd, string content, CancellationToken ct)
+    {
+        try { return await generator.GenerateAsync(recipient, amountVnd, content, ct); }
+        catch (HttpRequestException) { return null; }
+        catch (IOException) { return null; }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return null; }
     }
     private static string? DataUrl(byte[]? image) => image is null ? null : "data:image/png;base64," + Convert.ToBase64String(image);
     private static BillingResult<TransferView> Stale() => new(null, BillingFailure.Conflict, "Công nợ hoặc tài khoản đã thay đổi. Mã cũ lỗi thời; vui lòng tải lại và tạo mã mới.");

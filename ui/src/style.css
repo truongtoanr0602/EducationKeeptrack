@@ -995,3 +995,58 @@ small {
 .slot-list button {
   padding: 0.45rem 0.9rem;
 }
+
+/* Receiving account: bank picker and sample QR. */
+.bank-picker {
+  position: relative;
+}
+.bank-picker input[role="combobox"] {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #b9becc;
+  border-radius: 6px;
+  font: inherit;
+}
+.bank-picker ul {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 16rem;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #b9becc;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(13, 28, 47, 0.12);
+}
+.bank-picker li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+.bank-picker li span {
+  font-size: 0.78rem;
+  color: #555968;
+}
+.bank-picker li.active {
+  background: #eff4ff;
+}
+.bank-picker li.other {
+  border-top: 1px solid #e3e6ee;
+}
+.sample-qr {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d8dce5;
+}
+.sample-qr figure {
+  margin: 1rem 0;
+}
+.sample-qr figcaption {
+  color: #444651;
+  font-size: 0.9rem;
+}
