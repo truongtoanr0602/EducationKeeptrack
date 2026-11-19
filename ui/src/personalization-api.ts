@@ -208,3 +208,19 @@ export function weekdayOf(date: string) {
   const [y, m, d] = date.split("-").map(Number);
   return weekdays[(new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7];
 }
+
+/** AI draft of a weekly plan: the content to edit, the model that produced it and why each skill was or was not chosen. */
+export type PlanDraftTrace = {
+  studentId: string;
+  skillId: string;
+  ruleState: CompetencyState;
+  attempts: number;
+  pKnown: number;
+  score: number;
+  selected: boolean;
+};
+export type PlanDraftResponse = {
+  content: PlanContent;
+  model: { name: string; explainer: string; paramSource: string; parameters: { pInit: number; pLearn: number; pGuess: number; pSlip: number } };
+  trace: PlanDraftTrace[];
+};
