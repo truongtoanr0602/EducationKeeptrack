@@ -44,6 +44,14 @@ namespace Learning.Infrastructure.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<string>("Rubric")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<int>("RubricVersion")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -647,6 +655,31 @@ namespace Learning.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("AiCompletion")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("AiConfidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("AiCorrectness")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("AiProposedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AiReasoning")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("AiStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("AiWarning")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("AssessmentId")
                         .HasColumnType("uuid");
 
@@ -684,6 +717,45 @@ namespace Learning.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Submissions", "learning");
+                });
+
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SubmissionPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ByteLength")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PhotoKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("SequenceIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId", "SequenceIndex");
+
+                    b.ToTable("SubmissionPhotos", "learning");
                 });
 
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.AssessmentSkill", b =>
@@ -767,6 +839,15 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EducationKeeptrack.Learning.Domain.SubmissionPhoto", b =>
+                {
+                    b.HasOne("EducationKeeptrack.Learning.Domain.Submission", null)
+                        .WithMany("Photos")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Assessment", b =>
                 {
                     b.Navigation("Submissions");
@@ -807,6 +888,8 @@ namespace Learning.Infrastructure.Migrations
             modelBuilder.Entity("EducationKeeptrack.Learning.Domain.Submission", b =>
                 {
                     b.Navigation("History");
+
+                    b.Navigation("Photos");
                 });
 #pragma warning restore 612, 618
         }
