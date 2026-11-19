@@ -21,6 +21,8 @@ export type Route =
   | { name: "class"; classId: string; section: Section; tab?: PersonalTab }
   // Teacher: service status, payment reconciliation, AI quota, login email.
   | { name: "account" }
+  // First-run setup (UX8-5): 1 = class, 2 = receiving account, 3 = students.
+  | { name: "setup"; step: 1 | 2 | 3 }
   // Admin: service access only (never classes, students or tuition).
   | { name: "admin-teachers"; teacherId?: string }
   | { name: "admin-settings" };
@@ -49,6 +51,11 @@ export function parse(hash: string): Route {
     return { name: "class", classId: raw, section: "students" };
   const [first, classId, section, tab] = raw.replace(/^\//, "").split("/");
   if (first === "account") return { name: "account" };
+  if (first === "setup")
+    return {
+      name: "setup",
+      step: classId === "3" ? 3 : classId === "2" ? 2 : 1,
+    };
   if (first === "students" && classId && guid.test(classId))
     return { name: "student", studentId: classId };
   if (first === "billing") return { name: "billing" };
@@ -81,6 +88,7 @@ export function href(route: Route): string {
   if (route.name === "reports") return "#/reports";
   if (route.name === "classes") return "#/classes";
   if (route.name === "account") return "#/account";
+  if (route.name === "setup") return `#/setup/${route.step}`;
   if (route.name === "admin-settings") return "#/admin/settings";
   if (route.name === "admin-teachers")
     return route.teacherId

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { SetupCard } from "./SetupCard";
 import { api, ApiError, type Me } from "./api";
 import { useAccess } from "./access";
 import {
@@ -344,6 +345,7 @@ export function Today({ me }: { me: Me }) {
           Hôm sau →
         </button>
       </div>
+      <SetupCard me={me} />
       {error && (
         <p role="alert" className="error">
           {error}
