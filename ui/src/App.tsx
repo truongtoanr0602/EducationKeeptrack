@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { api, ApiError, type Me, type TeacherClass } from "./api";
 import type { CreateClassDraft } from "./CreateClass";
 import { Login } from "./Login";
@@ -6,11 +13,13 @@ import { Today } from "./Today";
 import { aiVisible } from "./access";
 import { prefetch } from "./swr";
 import { loadToday } from "./today-api";
+import { firstStep, savedStep } from "./setup-progress";
 
 // Rarely used or role-specific screens load on demand so the first paint ships less code.
 const CreateClass = lazy(() =>
   import("./CreateClass").then((m) => ({ default: m.CreateClass })),
 );
+const Setup = lazy(() => import("./Setup").then((m) => ({ default: m.Setup })));
 const Roster = lazy(() =>
   import("./Roster").then((m) => ({ default: m.Roster })),
 );
@@ -207,6 +216,28 @@ export function App() {
       navigate({ name: "admin-teachers" });
     if (me.role !== "Admin" && adminRoute) navigate({ name: "today" });
   }, [me, route.name]);
+  // A teacher who can work but has no class yet, or left the setup half-way, is taken into it once when
+  // the app opens on a landing screen; later visits to Today are never redirected.
+  const setupOffered = useRef(false);
+  useEffect(() => {
+    if (!me || loading || setupOffered.current) return;
+    if (me.role === "Admin" || !me.access.canWrite) return;
+    if (route.name !== "today" && route.name !== "classes") return;
+    setupOffered.current = true;
+    const saved = savedStep(me.email);
+    if (classes.length === 0 || saved !== null)
+      navigate({ name: "setup", step: firstStep(saved, { classes }) });
+  }, [me, loading, route.name, classes]);
+  // Setup is for accounts that can write; anyone else lands on Today (their requests would be refused anyway).
+  useEffect(() => {
+    if (
+      me &&
+      me.role !== "Admin" &&
+      route.name === "setup" &&
+      !me.access.canWrite
+    )
+      navigate({ name: "today" });
+  }, [me, route.name]);
   // Keep the shell's access in sync when the account screen reloads the service profile.
   const syncAccess = useCallback((profile: ServiceProfile) => {
     setMe((current) =>
@@ -350,9 +381,13 @@ export function App() {
       ? "classes"
       : route.name === "admin-teachers" || route.name === "admin-settings"
         ? "account"
-        : route.name;
+        : route.name === "setup"
+          ? "today"
+          : route.name;
   return (
-    <div className={`app-shell${menuOpen ? " menu-open" : ""}`}>
+    <div
+      className={`app-shell${menuOpen ? " menu-open" : ""}${route.name === "setup" ? " setup-mode" : ""}`}
+    >
       <a className="skip-link" href="#screen">
         Bỏ qua điều hướng
       </a>
@@ -478,6 +513,18 @@ export function App() {
               </>
             )}
             {route.name === "today" && <Today me={me} />}
+            {route.name === "setup" && me.access.canWrite && (
+              <Setup
+                me={me}
+                step={route.step}
+                classes={classes}
+                creating={creating}
+                onCreate={() => {
+                  setDraft(emptyDraft);
+                  setCreating(true);
+                }}
+              />
+            )}
             {route.name === "billing" && <Billing me={me} classes={classes} />}
             {route.name === "reports" && (
               <MonthReport me={me} classes={classes} />
@@ -560,7 +607,8 @@ export function App() {
               );
               setCreating(false);
               setDraft(emptyDraft);
-              setMessage("Đã tạo lớp thành công.");
+              if (route.name === "setup") navigate({ name: "setup", step: 2 });
+              else setMessage("Đã tạo lớp thành công.");
             }}
             onExpired={(saved) => {
               setDraft(saved);
@@ -677,6 +725,14 @@ function ClassesScreen({
             <span aria-hidden="true">▤</span>
             <h2>Bắt đầu với lớp học đầu tiên</h2>
             <p>Thêm tên lớp và môn học để tổ chức công việc giảng dạy.</p>
+            {me.access.canWrite && (
+              <a
+                className="button-link primary"
+                href={href({ name: "setup", step: 1 })}
+              >
+                Bắt đầu thiết lập
+              </a>
+            )}
           </section>
         )
       )}

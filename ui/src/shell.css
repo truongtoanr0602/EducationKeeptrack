@@ -732,3 +732,94 @@ label.inline input {
 .report-cards small { color: #5b6573; }
 .report-sub { font-size: 1.05rem; margin: 20px 0 8px; }
 @media (min-width: 961px) { .report-cards { grid-template-columns: repeat(4, 1fr); } }
+
+/* First-run setup (#57): one task per screen, no navigation to wander off with. */
+.app-shell.setup-mode {
+  grid-template-columns: minmax(0, 1fr);
+}
+.app-shell.setup-mode .sidebar,
+.app-shell.setup-mode .bottom-tabs,
+.app-shell.setup-mode .menu-button,
+.app-shell.setup-mode .menu-backdrop {
+  display: none;
+}
+.app-shell.setup-mode .shell-main > .workspace {
+  padding-bottom: 24px;
+}
+.setup {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.setup h1:focus {
+  outline: none;
+}
+.setup-progress {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: #555968;
+}
+.setup-progress > div {
+  height: 6px;
+  border-radius: 3px;
+  background: #e3e6ee;
+  overflow: hidden;
+}
+.setup-progress i {
+  display: block;
+  height: 100%;
+  background: var(--primary, #1d4ed8);
+}
+.setup-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+.setup-actions button {
+  min-height: 44px;
+}
+@media (max-width: 760px) {
+  .setup-actions {
+    flex-direction: column-reverse;
+  }
+  .setup-actions > * {
+    width: 100%;
+  }
+}
+.setup-card {
+  border: 1px solid #b9becc;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+.setup-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.setup-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.setup-card ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.setup-card li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.setup-card .button-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}

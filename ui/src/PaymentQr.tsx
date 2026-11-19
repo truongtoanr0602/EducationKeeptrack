@@ -437,6 +437,12 @@ export function PaymentQr({
       >
         Tạo yêu cầu chuyển khoản
       </button>
+      {enabled && !recipient && (
+        <p className="notice">
+          Chưa có tài khoản nhận tiền.{" "}
+          <a href="#/setup/2">Thiết lập tài khoản nhận tiền</a> để tạo QR.
+        </p>
+      )}
       {busy && <p role="status">Đang tạo mã…</p>}
       {error && <p role="alert">{error}</p>}
       {transfer && (
