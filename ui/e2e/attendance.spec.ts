@@ -38,11 +38,13 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   const workspace = page.getByRole("region", { name: "Lịch và điểm danh" });
   await workspace.getByRole("button", { name: "Thiết lập lịch tuần" }).click();
   await page.getByLabel("Lịch áp dụng từ ngày").fill("2026-10-01");
-  await page.getByLabel("Ngày trong tuần 1").selectOption("1");
-  await page.getByLabel("Giờ bắt đầu 1").fill("18:00");
-  await page.getByLabel("Giờ kết thúc 1").fill("19:30");
-  await page.getByRole("button", { name: "Thêm khung giờ" }).click();
-  await page.getByLabel("Ngày trong tuần 2").selectOption("3");
+  await page.getByRole("button", { name: "Thứ Hai", exact: true }).click();
+  await page.getByRole("button", { name: "Thứ Tư", exact: true }).click();
+  await page.getByLabel("Giờ bắt đầu").fill("18:00");
+  await page.getByLabel("Giờ kết thúc").fill("19:30");
+  await page
+    .getByRole("button", { name: "Thêm vào lịch", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Lưu lịch tuần", exact: true })
     .click();
