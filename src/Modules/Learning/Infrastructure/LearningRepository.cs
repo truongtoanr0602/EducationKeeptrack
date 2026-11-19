@@ -11,10 +11,13 @@ public sealed class LearningRepository(LearningDatabase db) : ILearningRepositor
             .OrderByDescending(x => x.Date).ThenBy(x => x.Id).ToListAsync(ct);
     public Task<Assessment?> FindAsync(string owner, Guid classId, Guid id, CancellationToken ct) =>
         db.Assessments.AsNoTracking().Include(x => x.Submissions).ThenInclude(x => x.History)
+            .Include(x => x.Submissions).ThenInclude(x => x.Photos)
             .SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId && x.Id == id, ct);
     public Task<Submission?> FindSubmissionAsync(string owner, Guid classId, Guid id, Guid studentId, CancellationToken ct) =>
-        db.Submissions.Include(x => x.History).SingleOrDefaultAsync(x => x.AssessmentId == id && x.StudentId == studentId
+        db.Submissions.Include(x => x.History).Include(x => x.Photos).SingleOrDefaultAsync(x => x.AssessmentId == id && x.StudentId == studentId
             && db.Assessments.Any(a => a.Id == id && a.OwnerId == owner && a.ClassId == classId), ct);
+    public Task<SubmissionPhoto?> FindPhotoAsync(Guid photoId, CancellationToken ct) =>
+        db.SubmissionPhotos.SingleOrDefaultAsync(x => x.Id == photoId, ct);
     public async Task<IReadOnlyList<Assessment>> ListForStudentAsync(string owner, Guid classId, Guid studentId, CancellationToken ct) =>
         await db.Assessments.AsNoTracking().Include(x => x.Submissions.Where(s => s.StudentId == studentId)).ThenInclude(x => x.History)
             .Where(x => x.OwnerId == owner && x.ClassId == classId).OrderBy(x => x.Date).ThenBy(x => x.Id).ToListAsync(ct);

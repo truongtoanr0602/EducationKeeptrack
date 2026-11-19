@@ -6,6 +6,7 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
 {
     public DbSet<Assessment> Assessments => Set<Assessment>();
     public DbSet<Submission> Submissions => Set<Submission>();
+    public DbSet<SubmissionPhoto> SubmissionPhotos => Set<SubmissionPhoto>();
     public DbSet<ResultRevision> ResultRevisions => Set<ResultRevision>();
     public DbSet<ClassCurriculum> Curricula => Set<ClassCurriculum>();
     public DbSet<Skill> Skills => Set<Skill>();
@@ -134,6 +135,7 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         assessment.Property(x => x.OwnerId).HasMaxLength(450);
         assessment.Property(x => x.Title).HasMaxLength(160);
         assessment.Property(x => x.DefaultMethod).HasMaxLength(20);
+        assessment.Property(x => x.Rubric).HasMaxLength(5000);
         assessment.HasIndex(x => new { x.OwnerId, x.ClassId });
         assessment.HasMany(x => x.Submissions).WithOne().HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Restrict);
         var submission = model.Entity<Submission>();
@@ -143,8 +145,19 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         submission.Property(x => x.Status).HasMaxLength(20);
         submission.Property(x => x.Method).HasMaxLength(20);
         submission.Property(x => x.Version).IsConcurrencyToken();
+        submission.Property(x => x.AiReasoning).HasMaxLength(2000);
+        submission.Property(x => x.AiWarning).HasMaxLength(500);
+        submission.Property(x => x.AiStatus).HasMaxLength(20);
         submission.HasIndex(x => new { x.AssessmentId, x.StudentId }).IsUnique();
         submission.HasMany(x => x.History).WithOne().HasForeignKey(x => x.SubmissionId).OnDelete(DeleteBehavior.Restrict);
+        submission.HasMany(x => x.Photos).WithOne().HasForeignKey(x => x.SubmissionId).OnDelete(DeleteBehavior.Cascade);
+        var photo = model.Entity<SubmissionPhoto>();
+        photo.HasKey(x => x.Id);
+        photo.Property(x => x.Id).ValueGeneratedNever();
+        photo.Property(x => x.PhotoKey).HasMaxLength(300);
+        photo.Property(x => x.ContentType).HasMaxLength(100);
+        photo.Property(x => x.Sha256).HasMaxLength(64);
+        photo.HasIndex(x => new { x.SubmissionId, x.SequenceIndex });
         var revision = model.Entity<ResultRevision>();
         revision.ToTable("ResultRevision");
         revision.HasKey(x => x.Id);
