@@ -1,0 +1,47 @@
+// Banks that can receive VietQR transfers and whose BIN passes the server rule (970xxx).
+// Generated on 2026-11-19 from the public VietQR bank list (https://api.vietqr.io/v2/banks), keeping transferSupported
+// banks only and dropping logos (the CSP only allows self and data: images). BINs are stable; update this file by
+// re-running that filter, never by hand. Wallets and foreign banks with a non-970 BIN are refused by the server.
+export type Bank = { bin: string; shortName: string; code: string; name: string };
+
+export const banks: Bank[] = [
+  { bin: "970425", shortName: "ABBANK", code: "ABB", name: "Ngân hàng TMCP An Bình" },
+  { bin: "970416", shortName: "ACB", code: "ACB", name: "Ngân hàng TMCP Á Châu" },
+  { bin: "970405", shortName: "Agribank", code: "VBA", name: "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam" },
+  { bin: "970409", shortName: "BacABank", code: "BAB", name: "Ngân hàng TMCP Bắc Á" },
+  { bin: "970438", shortName: "BaoVietBank", code: "BVB", name: "Ngân hàng TMCP Bảo Việt" },
+  { bin: "970418", shortName: "BIDV", code: "BIDV", name: "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam" },
+  { bin: "970444", shortName: "CBBank", code: "CBB", name: "Ngân hàng Thương mại trách nhiệm hữu hạn một thành viên Ngoại thương Công nghệ số (Vietcombank Neo Limited)" },
+  { bin: "970446", shortName: "COOPBANK", code: "COOPBANK", name: "Ngân hàng Hợp tác xã Việt Nam" },
+  { bin: "970431", shortName: "Eximbank", code: "EIB", name: "Ngân hàng TMCP Xuất Nhập khẩu Việt Nam" },
+  { bin: "970437", shortName: "HDBank", code: "HDB", name: "Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh" },
+  { bin: "970434", shortName: "IndovinaBank", code: "IVB", name: "Ngân hàng TNHH Indovina" },
+  { bin: "970452", shortName: "KienLongBank", code: "KLB", name: "Ngân hàng TMCP Kiên Long" },
+  { bin: "970463", shortName: "KookminHCM", code: "KBHCM", name: "Ngân hàng Kookmin - Chi nhánh Thành phố Hồ Chí Minh" },
+  { bin: "970462", shortName: "KookminHN", code: "KBHN", name: "Ngân hàng Kookmin - Chi nhánh Hà Nội" },
+  { bin: "970449", shortName: "LPBank", code: "LPB", name: "Ngân hàng TMCP Lộc Phát Việt Nam" },
+  { bin: "970422", shortName: "MBBank", code: "MB", name: "Ngân hàng TMCP Quân đội" },
+  { bin: "970414", shortName: "MBV", code: "MBV", name: "Ngân hàng TNHH MTV Việt Nam Hiện Đại" },
+  { bin: "970426", shortName: "MSB", code: "MSB", name: "Ngân hàng TMCP Hàng Hải" },
+  { bin: "970428", shortName: "NamABank", code: "NAB", name: "Ngân hàng TMCP Nam Á" },
+  { bin: "970419", shortName: "NCB", code: "NCB", name: "Ngân hàng TMCP Quốc Dân" },
+  { bin: "970448", shortName: "OCB", code: "OCB", name: "Ngân hàng TMCP Phương Đông" },
+  { bin: "970430", shortName: "PGBank", code: "PGB", name: "Ngân hàng TMCP Thịnh vượng và Phát triển" },
+  { bin: "970412", shortName: "PVcomBank", code: "PVCB", name: "Ngân hàng TMCP Đại Chúng Việt Nam" },
+  { bin: "970403", shortName: "Sacombank", code: "STB", name: "Ngân hàng TMCP Sài Gòn Tài Lộc" },
+  { bin: "970400", shortName: "SaigonBank", code: "SGICB", name: "Ngân hàng TMCP Sài Gòn Công Thương" },
+  { bin: "970429", shortName: "SCB", code: "SCB", name: "Ngân hàng TMCP Sài Gòn" },
+  { bin: "970440", shortName: "SeABank", code: "SEAB", name: "Ngân hàng TMCP Đông Nam Á" },
+  { bin: "970443", shortName: "SHB", code: "SHB", name: "Ngân hàng TMCP Sài Gòn - Hà Nội" },
+  { bin: "970424", shortName: "ShinhanBank", code: "SHBVN", name: "Ngân hàng TNHH MTV Shinhan Việt Nam" },
+  { bin: "970407", shortName: "Techcombank", code: "TCB", name: "Ngân hàng TMCP Kỹ thương Việt Nam" },
+  { bin: "970423", shortName: "TPBank", code: "TPB", name: "Ngân hàng TMCP Tiên Phong" },
+  { bin: "970441", shortName: "VIB", code: "VIB", name: "Ngân hàng TMCP Quốc tế Việt Nam" },
+  { bin: "970427", shortName: "VietABank", code: "VAB", name: "Ngân hàng TMCP Việt Á" },
+  { bin: "970433", shortName: "VietBank", code: "VIETBANK", name: "Ngân hàng TMCP Việt Nam Thương Tín" },
+  { bin: "970454", shortName: "VietCapitalBank", code: "VCCB", name: "Ngân hàng TMCP Bản Việt" },
+  { bin: "970436", shortName: "Vietcombank", code: "VCB", name: "Ngân hàng TMCP Ngoại Thương Việt Nam" },
+  { bin: "970415", shortName: "VietinBank", code: "ICB", name: "Ngân hàng TMCP Công thương Việt Nam" },
+  { bin: "970432", shortName: "VPBank", code: "VPB", name: "Ngân hàng TMCP Việt Nam Thịnh Vượng" },
+  { bin: "970457", shortName: "Woori", code: "WVN", name: "Ngân hàng TNHH MTV Woori Việt Nam" },
+];

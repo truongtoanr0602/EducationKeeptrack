@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
+import { BankPicker } from "./BankPicker";
+import { SampleQr } from "./SampleQr";
+import {
+  accountErrors,
+  digitsOnly,
+  findBank,
+  normalizeAccountName,
+} from "./banks";
 
 export type Recipient = {
   bankBin: string;
@@ -42,20 +50,30 @@ export function RecipientSettings({
     accountName: "",
     version: 0,
   });
+  const [saved, setSaved] = useState<Recipient | null>(null);
+  // "Ngân hàng khác": a BIN the list does not know is typed and kept by hand.
+  const [manual, setManual] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [hasQr, setHasQr] = useState(false);
+  function apply(r: Recipient) {
+    setDraft(r);
+    setSaved(r);
+    setHasQr(r.hasStaticQr);
+    setImage(null);
+    setErrors({});
+    // A saved bank the list does not know stays as it is, shown in the manual fields, never blanked.
+    setManual(!findBank(r.bankBin));
+    onChanged(r);
+  }
   async function load() {
     setBusy(true);
     setError("");
     try {
-      const r = await api<Recipient>("/billing/recipient");
-      setDraft(r);
-      setHasQr(r.hasStaticQr);
-      setImage(null);
-      onChanged(r);
+      apply(await api<Recipient>("/billing/recipient"));
       setLoaded(true);
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
@@ -72,6 +90,20 @@ export function RecipientSettings({
   useEffect(() => {
     void load();
   }, []);
+  const dirty =
+    !saved ||
+    saved.bankBin !== draft.bankBin ||
+    saved.bankName !== draft.bankName ||
+    saved.accountNo !== draft.accountNo ||
+    saved.accountName !== draft.accountName.trim() ||
+    image !== null;
+  const locked = !canWrite || busy || !loaded;
+  const fieldError = (key: string) =>
+    errors[key] && (
+      <small id={`recipient-${key}-error`} className="error">
+        {errors[key]}
+      </small>
+    );
   return (
     <section aria-label="Tài khoản nhận tiền">
       <div className="card-heading">
@@ -86,19 +118,25 @@ export function RecipientSettings({
       </p>
       <form
         className="roster-form"
+        noValidate
         onSubmit={async (e) => {
           e.preventDefault();
+          const found = accountErrors(draft);
+          if (manual && !draft.bankName.trim())
+            found.bankName = "Nhập tên ngân hàng.";
+          setErrors(found);
+          if (Object.keys(found).length) return;
           setBusy(true);
           setError("");
           try {
-            const r = await api<Recipient>("/billing/recipient", "POST", {
-              ...draft,
-              staticQrBase64: image,
-            });
-            setDraft(r);
-            setHasQr(r.hasStaticQr);
-            setImage(null);
-            onChanged(r);
+            apply(
+              await api<Recipient>("/billing/recipient", "POST", {
+                ...draft,
+                bankName: draft.bankName.trim(),
+                accountName: draft.accountName.trim(),
+                staticQrBase64: image,
+              }),
+            );
           } catch (e) {
             setError(message(e));
             if (e instanceof ApiError) onDenied(e);
@@ -107,24 +145,117 @@ export function RecipientSettings({
           }
         }}
       >
-        {(
-          [
-            ["bankBin", "Mã BIN ngân hàng"],
-            ["bankName", "Ngân hàng"],
-            ["accountNo", "Số tài khoản"],
-            ["accountName", "Tên người nhận (viết hoa không dấu)"],
-          ] as const
-        ).map(([key, label]) => (
-          <label key={key}>
-            {label}
-            <input
-              required
-              value={draft[key]}
-              disabled={!canWrite || busy || !loaded}
-              onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
+        {manual ? (
+          <>
+            <label>
+              Mã BIN ngân hàng
+              <input
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                aria-invalid={!!errors.bankBin || undefined}
+                aria-describedby="recipient-bankBin-error"
+                value={draft.bankBin}
+                disabled={locked}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    bankBin: e.target.value.replace(/\D/g, "").slice(0, 6),
+                  })
+                }
+              />
+            </label>
+            {fieldError("bankBin")}
+            <label>
+              Tên ngân hàng
+              <input
+                maxLength={100}
+                aria-invalid={!!errors.bankName || undefined}
+                aria-describedby="recipient-bankName-error"
+                value={draft.bankName}
+                disabled={locked}
+                onChange={(e) =>
+                  setDraft({ ...draft, bankName: e.target.value })
+                }
+              />
+            </label>
+            {fieldError("bankName")}
+            <button
+              type="button"
+              disabled={locked}
+              onClick={() => {
+                setManual(false);
+                setDraft({ ...draft, bankBin: "", bankName: "" });
+              }}
+            >
+              Chọn ngân hàng từ danh sách
+            </button>
+          </>
+        ) : (
+          <>
+            <BankPicker
+              bin={draft.bankBin}
+              disabled={locked}
+              invalid={!!errors.bankBin}
+              describedBy="recipient-bankBin-error"
+              onPick={(bank) => {
+                setDraft((d) => ({
+                  ...d,
+                  bankBin: bank.bin,
+                  bankName: bank.shortName,
+                }));
+                setErrors((current) => ({ ...current, bankBin: "" }));
+              }}
+              onClear={() =>
+                setDraft((d) => ({ ...d, bankBin: "", bankName: "" }))
+              }
+              onOther={() => {
+                setManual(true);
+                setDraft((d) => ({ ...d, bankBin: "", bankName: "" }));
+              }}
             />
-          </label>
-        ))}
+            {fieldError("bankBin")}
+          </>
+        )}
+        <label>
+          Số tài khoản
+          <input
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={19}
+            aria-invalid={!!errors.accountNo || undefined}
+            aria-describedby="recipient-accountNo-error"
+            value={draft.accountNo}
+            disabled={locked}
+            onChange={(e) =>
+              setDraft({ ...draft, accountNo: digitsOnly(e.target.value) })
+            }
+          />
+        </label>
+        {fieldError("accountNo")}
+        <label>
+          Tên chủ tài khoản
+          <input
+            autoComplete="off"
+            autoCapitalize="characters"
+            maxLength={50}
+            aria-invalid={!!errors.accountName || undefined}
+            aria-describedby="recipient-accountName-hint recipient-accountName-error"
+            value={draft.accountName}
+            disabled={locked}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                accountName: normalizeAccountName(e.target.value),
+              })
+            }
+          />
+        </label>
+        <small id="recipient-accountName-hint" className="hint">
+          Tự chuyển thành chữ hoa không dấu, giống tên in trên tài khoản ngân
+          hàng.
+        </small>
+        {fieldError("accountName")}
         <label>
           QR ngân hàng tĩnh (PNG, tối đa 1 MB)
           <input
@@ -172,10 +303,10 @@ export function RecipientSettings({
         )}
         <p>
           Xem trước người nhận: {draft.bankName} · {draft.accountNo} ·{" "}
-          {draft.accountName}
+          {draft.accountName.trim()}
         </p>
         <div className="form-actions">
-          <button className="primary" disabled={!canWrite || busy || !loaded}>
+          <button className="primary" disabled={locked}>
             Lưu tài khoản nhận tiền
           </button>
           <button
@@ -191,6 +322,17 @@ export function RecipientSettings({
         </div>
       </form>
       {error && <p role="alert">{error}</p>}
+      <SampleQr
+        disabled={!canWrite || busy || !saved || dirty}
+        reason={
+          !saved
+            ? "Lưu tài khoản nhận tiền trước khi tạo QR mẫu."
+            : dirty
+              ? "Bạn đã sửa thông tin chưa lưu. Lưu trước để QR mẫu dùng đúng tài khoản."
+              : undefined
+        }
+        onDenied={onDenied}
+      />
     </section>
   );
 }
