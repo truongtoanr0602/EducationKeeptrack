@@ -41,7 +41,7 @@ test("teacher edits monthly draft, previews and downloads only selected student"
   await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
   const frame = page.frameLocator('iframe[title="Xem trước báo cáo tháng"]');
   await expect(frame.getByText(comment, { exact: true })).toBeVisible();
-  await expect(frame.locator("p").filter({ hasText: /^Học sinh: An báo cáo tháng\s+Lớp:/ })).toBeVisible();
+  await expect(frame.locator(".kv").filter({ hasText: /Họ và tên\s*An báo cáo tháng/ })).toBeVisible();
   await expect(frame.getByText("Bình không được chọn")).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, "reportInjected"))).toBeUndefined();
   await expect(region.getByText("Tổng cần thu: 500.000 đồng", { exact: true })).toBeVisible();
