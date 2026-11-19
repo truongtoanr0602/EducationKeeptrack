@@ -68,6 +68,8 @@ export type TeacherDetailView = TeacherSummary & {
 export type Instructions = {
   bankDetails: string;
   contact: string;
+  hasStaticQr: boolean;
+  staticQrDataUrl: string | null;
   version: number;
   updatedAt: string | null;
   updatedBy: string | null;

@@ -10,6 +10,7 @@ import { today } from "./roster-api";
 import { money } from "./tuition-api";
 import { paymentStatus } from "./payments-api";
 import type { CashflowReport, PeriodReport } from "./statistics-api";
+import { CashflowChart, PeriodChart } from "./StatsCharts";
 
 type View = "cashflow" | "period";
 type Report =
@@ -203,6 +204,7 @@ export function CashflowStatistics({
             Tiền chưa phân bổ từ các khoản nhận trong khoảng:{" "}
             {money(cash.totalUnallocatedVnd)}
           </p>
+          <CashflowChart report={cash} />
           <div className="tuition-table-wrap">
             <table aria-label="Chi tiết thực thu">
               <thead>
@@ -281,6 +283,12 @@ export function CashflowStatistics({
             Tổng còn nợ: {money(debts.totalDebtVnd)}
           </p>
           <p>Tiền giữ để đối chiếu kỳ: {money(debts.totalHeldVnd)}</p>
+          <PeriodChart
+            students={debts.students}
+            totalFees={debts.totalFeesVnd}
+            totalPaid={debts.totalPaidVnd}
+            totalDebt={debts.totalDebtVnd}
+          />
           <div className="tuition-table-wrap">
             <table aria-label="Chi tiết công nợ kỳ">
               <thead>

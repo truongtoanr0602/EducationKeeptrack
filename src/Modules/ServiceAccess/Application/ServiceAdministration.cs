@@ -51,21 +51,34 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
     public async Task<object> InstructionsAsync(CancellationToken ct)
     {
         var item = await db.Instructions.AsNoTracking().SingleOrDefaultAsync(ct);
-        return new { bankDetails = item?.BankDetails ?? "", contact = item?.Contact ?? "", version = item?.Version ?? 0, updatedAt = item?.UpdatedAt, updatedBy = item?.UpdatedBy };
+        return new { bankDetails = item?.BankDetails ?? "", contact = item?.Contact ?? "", version = item?.Version ?? 0, updatedAt = item?.UpdatedAt, updatedBy = item?.UpdatedBy, hasStaticQr = item?.StaticQr is not null, staticQrDataUrl = ServiceQrImage.DataUrl(item?.StaticQr) };
     }
 
     public async Task<Outcome> SaveInstructionsAsync(Actor actor, InstructionsInput input, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(input.BankDetails) || input.BankDetails.Trim().Length > 1000) return Outcome.Invalid("bankDetails", "Nhập hướng dẫn chuyển khoản (tối đa 1000 ký tự).");
         if (input.Contact?.Trim().Length > 500) return Outcome.Invalid("contact", "Thông tin liên hệ tối đa 500 ký tự.");
+        // null keeps the stored QR, an empty string removes it, anything else replaces it.
+        byte[]? image = null;
+        var qr = "unchanged";
+        if (input.StaticQrBase64 is { Length: > 0 } encoded)
+        {
+            if (encoded.Length > ServiceQrImage.MaxBase64Length) return Outcome.Invalid("staticQrBase64", ServiceQrImage.Message);
+            try { image = Convert.FromBase64String(encoded); }
+            catch (FormatException) { return Outcome.Invalid("staticQrBase64", ServiceQrImage.Message); }
+            if (!ServiceQrImage.IsPng(image)) return Outcome.Invalid("staticQrBase64", ServiceQrImage.Message);
+            qr = "replaced";
+        }
+        else if (input.StaticQrBase64 is not null) qr = "removed";
         var item = await db.Instructions.SingleOrDefaultAsync(ct);
         if ((item?.Version ?? 0) != input.Version) return Outcome.Conflict("Hướng dẫn đã được cập nhật bởi người khác. Vui lòng tải lại.");
         if (item is null) db.Instructions.Add(item = new PaymentInstructions());
         item.BankDetails = input.BankDetails.Trim();
         item.Contact = input.Contact?.Trim() ?? "";
+        if (qr != "unchanged") item.StaticQr = image;
         item.UpdatedAt = clock.GetUtcNow();
         item.UpdatedBy = actor.Email;
-        Record(actor, null, "instructions.updated", null, null);
+        Record(actor, null, "instructions.updated", null, new { qr });
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException) { return Outcome.Conflict("Hướng dẫn đã được cập nhật bởi người khác. Vui lòng tải lại."); }
         return Outcome.Ok(await InstructionsAsync(ct));
@@ -186,7 +199,7 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
             Reason = reason, Details = details is null ? null : JsonSerializer.Serialize(details), At = clock.GetUtcNow()
         });
 
-    public record InstructionsInput(string? BankDetails, string? Contact, uint Version);
+    public record InstructionsInput(string? BankDetails, string? Contact, uint Version, string? StaticQrBase64 = null);
     public record NoteInput(string? Note, uint Version);
     public record ReasonInput(string? Reason, uint Version);
     // Snapshot of the quota per turn type for a new period; null = not granted. No defaults are assumed.

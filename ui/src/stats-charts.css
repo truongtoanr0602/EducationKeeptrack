@@ -1,0 +1,171 @@
+.viz-root {
+  --viz-surface: #fcfcfb;
+  --viz-ink: #0b0b0b;
+  --viz-ink-2: #52514e;
+  --viz-muted: #6b6a65;
+  --viz-grid: #e1e0d9;
+  --viz-axis: #c3c2b7;
+  --viz-paid: #2a78d6;
+  --viz-debt: #eb6834;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--viz-surface);
+  border: 1px solid rgba(11, 11, 11, 0.1);
+  border-radius: 12px;
+  color: var(--viz-ink);
+}
+.viz-root figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+.viz-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--viz-ink-2);
+}
+.viz-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--viz-paid);
+}
+.viz-swatch-debt {
+  background: var(--viz-debt);
+  margin-left: 0.6rem;
+}
+.viz-empty {
+  color: var(--viz-ink-2);
+  font-size: 0.9rem;
+}
+.viz-plot {
+  position: relative;
+  width: 100%;
+}
+.viz-plot svg {
+  display: block;
+  max-width: 100%;
+}
+.viz-grid {
+  stroke: var(--viz-grid);
+  stroke-width: 1;
+}
+.viz-axis {
+  stroke: var(--viz-axis);
+  stroke-width: 1;
+}
+.viz-tick {
+  fill: var(--viz-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.viz-bar {
+  fill: var(--viz-paid);
+}
+.viz-hover {
+  fill: rgba(42, 120, 214, 0.08);
+}
+.viz-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.4rem 0.65rem;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-axis);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(11, 11, 11, 0.12);
+  font-size: 0.85rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.viz-tooltip small {
+  color: var(--viz-ink-2);
+}
+.viz-hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+}
+.viz-hero-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.viz-hero-caption {
+  color: var(--viz-ink-2);
+  font-size: 0.9rem;
+}
+.viz-meter,
+.viz-row-track {
+  display: flex;
+  gap: 2px;
+  background: var(--viz-grid);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.viz-meter {
+  height: 14px;
+  margin: 0.5rem 0 1rem;
+}
+.viz-fill-paid,
+.viz-fill-debt {
+  display: block;
+  height: 100%;
+}
+.viz-fill-paid {
+  background: var(--viz-paid);
+}
+.viz-fill-debt {
+  background: var(--viz-debt);
+}
+.viz-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.viz-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 28%) 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+}
+.viz-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-row-track {
+  height: 12px;
+}
+.viz-row-value {
+  min-width: 5rem;
+  text-align: right;
+  color: var(--viz-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+@media (forced-colors: active) {
+  .viz-bar,
+  .viz-fill-paid,
+  .viz-swatch {
+    fill: Highlight;
+    background: Highlight;
+  }
+  .viz-fill-debt,
+  .viz-swatch-debt {
+    background: LinkText;
+  }
+}

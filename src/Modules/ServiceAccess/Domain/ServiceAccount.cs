@@ -76,6 +76,7 @@ public sealed class PaymentInstructions
     public int Id { get; set; } = 1;
     public string BankDetails { get; set; } = "";
     public string Contact { get; set; } = "";
+    public byte[]? StaticQr { get; set; }
     public string? UpdatedBy { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public uint Version { get; set; }

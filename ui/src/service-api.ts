@@ -21,7 +21,11 @@ export type PeriodView = {
 export type ServiceProfile = {
   status: Access["status"];
   access: Access;
-  instructions: { bankDetails: string; contact: string };
+  instructions: {
+    bankDetails: string;
+    contact: string;
+    qrDataUrl: string | null;
+  };
   requests: PaymentRequestView[];
   periods: PeriodView[];
   ai: { enabled: boolean; canUseAi: boolean; quotas: QuotaBalance[] };
