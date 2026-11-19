@@ -1,11 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import {
-  api,
-  ApiError,
-  type ClassDraft,
-  type Me,
-  type TeacherClass,
-} from "./api";
+import { api, ApiError, type Me, type TeacherClass } from "./api";
+import type { CreateClassDraft } from "./CreateClass";
 import { Login } from "./Login";
 import { Today } from "./Today";
 import { aiVisible } from "./access";
@@ -71,7 +66,7 @@ import {
   type Route,
 } from "./router";
 
-const emptyDraft: ClassDraft = { name: "", subject: "", description: "" };
+const emptyDraft: CreateClassDraft = { name: "", subject: "", description: "" };
 
 // Four cross-class areas plus "Thêm" (account and service); see ADR 0005.
 type MainTab = "today" | "classes" | "billing" | "reports" | "account";
@@ -99,7 +94,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<TeacherClass[]>([]);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState(emptyDraft);
+  const [draft, setDraft] = useState<CreateClassDraft>(emptyDraft);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -553,8 +548,16 @@ export function App() {
           <CreateClass
             initial={draft}
             onClose={() => setCreating(false)}
+            // The class is listed as soon as it exists, so closing the dialog half-way never hides it.
+            onCreated={(item) =>
+              setClasses((items) =>
+                items.some((c) => c.id === item.id) ? items : [...items, item],
+              )
+            }
             onSaved={(item) => {
-              setClasses((items) => [...items, item]);
+              setClasses((items) =>
+                items.some((c) => c.id === item.id) ? items : [...items, item],
+              );
               setCreating(false);
               setDraft(emptyDraft);
               setMessage("Đã tạo lớp thành công.");
