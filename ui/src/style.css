@@ -1050,3 +1050,38 @@ small {
   color: #444651;
   font-size: 0.9rem;
 }
+
+/* Other classes on the week grid (#59): grey and behind, with the class name; a clash is marked in text and colour. */
+.week-block.other {
+  background: #d9dce4;
+  color: #3b3f4d;
+  pointer-events: none;
+  z-index: 0;
+  border: 1px dashed #8a90a2;
+}
+.week-block:not(.other) {
+  z-index: 1;
+}
+.week-block.clash {
+  background: #8a4b00;
+  outline: 2px solid #f2b705;
+}
+.slot-list li.clash {
+  border-left: 4px solid #b26a00;
+  padding-left: 0.5rem;
+}
+.warn {
+  color: #7a3f00;
+  font-size: 0.9rem;
+}
+.slot-list li .clash-text {
+  flex-basis: 100%;
+  font-weight: 400;
+}
+.other-schedules {
+  margin: 0.5rem 0;
+}
+.other-schedules ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}

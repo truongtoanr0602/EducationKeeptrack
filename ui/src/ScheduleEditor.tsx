@@ -1,5 +1,13 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { weekDays } from "./session-api";
+import {
+  clashSentence,
+  clashingIndexes,
+  loadOtherSchedules,
+  otherSlots,
+  slotText,
+  type OtherSchedule,
+} from "./schedule-overlap";
 import { MonthPreview } from "./MonthPreview";
 import { WeekCalendar } from "./WeekCalendar";
 import {
@@ -32,6 +40,7 @@ export function ScheduleEditor({
   weeks,
   emptyHint,
   onPendingChange,
+  exceptClassId,
   children,
 }: {
   slots: Slot[];
@@ -43,6 +52,8 @@ export function ScheduleEditor({
   weeks?: number;
   emptyHint: string;
   onPendingChange?: (pending: boolean) => void;
+  /** The class being edited, when it already exists: its own schedule is not shown as "another class". */
+  exceptClassId?: string | null;
   /** Extra fields shown between the slot list and the preview. */
   children?: ReactNode;
 }) {
@@ -54,6 +65,34 @@ export function ScheduleEditor({
   const [editing, setEditing] = useState<number | null>(null);
   const [entryError, setEntryError] = useState("");
   const pending = editing !== null || days.length > 0;
+  // The other classes' schedules are only a hint: when they cannot be read the editor works without them.
+  const [others, setOthers] = useState<OtherSchedule[]>([]);
+  const [othersFailed, setOthersFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    loadOtherSchedules(exceptClassId).then(
+      (list) => {
+        if (!active) return;
+        setOthers(list);
+        setOthersFailed(false);
+      },
+      () => active && setOthersFailed(true),
+    );
+    return () => {
+      active = false;
+    };
+  }, [exceptClassId]);
+  const otherList = otherSlots(others);
+  const clashing = clashingIndexes(slots, otherList);
+  // The slot being typed, checked before it is added.
+  const entryClash = days
+    .map((day) =>
+      clashSentence(
+        { dayOfWeek: day, startTime: start, endTime: end },
+        otherList,
+      ),
+    )
+    .filter(Boolean);
   useEffect(() => {
     onPendingChange?.(pending);
   }, [pending, onPendingChange]);
@@ -208,6 +247,11 @@ export function ScheduleEditor({
             {entryError}
           </p>
         )}
+        {entryClash.length > 0 && (
+          <p className="warn" role="status">
+            {entryClash.join("; ")}. Vẫn lưu được nếu bạn dạy ghép.
+          </p>
+        )}
         <div className="roster-actions">
           <button type="button" className="primary" onClick={applyEntry}>
             {editing === null ? "Thêm vào lịch" : "Cập nhật khung giờ"}
@@ -226,14 +270,44 @@ export function ScheduleEditor({
         onSelect={startEditing}
         onDraw={drawn}
         disabled={disabled}
+        others={otherList}
+        clashing={clashing}
       />
+      {othersFailed && (
+        <p className="muted">
+          Không tải được lịch các lớp khác nên chưa kiểm tra được trùng giờ.
+        </p>
+      )}
+      {others.length > 0 && (
+        <details className="other-schedules">
+          <summary>
+            Lịch các lớp khác ({others.length} lớp, hiện màu xám trên lưới)
+          </summary>
+          <ul>
+            {others.map((o) => (
+              <li key={o.classId}>
+                <strong>{o.className}</strong>:{" "}
+                {o.slots.map(slotText).join(", ")}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {slots.length === 0 ? (
         <p className="muted">{emptyHint}</p>
       ) : (
         <ul className="slot-list" aria-label="Khung giờ trong lịch tuần">
           {slots.map((slot, index) => (
-            <li key={`${slot.dayOfWeek}-${slot.startTime}`}>
+            <li
+              key={`${slot.dayOfWeek}-${slot.startTime}`}
+              className={clashing.has(index) ? "clash" : undefined}
+            >
               <span>{slotLabel(slot)}</span>
+              {clashing.has(index) && (
+                <span className="warn clash-text">
+                  {clashSentence(slot, otherList)}
+                </span>
+              )}
               <button
                 type="button"
                 disabled={disabled}

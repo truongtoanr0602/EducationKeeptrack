@@ -24,6 +24,12 @@ public sealed class SessionRepository(ClassroomDatabase db) : ISessionRepository
                where attendance.OwnerId == owner && attendance.SessionId == sessionId && student.OwnerId == owner
                orderby student.Name, student.Id
                select new AttendanceWithStudent(attendance, student)).ToListAsync(ct);
+    public async Task<IReadOnlyList<(string ClassName, WeeklySchedule Schedule)>> ActiveSchedulesAsync(string owner, DateOnly date, CancellationToken ct)
+    {
+        var names = await db.Classes.AsNoTracking().Where(x => x.OwnerId == owner).Select(x => new { x.Id, x.Name }).ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+        var schedules = await db.WeeklySchedules.AsNoTracking().Include(x => x.Slots).Where(x => x.OwnerId == owner && x.EffectiveFrom <= date).ToListAsync(ct);
+        return schedules.Where(x => names.ContainsKey(x.ClassId)).GroupBy(x => x.ClassId).Select(g => (names[g.Key], g.OrderByDescending(x => x.Version).First())).ToArray();
+    }
     public async Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct) =>
         await (from session in db.Sessions.AsNoTracking()
                join classroom in db.Classes.AsNoTracking() on session.ClassId equals classroom.Id

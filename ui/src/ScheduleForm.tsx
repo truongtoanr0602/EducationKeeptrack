@@ -96,6 +96,7 @@ export function ScheduleForm({
         disabled={busy}
         emptyHint="Chưa có khung giờ nào. Lưu lịch trống sẽ ngừng lịch tuần từ ngày hiệu lực."
         onPendingChange={setPending}
+        exceptClassId={classId}
       />
       {error && (
         <p className="error" role="alert">
