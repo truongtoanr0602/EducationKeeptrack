@@ -29,17 +29,29 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
         dl{margin:0}
         .kv{display:flex;justify-content:space-between;gap:8px;padding:2.5px 0;border-bottom:1px dashed #d6e2f6}
         .kv dt{color:#5a6f92}.kv dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
-        .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-        .chip{background:#dce9ff;border-radius:999px;padding:2px 9px;font-size:10px;font-weight:600;color:#12346b;font-variant-numeric:tabular-nums}
+        .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+        .chip{background:#dce9ff;border-radius:999px;padding:3px 0;text-align:center;font-size:11px;font-weight:600;color:#12346b;font-variant-numeric:tabular-nums}
+        .chip.wide{grid-column:1/-1}
+        .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+        .two .card h2{margin-bottom:6px}
+        .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+        .tile{background:#eef4ff;border-radius:12px;padding:8px 10px;text-align:center}
+        .tile span{display:block;font-size:10px;color:#5a6f92}
+        .tile b{display:block;font-size:14px;color:#0f3a82;font-variant-numeric:tabular-nums}
+        .tile.debt b{color:#c2410c}.tile.ok b{color:#0a6b3a}
+        @media screen{.detail{padding:0 6px 12px}}
+        @media (max-width:640px){.grid,.two{grid-template-columns:1fr}.sheet{padding:12px}.chips{grid-template-columns:repeat(4,1fr)}}
         .chip.absent{background:#ffe2d3;color:#8a3410}
         .chip.excused{background:#fff0c2;color:#6b4d00}
         .chip.unmarked{background:#eceff4;color:#5a6f92}
         .legend{font-size:9px;color:#5a6f92;margin-top:5px}
-        .pay{text-align:center}
+        .pay{text-align:center;display:flex;flex-direction:column}
+        .pay .body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center}
         .total{white-space:nowrap;font-size:11px;color:#4a5f82}
-        .total .amt{font-size:22px;font-weight:700;color:#0f3a82}
+        .total .amt{font-size:26px;font-weight:700;color:#0f3a82}
         .paid-ok{font-size:14px;font-weight:700;color:#0a6b3a;margin:8px 0}
-        .qr{display:block;margin:8px auto;width:150px;height:150px;border:1px solid #dbe7fb;border-radius:10px;padding:5px}
+        .qr{display:block;margin:8px auto;width:170px;height:auto;max-height:200px;object-fit:contain;border:1px solid #dbe7fb;border-radius:10px;padding:5px;background:#fff}
+        .hint{font-size:10px;color:#5a6f92;margin-top:2px}
         .bank{font-size:11px;line-height:1.5}
         .meter{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#e4ecfa;margin:6px 0 2px}
         .meter .p{background:#2a78d6}.meter .d{background:#eb6834}
@@ -92,7 +104,7 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
         html.Append("<div class='grid'><div class='card'><h2>Thông tin học sinh</h2><dl>")
             .Append(Kv("Họ và tên", draft.DisplayName ?? c.Profile.Name)).Append(Kv("Lớp / Môn", $"{c.ClassName} · {c.Subject}"))
             .Append(Kv("Phụ huynh", draft.ParentDisplayName ?? c.Profile.ParentName ?? "Chưa có thông tin"))
-            .Append(Kv("Liên hệ", draft.ContactDisplay ?? string.Join(" · ", new[] { c.Profile.Phone, c.Profile.Email }.Where(x => !string.IsNullOrWhiteSpace(x)))))
+            .Append(Contact(draft.ContactDisplay ?? string.Join(" · ", new[] { c.Profile.Phone, c.Profile.Email }.Where(x => !string.IsNullOrWhiteSpace(x)))))
             .Append(Kv("Học phí", UnitPrice(b.Fees))).Append(Kv("Buổi học", $"{held.Count} buổi · có mặt {present} · vắng {absent}")).Append("</dl>");
         html.Append("<div class='chips'>");
         foreach (var s in held)
@@ -100,26 +112,28 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
             var kind = s.AttendanceStatus == "absent" ? (s.Excused ? "excused" : "absent") : s.AttendanceStatus == "present" ? "" : "unmarked";
             html.Append("<span class='chip ").Append(kind).Append("'>").Append(s.Date.ToString("dd/MM")).Append("</span>");
         }
-        if (held.Count == 0) html.Append("<span class='chip unmarked'>Chưa có buổi học</span>");
+        if (held.Count == 0) html.Append("<span class='chip unmarked wide'>Chưa có buổi học trong tháng</span>");
         html.Append("</div><div class='legend'>Xanh: có mặt · Cam: vắng · Vàng: nghỉ có phép · Xám: chưa điểm danh</div></div>");
 
-        html.Append("<div class='card pay'><h2>Học phí cần thanh toán</h2><div class='total'>Tổng cần thu: <span class='amt'>").Append(M(due)).Append("</span></div>");
+        html.Append("<div class='card pay'><h2>Học phí cần thanh toán</h2><div class='body'><div class='total'>Tổng cần thu: <span class='amt'>").Append(M(due)).Append("</span></div>");
         PayBlock(html, payment, due);
-        html.Append("</div></div>");
+        html.Append("</div></div></div>");
 
         // Money at a glance.
         var feesTotal = Math.Max(finance.PeriodFeesVnd, 0); var paidShare = feesTotal > 0 ? Math.Clamp(finance.PeriodPaidVnd / feesTotal * 100, 0, 100) : 0;
         var debtShare = feesTotal > 0 ? Math.Clamp(finance.PeriodDebtVnd / feesTotal * 100, 0, 100 - paidShare) : 0;
-        html.Append("<div class='card'><h2>Tóm tắt học phí tháng</h2><dl>").Append(Kv("Học phí sau điều chỉnh", M(finance.PeriodFeesVnd))).Append(Kv("Đã thanh toán kỳ", M(finance.PeriodPaidVnd)))
-            .Append(Kv("Nợ trước tháng", M(finance.OldDebtVnd))).Append(Kv("Còn nợ tháng", M(finance.PeriodDebtVnd))).Append("</dl>")
+        html.Append("<div class='card'><h2>Tóm tắt học phí tháng</h2><div class='tiles'>")
+            .Append(Tile("Học phí sau điều chỉnh", M(finance.PeriodFeesVnd), "")).Append(Tile("Đã thanh toán kỳ", M(finance.PeriodPaidVnd), finance.PeriodPaidVnd > 0 ? "ok" : ""));
+        if (finance.OldDebtVnd != 0) html.Append(Tile("Nợ trước tháng", M(finance.OldDebtVnd), "debt"));
+        html.Append(Tile("Còn nợ tháng", M(finance.PeriodDebtVnd), finance.PeriodDebtVnd > 0 ? "debt" : "ok")).Append("</div>")
             .Append("<div class='meter'><span class='p' style='width:").Append(Pct(paidShare)).Append("%'></span><span class='d' style='width:").Append(Pct(debtShare)).Append("%'></span></div>")
             .Append("<div class='meter-label'><span>Xanh: đã thanh toán</span><span>Cam: còn nợ</span></div></div>");
 
-        html.Append("<div class='section'><h2>Nhận xét học tập</h2><p class='text'>").Append(E(string.IsNullOrWhiteSpace(draft.Comment) ? "Chưa có nhận xét." : draft.Comment)).Append("</p></div>");
-        html.Append("<div class='section'><h2>Lộ trình sắp tới</h2><p class='text'>").Append(E(string.IsNullOrWhiteSpace(draft.Roadmap) ? "Chưa có lộ trình." : draft.Roadmap)).Append("</p></div>");
+        html.Append("<div class='two'><div class='card'><h2>Nhận xét học tập</h2><p class='text'>").Append(E(string.IsNullOrWhiteSpace(draft.Comment) ? "Chưa có nhận xét." : draft.Comment)).Append("</p></div>");
+        html.Append("<div class='card'><h2>Lộ trình sắp tới</h2><p class='text'>").Append(E(string.IsNullOrWhiteSpace(draft.Roadmap) ? "Chưa có lộ trình." : draft.Roadmap)).Append("</p></div></div>");
 
-        html.Append("<div class='section'><h2>Kết quả đã xác nhận</h2>");
-        if (sources.Learning.Assessments.Count == 0) html.Append("<p class='text'>Chưa có dữ liệu.</p>");
+        // An empty results list is noise for parents, so the section appears only when there is something to show.
+        if (sources.Learning.Assessments.Count > 0) html.Append("<div class='section'><h2>Kết quả đã xác nhận</h2>");
         foreach (var x in sources.Learning.Assessments)
         {
             html.Append("<div class='skill'><div class='t'>").Append(x.Date.ToString("dd/MM")).Append(" · ").Append(E(x.Title)).Append("</div>");
@@ -127,7 +141,7 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
             else html.Append("<div class='pct' style='grid-column:span 2'>Chưa có kết quả xác nhận</div>");
             html.Append("</div>");
         }
-        html.Append("</div>");
+        if (sources.Learning.Assessments.Count > 0) html.Append("</div>");
 
         foreach (var warning in payment.Warnings) html.Append("<p class='notice'>").Append(E(warning)).Append("</p>");
         if (b.Status == "needs-review") html.Append("<p class='notice'>Có tiền giữ để đối chiếu. Khoản giữ chưa được dùng lại hoặc hoàn trả.</p>");
@@ -162,6 +176,8 @@ public sealed class ReportHtmlTemplate : IReportHtmlTemplate
                 .Append("</b><br>Nội dung: ").Append(E(payment.Content)).Append("</div>");
     }
 
+    private static string Contact(string value) => string.IsNullOrWhiteSpace(value) ? "" : Kv("Liên hệ", value);
+    private static string Tile(string label, string value, string kind) => $"<div class='tile {kind}'><span>{E(label)}</span><b>{E(value)}</b></div>";
     private static string Kv(string key, string value) => $"<div class='kv'><dt>{E(key)}</dt><dd>{E(value)}</dd></div>";
     private static string Bar(string label, int? value, bool alt) =>
         value is null ? "<div class='pct'>—</div>" : $"<div><div class='bar{(alt ? " alt" : "")}'><i style='width:{Math.Clamp(value.Value, 0, 100)}%'></i></div><div class='pct'>{E(label)} {value}%</div></div>";
