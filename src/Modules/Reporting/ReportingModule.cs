@@ -19,6 +19,7 @@ public static class ReportingModule
     {
         services.AddDbContext<ReportingDatabase>(o => o.UseNpgsql(connection, p => p.MigrationsHistoryTable("__EFMigrationsHistory", "reporting")));
         services.AddScoped<IReportingRepository, ReportingRepository>(); services.AddScoped<DraftService>(); services.AddScoped<ReportSourceCoordinator>(); services.AddScoped<PreviewService>(); services.AddScoped<ExportService>(); services.AddScoped<ExportFreshnessService>();
+        services.AddScoped<IAiCommentEngine, SimulationAiCommentEngine>();
         services.Configure<ReportingOptions>(config.GetSection("Reporting"));
         services.AddSingleton<DownloadTokens>(); services.AddScoped<DownloadService>();
         services.AddSingleton<IReportHtmlTemplate, ReportHtmlTemplate>(); services.AddSingleton<IReportPdfRenderer, ChromiumPdfRenderer>(); services.AddSingleton<IReportObjectStore, S3ReportStore>();
@@ -64,6 +65,7 @@ public static class ReportingModule
         group.MapPost("/previews", async (Guid classId, Guid studentId, string month, HttpContext http, PreviewService service) => Respond(await service.CreateAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapGet("/draft", async (Guid classId, Guid studentId, string month, HttpContext http, DraftService service) => Respond(await service.ReadAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
         group.MapPut("/draft", async (Guid classId, Guid studentId, string month, DraftInput input, HttpContext http, DraftService service) => Respond(await service.SaveAsync(Scope(http, classId, studentId, month), input, http.RequestAborted)));
+        group.MapPost("/ai-comment", async (Guid classId, Guid studentId, string month, HttpContext http, DraftService service) => Respond(await service.GenerateAiCommentAsync(Scope(http, classId, studentId, month), http.RequestAborted)));
     }
     internal static string Owner(HttpContext http) => http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     internal static ReportScope Scope(HttpContext http, Guid classId, Guid studentId, string month) => new(Owner(http), classId, studentId, DateOnly.ParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture));

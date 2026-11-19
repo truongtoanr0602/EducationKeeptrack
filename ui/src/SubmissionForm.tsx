@@ -54,6 +54,8 @@ export function SubmissionForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+
   const disabled = !canWrite || busy || conflict;
   const complete =
     status === "assessed"
@@ -61,6 +63,7 @@ export function SubmissionForm({
       : status === "no_correct"
         ? completion !== null
         : true;
+
   function changeState(next: AssessmentState) {
     setStatus(next);
     setMessage("");
@@ -68,6 +71,7 @@ export function SubmissionForm({
     setCompletion(null);
     setCorrectness(null);
   }
+
   async function save(confirm: boolean) {
     setBusy(true);
     setError("");
@@ -99,6 +103,7 @@ export function SubmissionForm({
       setBusy(false);
     }
   }
+
   async function reloadVersion() {
     setBusy(true);
     setError("");
@@ -122,6 +127,136 @@ export function SubmissionForm({
       setBusy(false);
     }
   }
+
+  async function uploadPhoto(file: File) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api${path}/photos`, {
+        method: "POST",
+        body: form,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(
+          data?.message ||
+            data?.errors?.file?.[0] ||
+            "Không thể tải ảnh. Vui lòng kiểm tra định dạng và kích thước.",
+        );
+      }
+      await reloadVersion();
+      setMessage("Đã tải ảnh bài nộp thành công.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Lỗi khi tải ảnh.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePhoto(photoId: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api<Submission>(`${path}/photos/${photoId}`, "DELETE");
+      setSaved(res);
+      setMessage("Đã xóa ảnh bài nộp.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không thể xóa ảnh.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function movePhoto(index: number, direction: "up" | "down") {
+    const photos = saved.photos ? [...saved.photos] : [];
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= photos.length) return;
+    const temp = photos[index];
+    photos[index] = photos[target];
+    photos[target] = temp;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api<Submission>(`${path}/photos/reorder`, "PUT", {
+        photoIds: photos.map((p) => p.id),
+      });
+      setSaved(res);
+      setMessage("Đã cập nhật thứ tự các trang ảnh.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không thể đổi thứ tự ảnh.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeMethod(newMethod: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api<Submission>(`${path}/method`, "PUT", {
+        method: newMethod,
+        version: saved.version,
+      });
+      setSaved(res);
+      setMessage(
+        `Đã chuyển cách chấm sang ${newMethod === "ai" ? "AI chấm bài" : "Tự chấm"}.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không thể đổi cách chấm.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runAiGrading() {
+    setBusy(true);
+    setError("");
+    setMessage("AI đang phân tích ảnh bài nộp và đối chiếu hướng dẫn chấm...");
+    try {
+      const res = await api<Submission>(`${path}/ai-grade`, "POST");
+      setSaved(res);
+      if (res.aiCompletion !== null && res.aiCompletion !== undefined) {
+        setCompletion(res.aiCompletion);
+      }
+      if (res.aiCorrectness !== null && res.aiCorrectness !== undefined) {
+        setCorrectness(res.aiCorrectness);
+      }
+      setStatus("assessed");
+      setMessage("AI đã chấm bài xong. Kiểm tra đề xuất và xác nhận kết quả.");
+    } catch (e) {
+      setError(
+        e instanceof ApiError
+          ? Object.values(e.errors ?? {}).flat().join(" ") || e.message
+          : e instanceof Error
+            ? e.message
+            : "AI không thể xử lý bài này lúc này.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runAiFallback() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api<Submission>(`${path}/ai-fallback`, "POST");
+      setSaved(res);
+      setMessage("Đã chuyển bài này về chế độ tự chấm an toàn.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không thể chuyển về tự chấm.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <article
       className="assessment-submission"
@@ -135,14 +270,202 @@ export function SubmissionForm({
           disabled={
             disabled || saved.history.some((x) => x.action !== "method_changed")
           }
-          onChange={() => {}}
+          onChange={(e) => void changeMethod(e.target.value)}
         >
           <option value="manual">Tự chấm</option>
-          <option value="ai" disabled>
-            AI chưa khả dụng
-          </option>
+          <option value="ai">AI chấm bài</option>
         </select>
       </label>
+
+      {/* Submission Photos Section */}
+      <section className="submission-photos-section" style={{ margin: "12px 0", padding: "10px", background: "var(--surface-color, #f8f9fa)", borderRadius: "6px" }}>
+        <h4 style={{ margin: "0 0 8px 0" }}>Ảnh bài nộp ({saved.photos?.length ?? 0} trang)</h4>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={disabled || (saved.photos?.length ?? 0) >= 10}
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                void uploadPhoto(e.target.files[0]);
+                e.target.value = "";
+              }
+            }}
+          />
+          <small style={{ color: "#666" }}>Tối đa 10 trang, JPG/PNG/WebP ≤ 5MB/ảnh</small>
+        </div>
+
+        {saved.photos && saved.photos.length > 0 && (
+          <ul style={{ listStyle: "none", padding: 0, margin: "8px 0", display: "flex", flexWrap: "wrap", gap: "10px" }}>
+            {saved.photos.map((photo, index) => (
+              <li
+                key={photo.id}
+                style={{
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  padding: "6px",
+                  background: "#fff",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  width: "120px",
+                }}
+              >
+                <span style={{ fontWeight: 600, fontSize: "12px", marginBottom: "4px" }}>
+                  Trang {photo.sequenceIndex}
+                </span>
+                <button
+                  type="button"
+                  style={{ fontSize: "11px", padding: "2px 6px", marginBottom: "4px" }}
+                  onClick={async () => {
+                    try {
+                      const res = await api<{ downloadUrl: string }[]>(`${path}/photos`);
+                      const found = res.find((p) => p.id === photo.id);
+                      if (found?.downloadUrl) setPreviewPhoto(found.downloadUrl);
+                    } catch {
+                      setError("Không thể tải link xem ảnh.");
+                    }
+                  }}
+                >
+                  Xem ảnh
+                </button>
+                <div style={{ display: "flex", gap: "2px" }}>
+                  <button
+                    type="button"
+                    title="Chuyển lên trước"
+                    disabled={disabled || index === 0}
+                    style={{ fontSize: "10px", padding: "1px 4px" }}
+                    onClick={() => void movePhoto(index, "up")}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    title="Chuyển xuống sau"
+                    disabled={disabled || index === (saved.photos?.length ?? 0) - 1}
+                    style={{ fontSize: "10px", padding: "1px 4px" }}
+                    onClick={() => void movePhoto(index, "down")}
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    title="Xóa trang này"
+                    disabled={disabled}
+                    style={{ fontSize: "10px", padding: "1px 4px", color: "red" }}
+                    onClick={() => void deletePhoto(photo.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Preview Photo Modal */}
+      {previewPhoto && (
+        <div
+          role="dialog"
+          aria-label="Xem ảnh bài nộp"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.7)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "16px",
+              borderRadius: "8px",
+              maxWidth: "90%",
+              maxHeight: "90%",
+              overflow: "auto",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewPhoto}
+              alt="Ảnh bài nộp"
+              style={{ maxWidth: "100%", maxHeight: "75vh", objectFit: "contain" }}
+            />
+            <div style={{ marginTop: "12px" }}>
+              <button type="button" onClick={() => setPreviewPhoto(null)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Grading Proposal Panel */}
+      {saved.method === "ai" && (
+        <div
+          style={{
+            margin: "12px 0",
+            padding: "12px",
+            border: "1px solid #1a73e8",
+            borderRadius: "6px",
+            background: "#f0f6ff",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h4 style={{ margin: 0, color: "#1a73e8" }}>🤖 Trợ lý AI chấm bài</h4>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                className="primary"
+                disabled={disabled || !(saved.photos && saved.photos.length > 0)}
+                onClick={() => void runAiGrading()}
+              >
+                {saved.aiStatus === "proposed" ? "Chấm lại bằng AI" : "Bắt đầu AI chấm bài"}
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => void runAiFallback()}
+              >
+                Chuyển về tự chấm
+              </button>
+            </div>
+          </div>
+
+          {saved.aiStatus === "proposed" && (
+            <div style={{ marginTop: "10px" }}>
+              <p style={{ margin: "4px 0", fontWeight: 600 }}>
+                💡 Đề xuất AI: Hoàn thành {saved.aiCompletion}% · Làm đúng {saved.aiCorrectness}%
+                {saved.aiConfidence && (
+                  <span style={{ fontSize: "12px", color: "#555", marginLeft: "6px" }}>
+                    (Độ tin cậy: {Math.round(saved.aiConfidence * 100)}%)
+                  </span>
+                )}
+              </p>
+              {saved.aiReasoning && (
+                <p style={{ margin: "4px 0", fontSize: "13px", color: "#333", fontStyle: "italic" }}>
+                  {saved.aiReasoning}
+                </p>
+              )}
+              {saved.aiWarning && (
+                <p style={{ margin: "4px 0", fontSize: "12px", color: "#b06000" }}>
+                  ⚠️ {saved.aiWarning}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <label>
         Trạng thái đánh giá
         <select

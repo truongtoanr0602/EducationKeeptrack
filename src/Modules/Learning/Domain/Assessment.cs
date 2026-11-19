@@ -8,12 +8,20 @@ public sealed class Assessment
     public string Title { get; private set; } = "";
     public DateOnly Date { get; private set; }
     public string DefaultMethod { get; private set; } = "manual";
+    public string Rubric { get; private set; } = "";
+    public int RubricVersion { get; private set; } = 1;
     public List<Submission> Submissions { get; private set; } = [];
     private Assessment() { }
-    public Assessment(string owner, Guid classId, string title, DateOnly date, IEnumerable<(Guid Id, string Name)> students)
+    public Assessment(string owner, Guid classId, string title, DateOnly date, IEnumerable<(Guid Id, string Name)> students, string defaultMethod = "manual", string rubric = "")
     {
-        OwnerId = owner; ClassId = classId; Title = title.Trim(); Date = date;
+        OwnerId = owner; ClassId = classId; Title = title.Trim(); Date = date; DefaultMethod = defaultMethod;
+        Rubric = rubric.Trim();
         Submissions = students.Select(x => new Submission(Id, x.Id, x.Name, DefaultMethod)).ToList();
+    }
+    public void UpdateRubric(string rubric)
+    {
+        Rubric = rubric.Trim();
+        RubricVersion++;
     }
 }
 
@@ -29,10 +37,63 @@ public sealed class Submission
     public int? Correctness { get; private set; }
     public int Version { get; private set; } = 1;
     public List<ResultRevision> History { get; private set; } = [];
+    public List<SubmissionPhoto> Photos { get; private set; } = [];
+    public int? AiCompletion { get; private set; }
+    public int? AiCorrectness { get; private set; }
+    public double? AiConfidence { get; private set; }
+    public string? AiReasoning { get; private set; }
+    public string? AiWarning { get; private set; }
+    public string AiStatus { get; private set; } = "none";
+    public DateTimeOffset? AiProposedAt { get; private set; }
     private Submission() { }
     public Submission(Guid assessmentId, Guid studentId, string studentName, string method)
     {
         AssessmentId = assessmentId; StudentId = studentId; StudentName = studentName; Method = method;
+    }
+
+    public void AddPhoto(SubmissionPhoto photo)
+    {
+        Photos.Add(photo);
+        Version++;
+    }
+    public void RemovePhoto(Guid photoId)
+    {
+        Photos.RemoveAll(x => x.Id == photoId);
+        for (int i = 0; i < Photos.Count; i++) Photos[i].SetSequenceIndex(i + 1);
+        Version++;
+    }
+    public void ReorderPhotos(IEnumerable<Guid> orderedIds)
+    {
+        var idList = orderedIds.ToList();
+        for (int i = 0; i < idList.Count; i++)
+        {
+            var p = Photos.FirstOrDefault(x => x.Id == idList[i]);
+            p?.SetSequenceIndex(i + 1);
+        }
+        Photos = Photos.OrderBy(x => x.SequenceIndex).ToList();
+        Version++;
+    }
+    public void SetAiProposal(int completion, int correctness, double confidence, string reasoning, string? warning, DateTimeOffset now)
+    {
+        AiCompletion = completion;
+        AiCorrectness = correctness;
+        AiConfidence = confidence;
+        AiReasoning = reasoning;
+        AiWarning = warning;
+        AiStatus = "proposed";
+        AiProposedAt = now;
+        Version++;
+    }
+    public void ClearAiProposal()
+    {
+        AiCompletion = null;
+        AiCorrectness = null;
+        AiConfidence = null;
+        AiReasoning = null;
+        AiWarning = null;
+        AiStatus = "none";
+        AiProposedAt = null;
+        Version++;
     }
 
     public Dictionary<string, string[]> Validate(ResultInput input)
@@ -87,4 +148,24 @@ public sealed class ResultRevision
         SubmissionId = submissionId; Version = version; Status = status; Completion = completion;
         Correctness = correctness; Method = method; Action = action; RecordedAt = recordedAt;
     }
+}
+
+public sealed class SubmissionPhoto
+{
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid SubmissionId { get; private set; }
+    public string PhotoKey { get; private set; } = "";
+    public int SequenceIndex { get; private set; }
+    public string ContentType { get; private set; } = "image/jpeg";
+    public long ByteLength { get; private set; }
+    public string Sha256 { get; private set; } = "";
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    private SubmissionPhoto() { }
+    public SubmissionPhoto(Guid submissionId, string photoKey, int sequenceIndex, string contentType, long byteLength, string sha256, DateTimeOffset createdAt)
+    {
+        SubmissionId = submissionId; PhotoKey = photoKey; SequenceIndex = sequenceIndex;
+        ContentType = contentType; ByteLength = byteLength; Sha256 = sha256; CreatedAt = createdAt;
+    }
+    public void SetSequenceIndex(int index) => SequenceIndex = index;
 }
