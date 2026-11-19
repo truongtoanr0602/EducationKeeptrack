@@ -21,7 +21,7 @@ public sealed class ServiceDesk(ServiceAccessDatabase db, IAccountAccess access,
         {
             status = status.Status,
             access = status,
-            instructions = new { bankDetails = instructions?.BankDetails ?? "", contact = instructions?.Contact ?? "" },
+            instructions = new { bankDetails = instructions?.BankDetails ?? "", contact = instructions?.Contact ?? "", qrDataUrl = ServiceQrImage.DataUrl(instructions?.StaticQr) },
             requests = requests.Select(TeacherRequest),
             periods = periods.Select(p => new { p.Id, p.StartsAt, p.EndsAt, p.Label, current = p.Contains(now), upcoming = p.StartsAt > now }),
             // Balances of the current period only; a new period never inherits unused turns.

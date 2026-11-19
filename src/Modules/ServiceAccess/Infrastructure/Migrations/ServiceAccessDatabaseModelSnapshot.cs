@@ -81,6 +81,9 @@ namespace ServiceAccess.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<byte[]>("StaticQr")
+                        .HasColumnType("bytea");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

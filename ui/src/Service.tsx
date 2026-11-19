@@ -202,6 +202,13 @@ export function AccountScreen({
             Phí dịch vụ là khoản bạn trả để dùng phần mềm, tách riêng với học
             phí học sinh.
           </p>
+          {profile.instructions.qrDataUrl && (
+            <img
+              className="payment-qr"
+              src={profile.instructions.qrDataUrl}
+              alt="Mã QR chuyển khoản phí dịch vụ"
+            />
+          )}
           {profile.instructions.bankDetails ? (
             <p className="pre">{profile.instructions.bankDetails}</p>
           ) : (
