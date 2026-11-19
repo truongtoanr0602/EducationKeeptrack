@@ -29,6 +29,23 @@ public static class ReviewPlanEndpoints
         });
         group.MapGet("/review-plans/{id:guid}", async (Guid classId, Guid id, HttpContext http, ReviewPlanService service) =>
             Respond(await service.GetAsync(LearningAccess.Owner(http), classId, id, http.RequestAborted)));
+        group.MapPost("/review-plans/draft", async (Guid classId, PlanDraftInput input, HttpContext http, ReviewPlanService service) =>
+        {
+            var result = await service.DraftAsync(LearningAccess.Owner(http), classId, input, http.RequestAborted);
+            return result.Status switch
+            {
+                404 => Results.NotFound(),
+                403 => Results.Json(new { message = result.Errors!["ai"][0], errors = result.Errors }, statusCode: 403),
+                502 => Results.Json(new { message = result.Errors!["ai"][0], errors = result.Errors }, statusCode: 502),
+                400 => Results.ValidationProblem(result.Errors!),
+                _ => Results.Ok(new
+                {
+                    content = result.Value!.Content,
+                    model = new { name = result.Value.Model.Name, explainer = result.Value.Model.Explainer, paramSource = result.Value.Model.ParamSource, parameters = result.Value.Model.Params },
+                    trace = result.Value.Trace.Select(x => new { x.StudentId, x.SkillId, x.RuleState, x.Attempts, pKnown = Math.Round(x.PKnown, 4), score = Math.Round(x.Score, 4), x.Selected })
+                })
+            };
+        });
         group.MapPost("/review-plans", async (Guid classId, PlanCreateInput input, HttpContext http, ReviewPlanService service) =>
             Respond(await service.CreateAsync(LearningAccess.Owner(http), classId, input, http.RequestAborted), 201));
         group.MapPut("/review-plans/{id:guid}", async (Guid classId, Guid id, PlanSaveInput input, HttpContext http, ReviewPlanService service) =>

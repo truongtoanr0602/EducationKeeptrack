@@ -8,6 +8,8 @@ public sealed record PlanStudent(Guid StudentId, string? StudentName, PlanGoal[]
 public sealed record PlanActivity(int Session, Guid[]? StudentIds, Guid? SkillId, Guid? MaterialId, int Minutes, string? Description);
 public sealed record PlanContent(PlanSession[]? Sessions, PlanStudent[]? Students, PlanActivity[]? Activities, string? Note);
 public sealed record PlanCreateInput(string? WeekStart, PlanContent? Content);
+/// <summary>Asks for an AI draft of the week. Sessions default to the class's own sessions of that week; RequestKey makes a retry free.</summary>
+public sealed record PlanDraftInput(string? WeekStart, PlanSession[]? Sessions, string? RequestKey);
 public sealed record PlanSaveInput(PlanContent? Content, int Version);
 public sealed record PlanVersionInput(int Version);
 

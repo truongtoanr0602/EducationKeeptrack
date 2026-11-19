@@ -31,6 +31,8 @@ public static class LearningModule
         services.AddScoped<SkillResultService>();
         services.AddScoped<ICompetencyRepository, CompetencyRepository>();
         services.AddScoped<CompetencyService>();
+        // The seam for a language model that words plan goals (BR-AI-15). The template explainer needs no provider.
+        services.AddSingleton<IPlanExplainer, TemplatePlanExplainer>();
         services.AddScoped<IReviewPlanRepository, ReviewPlanRepository>();
         services.AddScoped<ReviewPlanService>();
         services.AddScoped<ILearningReportSource, LearningReportSource>();

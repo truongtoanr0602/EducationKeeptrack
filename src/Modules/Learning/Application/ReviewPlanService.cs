@@ -12,11 +12,102 @@ public interface IReviewPlanRepository
     Task<bool> SaveAsync(CancellationToken ct);
 }
 
+/// <summary>Which model produced a draft and how it was set, recorded with every AI turn (BR-AI-13).</summary>
+public sealed record PlanModelInfo(string Name, string Explainer, string ParamSource, BktParams Params);
+public sealed record PlanDraftResult(PlanContent Content, PlanModelInfo Model, IReadOnlyList<DraftTrace> Trace);
+
 public sealed class ReviewPlanService(
     IReviewPlanRepository plans, ICurriculumRepository curricula, IMaterialRepository materials, CompetencyService competency,
-    IClassroomLearningSource roster, IClassroomSessionSource sessions, TimeProvider clock)
+    IClassroomLearningSource roster, IClassroomSessionSource sessions, IAiQuota quota, IPlanExplainer explainer, TimeProvider clock)
 {
     private sealed record Prepared(PlanContext Context, CompetencyProfile Profile);
+
+    /// <summary>
+    /// A class needs this many skill histories with two or more attempts before its own BKT parameters are fitted. Offline evaluation
+    /// (docs/ml/danh-gia-mo-hinh.md) found no gain from fitting at any size tried and a loss in prioritisation when the data do not
+    /// follow the model, so the default parameters stay in use until a class has a large history.
+    /// </summary>
+    public const int MinSequencesToFit = 100;
+    public const string ModelName = "bkt-priority-v1";
+
+    /// <summary>
+    /// AI draft of the weekly plan (UC-AI-04). Order: check input, hold one planning turn, build the draft from the model,
+    /// judge it with the same rules as a hand-made plan, then commit the turn. Anything invalid releases the turn and
+    /// nothing is saved (BR-AI-14); the teacher receives the draft in the editor and saves it as usual.
+    /// </summary>
+    public async Task<LearningResult<PlanDraftResult>> DraftAsync(string owner, Guid classId, PlanDraftInput input, CancellationToken ct)
+    {
+        if (!await OwnsAsync(owner, classId, ct)) return new(null, 404);
+        if (!TryDate(input.WeekStart, out var week) || week.DayOfWeek != DayOfWeek.Monday)
+            return new(null, 400, new() { ["weekStart"] = ["Tuần của kế hoạch phải bắt đầu vào thứ Hai (năm-tháng-ngày)."] });
+        var prepared = await PrepareAsync(owner, classId, week, ct);
+        if (prepared is null) return new(null, 404);
+        var curriculum = await curricula.FindAsync(owner, classId, false, ct);
+        if (curriculum is null || prepared.Profile.Rule is not { } rule)
+            return new(null, 400, new() { ["curriculum"] = ["Cần thiết lập chương trình và kỹ năng của lớp trước khi nhờ AI lập kế hoạch."] });
+
+        var planSessions = input.Sessions is { Length: > 0 } ? input.Sessions : await ClassSessionsAsync(owner, classId, week, ct);
+        if (planSessions is null) return new(null, 404);
+        if (planSessions.Length == 0)
+            return new(null, 400, new() { ["sessions"] = ["Tuần này lớp chưa có buổi học. Chọn ngày và số phút của buổi ôn trước khi nhờ AI."] });
+
+        var results = (await competency.ConfirmedAsync(owner, classId, ct)).ToLookup(x => (x.StudentId, x.SkillId));
+        var skills = curriculum.GetEffectiveSkills().Where(x => x.IsTaught).ToDictionary(x => x.Id, x => new DraftSkill(x.Id, x.Code, x.Name));
+        List<Attempt> AttemptsOf(Guid student, Guid skill) => results[(student, skill)]
+            .Where(x => x.Result.Status == SkillResultStatus.Assessed && x.Result.Correct is not null && x.Result.TaskCount > 0)
+            .OrderBy(x => x.Result.Date).ThenBy(x => x.Result.AssessmentId).Select(x => new Attempt(x.Result.TaskCount, x.Result.Correct!.Value)).ToList();
+        var sequences = prepared.Context.Students.Keys.SelectMany(student => skills.Keys.Select(skill => (IReadOnlyList<Attempt>)AttemptsOf(student, skill)))
+            .Where(x => x.Count >= 2).ToList();
+        var fitted = sequences.Count >= MinSequencesToFit;
+        var parameters = fitted ? KnowledgeTracing.Fit(sequences) : BktParams.Default;
+        var model = new PlanModelInfo(ModelName, explainer.Name, fitted ? $"fitted:{sequences.Count}" : "default", parameters);
+
+        var draftStudents = new List<DraftStudent>();
+        foreach (var (studentId, name) in prepared.Context.Students.OrderBy(x => x.Value).ThenBy(x => x.Key))
+        {
+            var known = prepared.Profile.Students.FirstOrDefault(x => x.StudentId == studentId);
+            var beliefs = new List<SkillBelief>();
+            foreach (var skill in skills.Values)
+            {
+                var attempts = AttemptsOf(studentId, skill.Id);
+                var last = results[(studentId, skill.Id)].Where(x => attempts.Count > 0 && x.Result.Status == SkillResultStatus.Assessed).Select(x => (DateOnly?)x.Result.Date).Max();
+                var state = known?.Skills.FirstOrDefault(x => x.Skill.Id == skill.Id)?.Result.State ?? CompetencyState.Insufficient;
+                beliefs.Add(new(skill.Id, KnowledgeTracing.Current(attempts, parameters), attempts.Count, last, state));
+            }
+            draftStudents.Add(new(studentId, name, beliefs));
+        }
+        var approved = (await materials.ListAsync(owner, classId, ct)).Where(x => x.Status == MaterialStatus.Approved && skills.ContainsKey(x.SkillId))
+            .Select(x => new DraftMaterial(x.Id, x.SkillId, x.Title, x.Minutes, x.Difficulty)).ToList();
+        var facts = new DraftFacts(DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), planSessions, draftStudents, skills, approved, rule);
+        var draft = PlanDrafter.Build(facts, explainer);
+        if (draft.Content.Students is not { Length: > 0 })
+            return new(null, 400, new() { ["goals"] = ["Chưa có kỹ năng nào cần ôn: mọi kỹ năng đã dạy đều đạt theo quy tắc."] });
+
+        // The turn is held only once there is something to draft, so a refused request costs nothing.
+        var key = string.IsNullOrWhiteSpace(input.RequestKey) ? $"plan-draft:{Guid.NewGuid():N}" : $"plan-draft:{classId:N}:{week:yyyyMMdd}:{input.RequestKey}";
+        var reservation = await quota.ReserveAsync(owner, AiTaskKind.Planning, key, 1, ct);
+        if (reservation.Outcome == AiReservationOutcome.Denied) return new(null, 403, new() { ["ai"] = [AiQuotaMessages.For(reservation.DeniedReason)] });
+        try
+        {
+            var (content, errors) = PlanRules.Normalize(draft.Content, prepared.Context, true);
+            if (errors is not null || content is null) throw new InvalidOperationException("The drafted plan broke the plan rules.");
+            if (reservation.ReservationId is { } id && !await quota.CommitAsync(id, ct))
+                return new(null, 403, new() { ["ai"] = ["Không thể trừ lượt AI do tài khoản bị hạn chế."] });
+            return new(new(content, model, draft.Trace));
+        }
+        catch (Exception)
+        {
+            if (reservation.ReservationId is { } id) await quota.ReleaseAsync(id, ct);
+            return new(null, 502, new() { ["ai"] = ["Không dựng được dự thảo hợp lệ. Lượt AI đã được hoàn trả; bạn có thể lập kế hoạch thủ công."] });
+        }
+    }
+
+    private async Task<PlanSession[]?> ClassSessionsAsync(string owner, Guid classId, DateOnly week, CancellationToken ct)
+    {
+        var list = await sessions.ReadRangeAsync(owner, classId, week, week.AddDays(6), ct);
+        return list?.Where(x => x.Status != "cancelled").OrderBy(x => x.Date).ThenBy(x => x.StartTime)
+            .Select(x => new PlanSession(x.Date, Math.Clamp((int)(x.EndTime - x.StartTime).TotalMinutes, 5, 240), x.Id)).ToArray();
+    }
 
     public async Task<LearningResult<IReadOnlyList<ReviewPlan>>> ListAsync(string owner, Guid classId, CancellationToken ct) =>
         await OwnsAsync(owner, classId, ct) ? new(await plans.ListAsync(owner, classId, ct)) : new(null, 404);
