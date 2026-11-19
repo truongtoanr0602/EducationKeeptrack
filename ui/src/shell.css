@@ -823,3 +823,49 @@ label.inline input {
   display: inline-flex;
   align-items: center;
 }
+
+/* Before approval (#58): three milestones, the current one carries the action. */
+.service-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.service-steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.service-steps .mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  border: 2px solid #b9becc;
+  color: #555968;
+  background: #fff;
+}
+.service-steps .done .mark {
+  background: #215a3d;
+  border-color: #215a3d;
+  color: #fff;
+}
+.service-steps .current .mark {
+  border-color: var(--primary, #1d4ed8);
+  color: var(--primary, #1d4ed8);
+}
+.service-steps .todo strong {
+  color: #555968;
+  font-weight: 600;
+}
+.service-steps .row-actions {
+  margin-top: 8px;
+  align-items: center;
+}
+.service-steps .row-actions button {
+  min-height: 44px;
+}

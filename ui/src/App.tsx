@@ -249,6 +249,18 @@ export function App() {
         : current,
     );
   }, []);
+  // Access was granted while the waiting page was open: read the classes (none yet for a new teacher) and go to
+  // the first-run setup, or to Hôm nay for a teacher who already has classes.
+  const activated = useCallback(() => {
+    api<TeacherClass[]>("/classes")
+      .then((items) => {
+        setClasses(items);
+        navigate(
+          items.length === 0 ? { name: "setup", step: 1 } : { name: "today" },
+        );
+      })
+      .catch(() => navigate({ name: "today" }));
+  }, []);
   const sessionEnded = useCallback(() => {
     setMe(null);
     setClasses([]);
@@ -509,6 +521,7 @@ export function App() {
                 <AccountScreen
                   onExpired={sessionEnded}
                   onChanged={syncAccess}
+                  onActivated={activated}
                 />
               </>
             )}

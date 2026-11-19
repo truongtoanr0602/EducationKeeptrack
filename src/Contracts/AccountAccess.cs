@@ -30,3 +30,10 @@ public interface IAccountControl
     // Returns false when the account is not a teacher. Locking rotates the security stamp and revokes sessions.
     Task<bool> SetBlockedAsync(string accountId, bool blocked, CancellationToken cancellationToken);
 }
+
+// ServiceAccess tells Identity (which owns email) that a teacher was just given access; Identity sends the message.
+// Delivery is best effort: callers must not let a failure undo the grant.
+public interface IAccessNotifier
+{
+    Task AccessGrantedAsync(string accountId, CancellationToken cancellationToken);
+}

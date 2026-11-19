@@ -24,6 +24,7 @@ public static class IdentityModule
         services.AddScoped<IAccountState, AccountStateProvider>();
         services.AddScoped<IAccountDirectory, AccountDirectory>();
         services.AddScoped<IAccountControl, AccountControl>();
+        services.AddScoped<IAccessNotifier, AccessNotifier>();
         services.AddScoped<EmailTokens>();
         // SMTP when Identity:Email:Smtp:Host is set; otherwise the placeholder that logs a warning and delivers nothing.
         services.AddSingleton<IEmailSender>(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value.Smtp.Enabled
