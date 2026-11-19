@@ -793,7 +793,7 @@ small {
 .report-draft textarea { width: 100%; min-width: 0; resize: vertical; }
 .report-draft input, .report-draft select, .report-scope select, .report-scope input { width: 100%; min-width: 0; }
 .report-preview { min-width: 0; overflow-wrap: anywhere; margin-top: 1rem; }
-.report-preview iframe { display: block; width: 100%; height: 640px; border: 1px solid #dce3eb; background: white; }
+.report-preview iframe { display: block; width: 100%; height: clamp(640px, 90vh, 1300px); border: 1px solid #dce3eb; border-radius: 10px; background: white; }
 .report-exports article { border-top: 1px solid #dce3eb; padding: 1rem 0; overflow-wrap: anywhere; }
 
 /* Weekly schedule: quick entry, week grid, text list and the month preview. */
