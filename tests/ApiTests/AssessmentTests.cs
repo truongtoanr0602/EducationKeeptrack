@@ -150,18 +150,22 @@ public sealed class AssessmentTests(TestApplication app) : IClassFixture<TestApp
     }
 
     [Fact]
-    public async Task AI_is_unavailable_and_method_is_locked_after_processing()
+    public async Task Method_can_be_ai_or_manual_until_a_result_is_processed()
     {
         var (client, path, student) = await Setup();
         using (client)
         {
-            Assert.Equal(HttpStatusCode.BadRequest, (await TestApplication.Post(client, path, new { title = "AI", date = "2026-10-05", defaultMethod = "ai" })).StatusCode);
+            // AI grading exists since #14, so "ai" is a valid default method; anything else is not.
+            Assert.Equal(HttpStatusCode.Created, (await TestApplication.Post(client, path, new { title = "AI", date = "2026-10-05", defaultMethod = "ai" })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await TestApplication.Post(client, path, new { title = "Lạ", date = "2026-10-05", defaultMethod = "robot" })).StatusCode);
             var created = await (await TestApplication.Post(client, path, new { title = "Bài tập", date = "2026-10-05", defaultMethod = "manual" })).Content.ReadFromJsonAsync<JsonElement>();
             var submission = $"{path}/{created.GetProperty("id").GetString()}/submissions/{student}";
-            Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, $"{submission}/method", new { method = "ai", version = 1 })).StatusCode);
-            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"{submission}/method", new { method = "manual", version = 1 })).StatusCode);
-            Assert.Equal(HttpStatusCode.OK, (await Put(client, submission, new { status = "not_done", version = 2, confirm = true })).StatusCode);
-            Assert.Equal(HttpStatusCode.Conflict, (await Put(client, $"{submission}/method", new { method = "manual", version = 3 })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, $"{submission}/method", new { method = "robot", version = 1 })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"{submission}/method", new { method = "ai", version = 1 })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, $"{submission}/method", new { method = "manual", version = 2 })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await Put(client, submission, new { status = "not_done", version = 3, confirm = true })).StatusCode);
+            // Once a result is recorded the method is locked.
+            Assert.Equal(HttpStatusCode.Conflict, (await Put(client, $"{submission}/method", new { method = "manual", version = 4 })).StatusCode);
         }
     }
 

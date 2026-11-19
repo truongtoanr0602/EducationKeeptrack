@@ -43,7 +43,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public TestApplication() { }
     private TestApplication(TestApplication original, IClassroomChangeHandler? classroomHandler, ITuitionChangeHandler? tuitionHandler)
     {
-        database = original.database; adminConnection = original.adminConnection; Clock = original.Clock; Outbox = original.Outbox;
+        database = original.database; adminConnection = original.adminConnection; Clock = original.Clock; Outbox = original.Outbox; Photos = original.Photos;
         reuseDatabase = true; ownsDatabase = false; ProductionCookies = original.ProductionCookies;
         reportStorage = original.reportStorage;
         ClassroomChangeHandler = classroomHandler; TuitionChangeHandler = tuitionHandler;
@@ -53,6 +53,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     public TestApplication ReopenWithMigrationCheck() => new(this, null, null) { CheckPendingMigrations = true };
     public TestClock Clock { get; } = new();
     public TestEmailOutbox Outbox { get; } = new();
+    public TestPhotoStore Photos { get; } = new();
     public IReadOnlyList<EducationKeeptrack.Identity.Application.EmailMessage> Emails => Outbox.Messages;
     public bool ProductionCookies { get; init; }
     // The fixture starts the host before migrating its database, so the startup check is off by default.
@@ -83,6 +84,7 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
         {
             services.AddSingleton<TimeProvider>(Clock);
             services.AddSingleton<EducationKeeptrack.Identity.Application.IEmailSender>(Outbox);
+            services.AddSingleton<EducationKeeptrack.Learning.Infrastructure.ILearningPhotoStore>(Photos);
             services.AddSingleton<EducationKeeptrack.Reporting.Application.IReportObjectStore>(_ =>
             {
                 var store = reportStorage.CreateStore();
@@ -191,6 +193,14 @@ public sealed class TestApplication : WebApplicationFactory<Program>, IAsyncLife
     {
         var csrf = await client.GetFromJsonAsync<JsonElement>("/api/auth/csrf");
         using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) };
+        request.Headers.Add("X-CSRF-TOKEN", csrf.GetProperty("token").GetString());
+        return await client.SendAsync(request);
+    }
+
+    public static async Task<HttpResponseMessage> PostForm(HttpClient client, string path, HttpContent form)
+    {
+        var csrf = await client.GetFromJsonAsync<JsonElement>("/api/auth/csrf");
+        using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = form };
         request.Headers.Add("X-CSRF-TOKEN", csrf.GetProperty("token").GetString());
         return await client.SendAsync(request);
     }
