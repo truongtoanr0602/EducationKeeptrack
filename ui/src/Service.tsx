@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { api, ApiError, type Access } from "./api";
 import { vnDateTime } from "./admin-api";
 import { QuotaTable } from "./QuotaTable";
@@ -39,6 +45,25 @@ export const badgeClass: Record<Access["status"], string> = {
   expired: "insufficient",
 };
 
+export type Milestone = 1 | 2 | 3;
+export const milestones = [
+  "Xác minh email",
+  "Chuyển phí dịch vụ và gửi mã giao dịch",
+  "Chờ Admin duyệt",
+] as const;
+export const POLL_MS = 30_000;
+
+/** Which of the three steps a teacher who cannot use the app yet is on; null once access was granted (or blocked). */
+export function currentMilestone(
+  status: Access["status"],
+  hasOpenRequest: boolean,
+): Milestone | null {
+  if (status === "unverified") return 1;
+  if (status === "pending" || status === "rejected")
+    return hasOpenRequest ? 3 : 2;
+  return null;
+}
+
 // Banner shown in the workspace while the account cannot write; links to the account screen.
 export function ServiceNotice({ access }: { access: Access }) {
   if (access.canWrite) return null;
@@ -54,9 +79,12 @@ export function ServiceNotice({ access }: { access: Access }) {
 export function AccountScreen({
   onExpired,
   onChanged,
+  onActivated,
 }: {
   onExpired: () => void;
   onChanged?: (profile: ServiceProfile) => void;
+  /** Access was granted while this page was open and waiting. */
+  onActivated?: () => void;
 }) {
   const [profile, setProfile] = useState<ServiceProfile | null>(null);
   const [error, setError] = useState("");
@@ -65,6 +93,8 @@ export function AccountScreen({
   const [note, setNote] = useState("");
   const [key, setKey] = useState(newKey);
   const [busy, setBusy] = useState(false);
+  const codeInput = useRef<HTMLInputElement>(null);
+  const waiting = useRef(false);
   const fail = useCallback(
     (e: unknown, fallback: string) => {
       if (e instanceof ApiError && e.status === 401) onExpired();
@@ -72,18 +102,41 @@ export function AccountScreen({
     },
     [onExpired],
   );
-  const load = useCallback(async () => {
-    try {
-      const value = await api<ServiceProfile>("/service");
-      setProfile(value);
-      onChanged?.(value);
-    } catch (e) {
-      fail(e, "Không thể tải thông tin dịch vụ.");
-    }
-  }, [fail, onChanged]);
+  // `quiet` is for the background check: a failed round trip is not worth an error message, only a lost session is.
+  const load = useCallback(
+    async (quiet = false) => {
+      try {
+        const value = await api<ServiceProfile>("/service");
+        const was = waiting.current;
+        waiting.current = currentMilestone(value.status, false) !== null;
+        setProfile(value);
+        onChanged?.(value);
+        if (was && value.status === "active") onActivated?.();
+      } catch (e) {
+        if (quiet && !(e instanceof ApiError && e.status === 401)) return;
+        fail(e, "Không thể tải thông tin dịch vụ.");
+      }
+    },
+    [fail, onChanged, onActivated],
+  );
   useEffect(() => {
     void load();
   }, [load]);
+  // While approval is pending the page checks again every 30 seconds and when the tab comes back to the front.
+  const stillWaiting =
+    !!profile && currentMilestone(profile.status, false) !== null;
+  useEffect(() => {
+    if (!stillWaiting) return;
+    const check = () => {
+      if (document.visibilityState === "visible") void load(true);
+    };
+    const timer = window.setInterval(check, POLL_MS);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [stillWaiting, load]);
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -132,6 +185,7 @@ export function AccountScreen({
   const current = profile.periods.find((p) => p.current);
   const upcoming = profile.periods.filter((p) => p.upcoming);
   const showAi = profile.status === "active" || profile.status === "expired";
+  const milestone = currentMilestone(profile.status, open);
   return (
     <section className="panel stack" aria-label="Tài khoản và dịch vụ">
       {message && (
@@ -165,14 +219,76 @@ export function AccountScreen({
             {p.label && ` · ${p.label}`}
           </p>
         ))}
-        {profile.status === "unverified" && (
-          <div className="row-actions">
-            <button disabled={busy} onClick={() => void resend()}>
-              Gửi lại email xác minh
-            </button>
-          </div>
-        )}
       </article>
+      {milestone && (
+        <article className="card" aria-label="Tiến trình kích hoạt">
+          <h2>Các bước để bắt đầu</h2>
+          <ol className="service-steps">
+            {milestones.map((text, index) => {
+              const n = (index + 1) as Milestone;
+              const state =
+                n < milestone ? "done" : n === milestone ? "current" : "todo";
+              return (
+                <li
+                  key={text}
+                  className={state}
+                  aria-current={state === "current" ? "step" : undefined}
+                >
+                  <span className="mark" aria-hidden="true">
+                    {state === "done" ? "✓" : n}
+                  </span>
+                  <div>
+                    <strong>{text}</strong>
+                    <span className="sr-only">
+                      {state === "done"
+                        ? " (đã xong)"
+                        : state === "current"
+                          ? " (bước hiện tại)"
+                          : " (chưa tới)"}
+                    </span>
+                    {state === "current" && (
+                      <div className="row-actions">
+                        {n === 1 && (
+                          <button
+                            className="primary"
+                            disabled={busy}
+                            onClick={() => void resend()}
+                          >
+                            Gửi lại email xác minh
+                          </button>
+                        )}
+                        {n === 2 && (
+                          <button
+                            className="primary"
+                            onClick={() => codeInput.current?.focus()}
+                          >
+                            {profile.status === "rejected"
+                              ? "Gửi lại thông tin đối chiếu"
+                              : "Nhập mã giao dịch"}
+                          </button>
+                        )}
+                        {n === 3 && (
+                          <>
+                            <button
+                              className="primary"
+                              onClick={() => void load()}
+                            >
+                              Kiểm tra lại
+                            </button>
+                            <span className="muted">
+                              Trang tự cập nhật mỗi 30 giây.
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </article>
+      )}
       {showAi && (
         <article className="card">
           <div className="card-heading">
@@ -217,6 +333,7 @@ export function AccountScreen({
               <label>
                 Mã giao dịch chuyển khoản
                 <input
+                  ref={codeInput}
                   required
                   maxLength={100}
                   value={code}

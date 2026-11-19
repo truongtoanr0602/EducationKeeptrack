@@ -3,12 +3,13 @@ using EducationKeeptrack.Contracts;
 using EducationKeeptrack.ServiceAccess.Domain;
 using EducationKeeptrack.ServiceAccess.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace EducationKeeptrack.ServiceAccess.Application;
 
 public sealed record Actor(string Id, string Email);
 
 // Admin workflows. Every mutation records actor/time/reason in history and checks expected versions.
-public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDirectory directory, IAccountAccess access, AiQuotaLedger ledger, TimeProvider clock)
+public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDirectory directory, IAccountAccess access, AiQuotaLedger ledger, IAccessNotifier notifier, ILogger<ServiceAdministration> log, TimeProvider clock)
 {
     public const int MaxDays = 3660;
 
@@ -115,7 +116,18 @@ public sealed class ServiceAdministration(ServiceAccessDatabase db, IAccountDire
         Record(actor, accountId, "request.approved", input.Reason, new { requestId, periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label, period.GradingQuota, period.CommentQuota, period.PlanningQuota });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+        await NotifyGrantedAsync(accountId, ct);
         return Outcome.Ok(new { period.Id, period.StartsAt, period.EndsAt });
+    }
+
+    // After the grant is committed, once per grant. A failed email is logged and never undoes the grant.
+    internal async Task NotifyGrantedAsync(string accountId, CancellationToken ct)
+    {
+        try { await notifier.AccessGrantedAsync(accountId, ct); }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            log.LogWarning(e, "The access-granted email for account {AccountId} was not sent.", accountId);
+        }
     }
 
     public async Task<Outcome> RejectAsync(Actor actor, Guid requestId, ReasonInput input, CancellationToken ct)

@@ -23,6 +23,7 @@ public sealed class PeriodAdministration(ServiceAccessDatabase db, ServiceAdmini
         admin.Record(actor, accountId, "period.granted", period.Reason, new { periodId = period.Id, period.StartsAt, period.EndsAt, input.Days, input.Label, period.GradingQuota, period.CommentQuota, period.PlanningQuota });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+        await admin.NotifyGrantedAsync(accountId, ct);
         return Outcome.Ok(new { period.Id, period.StartsAt, period.EndsAt });
     }
 
