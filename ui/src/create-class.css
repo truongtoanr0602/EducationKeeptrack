@@ -1,0 +1,87 @@
+/* Class creation flow. Loaded with the dialog, so it only costs the page that opens it. */
+dialog.create-flow {
+  width: 640px;
+}
+.create-flow .step-label {
+  margin: 0;
+  color: #555968;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.create-flow h2:focus,
+.create-flow h3:focus {
+  outline: none;
+}
+.create-flow .fee-field input {
+  max-width: 16rem;
+}
+.create-flow .generate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.create-flow .generate-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1rem;
+}
+.create-flow .generate-row select {
+  padding: 0.5rem;
+  border: 1px solid #b9becc;
+  border-radius: 6px;
+  font: inherit;
+}
+.create-flow .create-steps {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.create-flow .create-steps li {
+  display: flex;
+  gap: 0.5rem;
+}
+.create-flow .create-steps .state {
+  min-width: 5.5rem;
+  font-weight: 700;
+}
+.create-flow .create-steps .done .state {
+  color: #215a3d;
+}
+.create-flow .create-steps .failed .state {
+  color: #ba1a1a;
+}
+@media (max-width: 760px) {
+  dialog.create-flow {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+.create-flow .generate-row label {
+  flex: 1 1 14rem;
+}
+@media (max-width: 760px) {
+  /* Thumb reach: the main action on top, one button per line, so no label is squeezed. */
+  .create-flow .dialog-actions {
+    flex-direction: column-reverse;
+  }
+  .create-flow .dialog-actions > * {
+    width: 100%;
+    flex: none;
+  }
+}
+/* The global input rule is full width with padding; a checkbox must keep its own size. */
+.create-flow .generate-row input[type="checkbox"] {
+  width: auto;
+  flex: none;
+  padding: 0;
+}

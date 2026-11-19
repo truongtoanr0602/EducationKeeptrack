@@ -8,29 +8,34 @@ import {
   type Slot,
 } from "./schedule-calendar";
 
-const WEEKS = 5;
+const DEFAULT_WEEKS = 5;
 const show = (date: string) =>
   `${date.slice(8)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
 
-/** Which days the saved weekly schedule would give sessions on, if the teacher then creates sessions from it. */
+/**
+ * Which days the saved weekly schedule would give sessions on, if the teacher then creates sessions from it. The
+ * creation flow passes the number of weeks it will really generate, so the preview shows exactly those days.
+ */
 export function MonthPreview({
   slots,
   effectiveFrom,
+  weeks = DEFAULT_WEEKS,
 }: {
   slots: Slot[];
   effectiveFrom: string;
+  weeks?: number;
 }) {
   const rows = previewWeeks({
     slots,
     effectiveFrom,
     today: today(),
-    weeks: WEEKS,
+    weeks,
   });
   const inRange = rows.flat().filter((cell) => cell.inRange);
   const count = previewCount(rows);
   return (
     <section className="month-preview" aria-label="Xem trước buổi học">
-      <h4>Xem trước {WEEKS} tuần tới</h4>
+      <h4>Xem trước {weeks} tuần tới</h4>
       <p className="muted" role="status">
         {count === 0
           ? "Lịch tuần đang trống nên chưa có buổi nào."
