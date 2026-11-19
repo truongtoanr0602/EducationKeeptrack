@@ -15,7 +15,7 @@ public sealed class ServiceFeeQrTests(TestApplication app) : IClassFixture<TestA
     private const string Path = "/api/admin/payment-instructions";
 
     // A real 1x1 PNG whose colour differs per call, so replacing one image with another is observable.
-    private static string Png(byte red)
+    internal static string Png(byte red)
     {
         static byte[] BigEndian(uint value) => [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
         static byte[] Chunk(string type, byte[] data)

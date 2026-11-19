@@ -23,7 +23,6 @@ public sealed class VietQrGenerator(HttpClient client) : IVietQrGenerator
             if (buffer.Length + count > 1048576) return null;
             buffer.Write(block, 0, count);
         }
-        var bytes = buffer.ToArray();
-        return QrImages.IsPng(bytes) ? bytes : null;
+        return QrImages.FromResponse(buffer.ToArray());
     }
 }
