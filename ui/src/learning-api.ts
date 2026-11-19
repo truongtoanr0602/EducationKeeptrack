@@ -18,6 +18,14 @@ export type ResultRevision = {
   recordedAt: string;
   includedInStatistics: boolean;
 };
+export type PhotoSummary = {
+  id: string;
+  sequenceIndex: number;
+  contentType: string;
+  byteLength: number;
+  downloadUrl?: string;
+  createdAt: string;
+};
 export type Submission = {
   studentId: string;
   studentName: string;
@@ -26,6 +34,14 @@ export type Submission = {
   completion: number | null;
   correctness: number | null;
   version: number;
+  aiCompletion?: number | null;
+  aiCorrectness?: number | null;
+  aiConfidence?: number | null;
+  aiReasoning?: string | null;
+  aiWarning?: string | null;
+  aiStatus?: string | null;
+  aiProposedAt?: string | null;
+  photos?: PhotoSummary[];
   finalResult: ResultRevision | null;
   history: ResultRevision[];
 };
@@ -34,6 +50,8 @@ export type AssessmentSummary = {
   title: string;
   date: string;
   defaultMethod: string;
+  rubric?: string;
+  rubricVersion?: number;
 };
 export type Assessment = AssessmentSummary & { submissions: Submission[] };
 export function resultText(

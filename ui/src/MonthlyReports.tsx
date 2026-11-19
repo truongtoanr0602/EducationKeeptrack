@@ -86,7 +86,7 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
   return <>
     {!canWrite && <p className="notice">Bản đã lưu vẫn được xem trước, xuất và tải. Nội dung báo cáo hiện chỉ đọc.</p>}
     {error && <p role="alert" className="error">{error}</p>}{notice && <p role="status">{notice}</p>}
-    <ReportDraftForm draft={draft} disabled={!canWrite || busy || uncertain} dirty={dirty} onChange={value => { setDraft(value); setPreview(null); }} onSave={() => void act(save)} />
+    <ReportDraftForm draft={draft} path={path} disabled={!canWrite || busy || uncertain} dirty={dirty} onChange={value => { setDraft(value); setPreview(null); }} onSave={() => void act(save)} />
     {dirty && <p className="notice">Lưu nội dung trước khi xem trước hoặc xuất PDF.</p>}
     {uncertain && <p className="notice">Lệnh xuất chưa rõ kết quả. Thử lại cùng lệnh để tránh xuất trùng.</p>}
     <div className="roster-actions">
