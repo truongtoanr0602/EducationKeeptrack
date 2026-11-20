@@ -27,6 +27,7 @@ export function Payments({
   const [error, setError] = useState("");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [receiptFor, setReceiptFor] = useState<string | null>(null);
+  const [recipientOpen, setRecipientOpen] = useState(false);
   const [receiptLocked, setReceiptLocked] = useState(false);
   const request = useRef(0);
   const load = useCallback(async () => {
@@ -59,6 +60,15 @@ export function Payments({
     };
   }, [load, refreshToken]);
   useEffect(() => {
+    let active = true;
+    api<Recipient>("/billing/recipient")
+      .then((r) => active && setRecipient(r))
+      .catch(() => active && setRecipient(null));
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
     if (report?.status !== "pending" || loading || error) return;
     const timer = window.setTimeout(() => void load(), 1500);
     return () => window.clearTimeout(timer);
@@ -74,11 +84,31 @@ export function Payments({
           Tải lại công nợ
         </button>
       </div>
-      <RecipientSettings
-        canWrite={canWrite}
-        onDenied={onDenied}
-        onChanged={setRecipient}
-      />
+      <div className="recipient-summary">
+        <p>
+          {recipient
+            ? `Tài khoản nhận tiền: ${recipient.bankName} · ${recipient.accountNo} · ${recipient.accountName}`
+            : "Chưa có tài khoản nhận tiền."}
+        </p>
+        <button type="button" onClick={() => setRecipientOpen(true)}>
+          Thiết lập tài khoản nhận tiền
+        </button>
+      </div>
+      {recipientOpen && (
+        <Popup
+          open
+          title="Tài khoản nhận tiền"
+          onOpenChange={(next) => {
+            if (!next) setRecipientOpen(false);
+          }}
+        >
+          <RecipientSettings
+            canWrite={canWrite}
+            onDenied={onDenied}
+            onChanged={setRecipient}
+          />
+        </Popup>
+      )}
       <p>
         Trả kỳ nợ cũ nhất trước. Tiền dư được giữ riêng, chưa tự dùng cho kỳ sau
         hoặc hoàn tiền. Quét QR hay ảnh chuyển khoản chưa xác nhận đã nhận tiền.

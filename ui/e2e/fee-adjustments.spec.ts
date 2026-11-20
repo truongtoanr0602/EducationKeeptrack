@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openReceiptForm } from "./helpers";
+import { openAdjustmentForm, openReceiptForm } from "./helpers";
 
 test("fee adjustment shows its reason and matching debt after reload", async ({
   page,
@@ -80,7 +80,7 @@ test("fee adjustment shows its reason and matching debt after reload", async ({
   await fees
     .getByRole("button", { name: "Chi tiết An đối chiếu", exact: true })
     .click();
-  const form = fees.getByRole("form", { name: "Điều chỉnh học phí" });
+  const form = await openAdjustmentForm(fees);
   await expect(form).toBeVisible();
   await form.getByLabel("Chiều điều chỉnh").selectOption("decrease");
   await form.getByLabel("Số tiền điều chỉnh (đồng)").fill("200000");
@@ -95,12 +95,6 @@ test("fee adjustment shows its reason and matching debt after reload", async ({
     .click();
   await expect(form.getByRole("alert")).toContainText("chưa rõ");
   await page.unroute("**/api/billing/classes/*/adjustments");
-  await fees
-    .getByRole("button", { name: "Chi tiết An đối chiếu", exact: true })
-    .click();
-  await fees
-    .getByRole("button", { name: "Chi tiết An đối chiếu", exact: true })
-    .click();
   await form
     .getByRole("button", { name: "Thử lại điều chỉnh", exact: true })
     .click();

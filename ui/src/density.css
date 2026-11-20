@@ -413,3 +413,17 @@
 .popup-body .report-draft fieldset {
   grid-template-columns: 1fr;
 }
+
+.recipient-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.5rem 0;
+}
+.recipient-summary p {
+  margin: 0;
+}
+.popup-body section[aria-label="Tài khoản nhận tiền"] > .card-heading > h4 {
+  display: none;
+}

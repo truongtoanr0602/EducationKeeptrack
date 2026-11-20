@@ -20,13 +20,28 @@
   .popup-side[data-state="open"] {
     animation: popup-slide 200ms ease-out;
   }
+  @media (prefers-reduced-motion: reduce) {
+    .popup-overlay,
+    .popup-center,
+    .popup-side {
+      animation: none !important;
+    }
+  }
   @keyframes popup-fade {
-    from { opacity: 0; }
+    from {
+      opacity: 0;
+    }
   }
   @keyframes popup-pop {
-    from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.97);
+    }
   }
   @keyframes popup-slide {
-    from { transform: translateX(2rem); opacity: 0; }
+    from {
+      transform: translateX(2rem);
+      opacity: 0;
+    }
   }
 }

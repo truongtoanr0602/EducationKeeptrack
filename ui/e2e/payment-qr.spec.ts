@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { classIdOf, openSection } from "./helpers";
+import { openRecipientSettings, classIdOf, openSection } from "./helpers";
 
 test("recipient preview and QR modes retain manual instructions without recording money", async ({
   page,
@@ -31,10 +31,9 @@ test("recipient preview and QR modes retain manual instructions without recordin
     page.getByRole("heading", { name: "An QR", exact: true }),
   ).toBeVisible();
   await openSection(page, "tuition");
-  const settings = page.getByRole("region", {
-    name: "Tài khoản nhận tiền",
-    exact: true,
-  });
+  const settings = await openRecipientSettings(
+    page.getByRole("region", { name: "Thanh toán và công nợ", exact: true }),
+  );
   const bank = settings.getByRole("combobox", { name: "Ngân hàng" });
   await expect(bank).toBeEnabled();
   await bank.fill("vietin");
@@ -53,6 +52,8 @@ test("recipient preview and QR modes retain manual instructions without recordin
       exact: true,
     }),
   ).toBeEnabled();
+  await page.keyboard.press("Escape");
+  await expect(settings).toHaveCount(0);
   const classId = classIdOf(page);
   const students = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)

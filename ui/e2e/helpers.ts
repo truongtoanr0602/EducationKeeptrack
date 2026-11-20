@@ -49,3 +49,38 @@ export async function openReportPreview(region: Locator): Promise<Locator> {
   await dialog.waitFor();
   return dialog;
 }
+
+// Rates and fee adjustments open in a dialog; every field, the submit button and "Tải lại bảng phí" are inside it.
+export async function openRateForm(region: Locator): Promise<Locator> {
+  await region
+    .getByRole("button", { name: "Thêm đơn giá", exact: true })
+    .click();
+  const dialog = region
+    .page()
+    .getByRole("dialog", { name: "Đơn giá theo ngày hiệu lực" });
+  await dialog.waitFor();
+  return dialog;
+}
+
+export async function openAdjustmentForm(card: Locator): Promise<Locator> {
+  await card
+    .getByRole("button", { name: "Điều chỉnh học phí", exact: true })
+    .click();
+  const dialog = card
+    .page()
+    .getByRole("dialog", { name: /^Điều chỉnh học phí/ });
+  await dialog.waitFor();
+  return dialog;
+}
+
+// The receiving account form opens in a dialog from the payments screen.
+export async function openRecipientSettings(region: Locator): Promise<Locator> {
+  await region
+    .getByRole("button", { name: "Thiết lập tài khoản nhận tiền", exact: true })
+    .click();
+  const dialog = region
+    .page()
+    .getByRole("dialog", { name: "Tài khoản nhận tiền" });
+  await dialog.waitFor();
+  return dialog;
+}

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { type RatePlan } from "./tuition-api";
@@ -8,17 +8,23 @@ export function RateForm({
   plan,
   canWrite,
   onSaved,
+  onLockChange,
   onDenied,
 }: {
   classId: string;
   plan: RatePlan;
   canWrite: boolean;
   onSaved: (plan: RatePlan) => void;
+  onLockChange?: (locked: boolean) => void;
   onDenied: (error: ApiError) => void;
 }) {
   const [date, setDate] = useState(today);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    onLockChange?.(busy);
+    return () => onLockChange?.(false);
+  }, [busy, onLockChange]);
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();

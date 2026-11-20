@@ -3,6 +3,7 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { today } from "./roster-api";
 import { AttendanceBoard } from "./AttendanceBoard";
 import { ScheduleForm } from "./ScheduleForm";
+import { Popup } from "./ui/popup";
 import { SessionForm } from "./SessionForm";
 import { SessionStatusForm } from "./SessionStatusForm";
 import { Login } from "./Login";
@@ -38,7 +39,11 @@ export function Sessions({
     const query = new URLSearchParams(window.location.search);
     const from = query.get("sessionsFrom") ?? "";
     const to = query.get("sessionsTo") ?? "";
-    return /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from <= to ? { from, to } : monthRange();
+    return /^\d{4}-\d{2}-\d{2}$/.test(from) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(to) &&
+      from <= to
+      ? { from, to }
+      : monthRange();
   }, []);
   const [range, setRange] = useState(initialRange);
   const [appliedRange, setAppliedRange] = useState(initialRange);
@@ -53,6 +58,7 @@ export function Sessions({
   const [form, setForm] = useState<
     { kind: "schedule" } | { kind: "session"; source?: ClassSession } | null
   >(null);
+  const [formLocked, setFormLocked] = useState(false);
   const [access, setAccess] = useState(me.access);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -207,26 +213,55 @@ export function Sessions({
             {schedule.effectiveFrom}. Buổi cũ giữ nguyên khi đổi lịch.
           </p>
         )}
-        {form?.kind === "schedule" && (
-          <ScheduleForm
-            classId={classroom.id}
-            schedule={schedule}
-            canWrite={access.canWrite}
-            onSaved={saved}
-            onCancel={() => setForm(null)}
-            onDenied={denied}
-          />
-        )}
-        {form?.kind === "session" && (
-          <SessionForm
-            classId={classroom.id}
-            sessions={sessions}
-            source={form.source}
-            canWrite={access.canWrite}
-            onSaved={saved}
-            onCancel={() => setForm(null)}
-            onDenied={denied}
-          />
+        {form && (
+          <Popup
+            open
+            wide={form.kind === "schedule"}
+            variant={form.kind === "schedule" ? "center" : "side"}
+            title={
+              form.kind === "schedule"
+                ? "Thiết lập lịch tuần"
+                : "Tạo buổi riêng / học bù"
+            }
+            onOpenChange={(next) => {
+              if (!next) setForm(null);
+            }}
+            locked={formLocked}
+            suspended={sessionExpired || !access.canRead}
+            footer={
+              <button
+                type="button"
+                disabled={loading || busy}
+                onClick={() => void load(range)}
+              >
+                Tải lại lịch và buổi
+              </button>
+            }
+          >
+            {form.kind === "schedule" && (
+              <ScheduleForm
+                classId={classroom.id}
+                schedule={schedule}
+                canWrite={access.canWrite}
+                onSaved={saved}
+                onCancel={() => setForm(null)}
+                onDenied={denied}
+                onLockChange={setFormLocked}
+              />
+            )}
+            {form.kind === "session" && (
+              <SessionForm
+                classId={classroom.id}
+                sessions={sessions}
+                source={form.source}
+                canWrite={access.canWrite}
+                onSaved={saved}
+                onCancel={() => setForm(null)}
+                onDenied={denied}
+                onLockChange={setFormLocked}
+              />
+            )}
+          </Popup>
         )}
         <div className="session-range">
           <label>
