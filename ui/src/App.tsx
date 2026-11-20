@@ -722,12 +722,17 @@ function ClassesScreen({
                 <a className="button-link" href={classHref(item.id, "tuition")}>
                   Học phí
                 </a>
-                <a
-                  className="button-link"
-                  href={classHref(item.id, "personalization")}
-                >
-                  Cá nhân hoá
+                <a className="button-link" href={classHref(item.id, "program")}>
+                  Đề kiểm tra
                 </a>
+                {aiVisible(me.access) && (
+                  <a
+                    className="button-link"
+                    href={classHref(item.id, "personalization")}
+                  >
+                    Cá nhân hoá
+                  </a>
+                )}
               </div>
             </article>
           ))}
@@ -795,7 +800,16 @@ function ClassScreen({
           <Personalization
             classroom={classroom}
             me={me}
-            tab={route.tab ?? "curriculum"}
+            area="personalization"
+            tab={route.tab}
+          />
+        )}
+        {route.section === "program" && (
+          <Personalization
+            classroom={classroom}
+            me={me}
+            area="program"
+            tab={route.tab}
           />
         )}
         {route.section === "reports" && (

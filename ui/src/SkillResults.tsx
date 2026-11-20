@@ -82,7 +82,7 @@ export function SkillResults({
         <h3>Kết quả theo kỹ năng</h3>
         <p className="hint">
           Cấu hình chương trình lớp và kỹ năng để ghi số câu đúng theo từng kỹ năng.{" "}
-          <a href={classHref(classId, "personalization", "curriculum")}>Mở chương trình lớp</a>
+          <a href={classHref(classId, "program", "curriculum")}>Mở chương trình lớp</a>
         </p>
       </section>
     );

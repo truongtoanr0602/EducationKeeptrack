@@ -31,7 +31,7 @@ test("teacher imports the template, runs a 4-3-2-1 exam and sees results per ski
   // Import the downloadable template as is.
   const template = await page.request.get(`/api/learning/classes/${classroom.id}/import-template`);
   expect(template.ok()).toBeTruthy();
-  await page.evaluate((id) => (window.location.hash = `#/classes/${id}/personalization/lessons`), classroom.id);
+  await page.evaluate((id) => (window.location.hash = `#/classes/${id}/program/lessons`), classroom.id);
   await page.getByLabel("File Excel").setInputFiles({
     name: "mau.xlsx",
     mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
