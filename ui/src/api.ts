@@ -100,6 +100,35 @@ export async function api<T>(
     : (response.json() as Promise<T>);
 }
 
+// Multipart upload of one file (Excel import, question images); same CSRF token and error shape as api().
+export async function upload<T>(path: string, file: Blob, fileName: string): Promise<T> {
+  const post = async () => {
+    const form = new FormData();
+    form.append("file", file, fileName);
+    return fetch(`/api${path}`, {
+      method: "POST",
+      headers: { "X-CSRF-TOKEN": await fetchCsrf() },
+      body: form,
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+  };
+  let response = await post();
+  if (response.status === 400) {
+    const rejected = (await response.clone().json().catch(() => ({}))) as { message?: string };
+    if (rejected.message === csrfExpired) {
+      resetCsrf();
+      response = await post();
+    }
+  }
+  if (response.ok) clearCache();
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({}))) as { message?: string; errors?: Record<string, string[]> } & Record<string, unknown>;
+    throw new ApiError(response.status, error.message ?? "Không thể tải tệp lên. Vui lòng thử lại.", error.errors, error);
+  }
+  return (await response.json()) as T;
+}
+
 export type Access = {
   canRead: boolean;
   canWrite: boolean;

@@ -3,6 +3,9 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { useAccess } from "./access";
 import { Login } from "./Login";
 import { ReviewPlans } from "./ReviewPlans";
+import { LessonsTab } from "./Lessons";
+import { QuestionBankTab } from "./QuestionBank";
+import { ExamsTab } from "./Exams";
 import { classHref, personalTabs, type PersonalTab } from "./router";
 import {
   competencyStates,
@@ -74,14 +77,21 @@ export function Personalization({ classroom, me, tab }: { classroom: TeacherClas
           {tab === "curriculum" && (
             <CurriculumTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} reload={reload} onCurriculum={setCurriculum} />
           )}
-          {tab !== "curriculum" && !curriculum.configured && (
+          {tab === "lessons" && (
+            <LessonsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} onImported={() => void reload()} />
+          )}
+          {tab !== "curriculum" && tab !== "lessons" && !curriculum.configured && (
             <div className="empty">
               <h2>Chưa có chương trình lớp</h2>
-              <p>Cấu hình bộ sách, quy tắc mức đạt và kỹ năng trước khi dùng mục này.</p>
+              <p>Cấu hình bộ sách, quy tắc mức đạt và kỹ năng trước khi dùng mục này, hoặc tải file Excel mẫu ở mục Buổi chương trình.</p>
               <a className="button-link primary" href={classHref(classroom.id, "personalization", "curriculum")}>
                 Cấu hình chương trình lớp
               </a>
             </div>
+          )}
+          {tab === "questions" && curriculum.configured && <QuestionBankTab classroom={classroom} canWrite={canWrite} denied={denied} />}
+          {tab === "exams" && curriculum.configured && (
+            <ExamsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} />
           )}
           {tab === "materials" && curriculum.configured && (
             <MaterialsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} reload={reload} onCurriculum={setCurriculum} />

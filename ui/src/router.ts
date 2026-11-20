@@ -10,7 +10,7 @@ export type Section =
   | "assessments"
   | "personalization"
   | "reports";
-export type PersonalTab = "curriculum" | "materials" | "competency" | "plans";
+export type PersonalTab = "curriculum" | "lessons" | "questions" | "exams" | "materials" | "competency" | "plans";
 export type Route =
   // Cross-class top-level screens (ADR 0005): today's sessions, tuition owed, monthly reports.
   | { name: "today" }
@@ -37,6 +37,9 @@ export const sections: { id: Section; label: string; icon: string }[] = [
 ];
 export const personalTabs: { id: PersonalTab; label: string }[] = [
   { id: "curriculum", label: "Chương trình lớp" },
+  { id: "lessons", label: "Buổi chương trình" },
+  { id: "questions", label: "Ngân hàng câu hỏi" },
+  { id: "exams", label: "Đề kiểm tra" },
   { id: "materials", label: "Học liệu" },
   { id: "competency", label: "Hồ sơ năng lực" },
   { id: "plans", label: "Kế hoạch ôn tập" },
