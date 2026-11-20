@@ -5,6 +5,7 @@ import "./style.css";
 import "./shell.css";
 import "./account.css";
 import "./density.css";
+import { trackChromeSize } from "./chrome-size";
 
 // Students open an exam by link (#/lam-bai/<token>) without an account (ADR 0006): that page never loads the
 // teacher shell or asks who is signed in.
@@ -14,6 +15,7 @@ window.addEventListener("hashchange", () => {
   const next = /^#\/lam-bai\/([0-9a-f]{32})\/?$/i.exec(window.location.hash)?.[1];
   if (next !== examToken) window.location.reload();
 });
+trackChromeSize();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     {examToken ? (

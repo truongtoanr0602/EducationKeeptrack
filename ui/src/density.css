@@ -1,13 +1,9 @@
 /* Denser layouts for the roster, student list, monthly reports and statistics:
    less scrolling, primary actions that stay in reach. */
 :root {
-  --topbar-h: 60px;
+  /* Fallbacks; chrome-size.ts replaces them with the measured heights. */
+  --topbar-h: 56px;
   --bottom-tabs-h: 0px;
-}
-@media (max-width: 960px) {
-  :root {
-    --bottom-tabs-h: 64px;
-  }
 }
 
 /* Sticky page header with its actions */
@@ -373,4 +369,11 @@
 }
 .compact-cards .class-card .subject {
   justify-self: start;
+}
+
+/* A bar this tall would cover too much of a phone screen. */
+@media (max-width: 760px) {
+  .sticky-scope {
+    position: static;
+  }
 }
