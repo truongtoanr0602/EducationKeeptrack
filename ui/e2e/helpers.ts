@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 // Screens are addressed as #/classes/<classId>/<section> (see src/router.ts).
 export function classIdOf(page: Page): string {
@@ -14,4 +14,11 @@ export async function openSection(page: Page, section: string) {
       (window.location.hash = `#/classes/${classId}/${name}`),
     [id, section],
   );
+}
+
+// The payments screen keeps the receipt form behind a button until it is needed.
+export async function openReceiptForm(card: Locator) {
+  await card
+    .getByRole("button", { name: "Nhập khoản nhận tiền", exact: true })
+    .click();
 }

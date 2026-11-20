@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { classIdOf, openSection } from "./helpers";
+import { classIdOf, openSection, openReceiptForm } from "./helpers";
 
 test("teacher records partial receipts, retries a lost response once, and reloads debt history", async ({
   page,
@@ -81,6 +81,7 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     student.getByText("Tổng cần thu: 1.400.000", { exact: false }),
   ).toBeVisible();
+  await openReceiptForm(student);
   await expect(
     student.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeEnabled();
@@ -141,6 +142,7 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     student.getByText("Tổng cần thu: 700.000", { exact: false }),
   ).toBeVisible();
+  await openReceiptForm(student);
   await student.getByLabel("Số tiền nhận (đồng)").fill("800000");
   await student.getByLabel("Ghi chú nhận tiền").fill("Trả đủ và dư");
   await student

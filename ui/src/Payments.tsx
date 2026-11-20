@@ -153,6 +153,7 @@ export function Payments({
                     onDenied={onDenied}
                   />
                   <ReceiptForm
+                  collapsible
                     classId={classId}
                     studentId={student.studentId}
                     version={report.version}

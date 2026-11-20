@@ -377,3 +377,7 @@
     position: static;
   }
 }
+
+.receipt-toggle {
+  justify-self: start;
+}
