@@ -226,4 +226,17 @@ public sealed class QuestionBankRuleTests
         Assert.Equal("An N.", EducationKeeptrack.Learning.Application.ExamTakeService.DisplayName("Nguyễn Văn An"));
         Assert.Equal("Bình", EducationKeeptrack.Learning.Application.ExamTakeService.DisplayName("Bình"));
     }
+
+    [Fact]
+    public void Two_children_never_get_the_same_button()
+    {
+        Guid a = Guid.NewGuid(), b = Guid.NewGuid(), c = Guid.NewGuid(), d = Guid.NewGuid(), e = Guid.NewGuid();
+        var names = EducationKeeptrack.Learning.Application.ExamTakeService.DisplayNames(
+            [(a, "Nguyễn Văn An"), (b, "Nguyễn Thị An"), (c, "Trần Bình"), (d, "Nguyễn Văn An"), (e, "Lê Chi")]);
+        Assert.Equal("Bình T.", names[c]);
+        Assert.Equal("Chi L.", names[e]);
+        Assert.Equal("An T. N.", names[b]);
+        Assert.Equal(5, names.Values.Distinct().Count());
+        Assert.StartsWith("An V. N. (", names[a]);
+    }
 }

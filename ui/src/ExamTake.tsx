@@ -79,10 +79,11 @@ function Join({ base, entry, onJoined }: { base: string; entry: Entry; onJoined:
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  if (entry.status !== "open")
+  const open = entry.status === "open";
+  if (!open && entry.students.length === 0)
     return (
       <div className="take-card">
-        <p>Bài kiểm tra đã đóng. Nếu em đã làm bài, em vào lại bằng tên và mã để xem kết quả khi thầy cô cho phép.</p>
+        <p>Bài kiểm tra đã đóng. Khi thầy cô cho xem kết quả, em mở lại đường link này, chọn tên và nhập mã để xem nhé.</p>
       </div>
     );
   async function join() {
@@ -102,7 +103,9 @@ function Join({ base, entry, onJoined }: { base: string; entry: Entry; onJoined:
     return (
       <section className="take-card" aria-label="Chọn tên">
         <p className="take-lead">
-          {entry.questionCount} câu{entry.durationMinutes ? ` · ${entry.durationMinutes} phút` : ""}. Em bấm vào tên của mình nhé.
+          {open
+            ? `${entry.questionCount} câu${entry.durationMinutes ? ` · ${entry.durationMinutes} phút` : ""}. Em bấm vào tên của mình nhé.`
+            : "Thầy cô đã cho xem kết quả. Em bấm vào tên của mình rồi nhập mã nhé."}
         </p>
         <ul className="take-names">
           {entry.students.map((s) => (
@@ -124,7 +127,7 @@ function Join({ base, entry, onJoined }: { base: string; entry: Entry; onJoined:
       {error && <p className="error" role="alert">{error}</p>}
       <div className="take-actions">
         <button type="button" onClick={() => { setStudent(null); setCode(""); setError(""); }} disabled={busy}>Không phải em</button>
-        <button className="primary" disabled={busy || code.length !== 4}>Vào làm bài</button>
+        <button className="primary" disabled={busy || code.length !== 4}>{open ? "Vào làm bài" : "Xem kết quả"}</button>
       </div>
     </form>
   );

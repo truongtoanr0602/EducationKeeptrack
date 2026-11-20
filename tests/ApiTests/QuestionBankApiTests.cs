@@ -238,6 +238,68 @@ public sealed class QuestionBankApiTests(TestApplication app) : IClassFixture<Te
         Assert.Contains("confirmed", skillResults.ToString());
     }
 
+    /// <summary>Opens an exam of the given questions, lets each student answer every item with the given values and confirms it.</summary>
+    private async Task<JsonElement> RunExam(HttpClient client, string classId, object scope, int[] counts, Func<JsonElement, string[]> answer, params string[] students)
+    {
+        var body = JsonSerializer.SerializeToElement(scope);
+        var preview = await Json(await Post(client, Learning(classId, "/exams/preview"), Merge(body, new { counts })), HttpStatusCode.OK);
+        var ids = preview.GetProperty("questions").EnumerateArray().Select(x => x.GetProperty("id").GetString()).ToArray();
+        var exam = await Json(await Post(client, Learning(classId, "/exams"), Merge(body, new { title = "Đề E1", counts, questionIds = ids })), HttpStatusCode.Created);
+        var path = Learning(classId, $"/exams/{exam.GetProperty("id").GetString()}");
+        exam = await Json(await Post(client, $"{path}/open", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+        var token = exam.GetProperty("publicToken").GetString()!;
+        var items = exam.GetProperty("items").EnumerateArray().ToList();
+        foreach (var studentId in students)
+        {
+            var code = exam.GetProperty("seats").EnumerateArray().Single(x => x.GetProperty("studentId").GetString() == studentId).GetProperty("code").GetString();
+            using var device = app.Client();
+            await Json(await Post(device, $"/api/exam-take/{token}/join", new { studentId, code }), HttpStatusCode.OK);
+            foreach (var item in items)
+                await Json(await Put(device, $"/api/exam-take/{token}/attempt/answers/{item.GetProperty("order").GetInt32()}", new { values = answer(item) }), HttpStatusCode.OK);
+            await Json(await Post(device, $"/api/exam-take/{token}/attempt/submit", new { }), HttpStatusCode.OK);
+        }
+        exam = await Json(await client.GetAsync(path), HttpStatusCode.OK);
+        exam = await Json(await Post(client, $"{path}/close", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+        return await Json(await Post(client, $"{path}/confirm", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+    }
+
+    private static Dictionary<string, object?> Merge(JsonElement scope, object extra)
+    {
+        var result = scope.EnumerateObject().ToDictionary(x => x.Name, x => (object?)x.Value);
+        foreach (var p in JsonSerializer.SerializeToElement(extra).EnumerateObject()) result[p.Name] = p.Value;
+        return result;
+    }
+
+    [Fact]
+    public async Task Exam_results_are_pooled_so_two_short_exams_reach_a_conclusion_rule_34_could_not()
+    {
+        var (client, classId, students) = await Teacher("Đỗ Khoa");
+        await ImportSample(client, classId);
+        var curriculum = await Json(await client.GetAsync(Learning(classId, "/curriculum")), HttpStatusCode.OK);
+        var e1 = curriculum.GetProperty("skills").EnumerateArray().Single(x => x.GetProperty("code").GetString() == "E1");
+        await Json(await Put(client, Learning(classId, $"/curriculum/skills/{e1.GetProperty("id").GetString()}"), new
+        {
+            code = "E1", name = e1.GetProperty("name").GetString(), strand = e1.GetProperty("strand").GetString(), taught = true, archived = false,
+            version = curriculum.GetProperty("version").GetInt32()
+        }), HttpStatusCode.OK);
+
+        // E1 has two Nhận biết and one Vận dụng cao question in the sample: each exam asks 3 questions of E1, all answered wrong.
+        static string[] Wrong(JsonElement item) => item.GetProperty("answer").EnumerateArray().Select(_ => "sai").ToArray();
+        var scope = new { skillIds = new[] { e1.GetProperty("id").GetString() } };
+        await RunExam(client, classId, scope, [2, 0, 0, 1], Wrong, students[0]);
+        var afterOne = await Json(await client.GetAsync(Learning(classId, "/competency")), HttpStatusCode.OK);
+        Assert.Equal("insufficient", Skill(afterOne, "E1").GetProperty("state").GetString());
+
+        await RunExam(client, classId, scope, [2, 0, 0, 1], Wrong, students[0]);
+        var afterTwo = await Json(await client.GetAsync(Learning(classId, "/competency")), HttpStatusCode.OK);
+        var e1State = Skill(afterTwo, "E1");
+        Assert.Equal("not_mastered", e1State.GetProperty("state").GetString());
+        Assert.Equal(2, e1State.GetProperty("evidence").EnumerateArray().Count(x => x.GetProperty("counted").GetBoolean()));
+
+        static JsonElement Skill(JsonElement profile, string code) =>
+            profile.GetProperty("students")[0].GetProperty("skills").EnumerateArray().Single(x => x.GetProperty("code").GetString() == code);
+    }
+
     [Fact]
     public async Task A_student_who_is_locked_out_gets_back_in_after_the_teacher_resets_the_seat()
     {

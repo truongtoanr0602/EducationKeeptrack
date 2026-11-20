@@ -18,15 +18,43 @@ public sealed class ExamTakeService(IQuestionBankRepository repository, IAccount
 {
     public static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(8);
 
-    /// <summary>Title and, while the exam is open, the short names to pick from. Draft exams do not exist for students.</summary>
+    /// <summary>
+    /// Title and the short names to pick from: everyone while the exam is open; afterwards, once the teacher released
+    /// the results, those who took it, so they can come back and see them. Draft exams do not exist for students.
+    /// </summary>
     public async Task<LearningResult<ExamEntry>> EntryAsync(string token, CancellationToken ct)
     {
         var exam = await repository.FindExamByTokenAsync(token, false, ct);
         if (exam is null || exam.Status == ExamStatus.Draft) return new(null, 404);
-        var students = exam.Status == ExamStatus.Open
-            ? exam.Seats.OrderBy(x => DisplayName(x.StudentName)).Select(x => (x.StudentId, DisplayName(x.StudentName))).ToList()
+        var seats = exam.Status == ExamStatus.Open ? exam.Seats
+            : exam.ShowResults ? exam.Seats.Where(x => AttemptStatus.IsDone(x.AttemptStatus)).ToList()
             : [];
-        return new(new(exam, students));
+        var names = DisplayNames(seats.Select(x => (x.StudentId, x.StudentName)).ToList());
+        return new(new(exam, seats.Select(x => (x.StudentId, names[x.StudentId])).OrderBy(x => x.Item2, StringComparer.CurrentCulture).ToList()));
+    }
+
+    /// <summary>
+    /// Short names that never repeat within one list: "An N." normally, "An V. N." when two "An N." meet, and a number as
+    /// the last resort, so a child cannot pick a classmate's button and spend the classmate's code tries.
+    /// </summary>
+    public static Dictionary<Guid, string> DisplayNames(IReadOnlyList<(Guid Id, string Name)> students)
+    {
+        var result = students.ToDictionary(x => x.Id, x => DisplayName(x.Name));
+        foreach (var group in students.GroupBy(x => result[x.Id]).Where(g => g.Count() > 1))
+            foreach (var student in group) result[student.Id] = LongName(student.Name);
+        foreach (var group in students.GroupBy(x => result[x.Id]).Where(g => g.Count() > 1))
+        {
+            var n = 1;
+            foreach (var student in group.OrderBy(x => x.Name, StringComparer.CurrentCulture).ThenBy(x => x.Id)) result[student.Id] = $"{result[student.Id]} ({n++})";
+        }
+        return result;
+    }
+
+    private static string LongName(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3) return DisplayName(name);
+        return $"{parts[^1]} {string.Concat(parts[1..^1].Select(x => $"{char.ToUpperInvariant(x[0])}. "))}{char.ToUpperInvariant(parts[0][0])}.";
     }
 
     public async Task<LearningResult<ExamAttempt>> JoinAsync(string token, JoinInput input, CancellationToken ct)
