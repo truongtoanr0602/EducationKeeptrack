@@ -1,0 +1,376 @@
+/* Denser layouts for the roster, student list, monthly reports and statistics:
+   less scrolling, primary actions that stay in reach. */
+:root {
+  --topbar-h: 60px;
+  --bottom-tabs-h: 0px;
+}
+@media (max-width: 960px) {
+  :root {
+    --bottom-tabs-h: 64px;
+  }
+}
+
+/* Sticky page header with its actions */
+.sticky-heading {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 4;
+  background: #fff;
+  padding: 0.6rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e2e7f2;
+}
+.sticky-heading h2 {
+  margin: 0.1rem 0;
+  font-size: 1.3rem;
+}
+.sticky-heading p {
+  margin: 0;
+}
+.sticky-heading .roster-actions {
+  justify-content: flex-end;
+}
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+.list-search input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+/* Roster: one compact row per student instead of a tall card */
+.roster-list.compact {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.roster .roster-list.compact .class-card {
+  min-height: 0;
+  padding: 0.6rem 0.9rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  row-gap: 0.15rem;
+  align-items: center;
+  box-shadow: none;
+}
+.roster-list.compact .roster-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.roster-list.compact .roster-main h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.roster-list.compact .roster-main .enrollment-status {
+  flex: none;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+}
+.roster-list.compact .roster-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+}
+.roster-list.compact .roster-info p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.roster-list.compact .class-card > .roster-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  flex-wrap: nowrap;
+}
+.roster-list.compact .class-card > .roster-actions button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+.roster-list.compact .roster-info details {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.roster-list.compact .roster-info details[open] {
+  flex-basis: 100%;
+}
+@media (max-width: 760px) {
+  .sticky-heading {
+    position: static;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .sticky-heading .roster-actions button {
+    flex: 1 1 calc(50% - 0.6rem);
+  }
+  .roster .roster-list.compact .class-card {
+    grid-template-columns: 1fr;
+  }
+  .roster-list.compact .class-card > .roster-actions {
+    grid-column: 1;
+    grid-row: auto;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+  }
+}
+
+/* Cross-class student list: multi-column grid, shorter tiles */
+.student-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+.student-grid .cross-class-link {
+  min-height: 48px;
+  padding: 8px 12px;
+}
+
+/* Statistics: toolbar, KPI cards, scrollable tables with sticky header */
+.stats-help {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+.stats-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: end;
+  justify-content: space-between;
+  margin: 0.75rem 0;
+}
+.stats-toolbar .stats-filter {
+  margin: 0;
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid #c5c9d6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.segmented button {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  background: #fff;
+}
+.segmented button + button {
+  border-left: 1px solid #c5c9d6;
+}
+.segmented button[aria-pressed="true"] {
+  background: #00236f;
+  color: #fff;
+}
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+.kpi-row > p {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e2e7f2;
+  border-radius: 10px;
+  background: #f8faff;
+  font-size: 0.85rem;
+}
+.table-scroll {
+  max-height: min(55vh, 520px);
+  overflow: auto;
+}
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: #f4f6fb;
+  z-index: 1;
+}
+.table-scroll td button {
+  min-height: 32px;
+  font-size: 0.85rem;
+}
+
+/* Monthly reports: keep scope and actions in reach, trim the preview */
+.sticky-scope {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 3;
+  background: #fff;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e7f2;
+}
+.monthly-reports {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+}
+.monthly-reports > p {
+  margin: 0.25rem 0 0.5rem;
+}
+.sticky-actions {
+  position: sticky;
+  bottom: var(--bottom-tabs-h);
+  z-index: 3;
+  background: #fff;
+  padding: 0.6rem 0;
+  border-top: 1px solid #e2e7f2;
+  margin-top: 0.75rem;
+}
+.report-draft fieldset {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.report-draft fieldset > legend,
+.report-draft fieldset > p,
+.report-draft fieldset > div,
+.report-draft fieldset > label:has(textarea),
+.report-draft fieldset > button {
+  grid-column: 1 / -1;
+}
+.report-draft fieldset > button {
+  justify-self: start;
+}
+.report-preview iframe {
+  height: clamp(420px, 70vh, 820px);
+}
+@media (max-width: 760px) {
+  .report-draft fieldset {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Payments: figures, actions and history side by side instead of one long column */
+.pay-card {
+  min-height: 0;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 0.75rem 1.5rem;
+  align-items: start;
+}
+.pay-card h4 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+.pay-summary,
+.pay-actions {
+  min-width: 0;
+}
+.pay-history {
+  grid-column: 1 / -1;
+  border-top: 1px solid #e2e7f2;
+  padding-top: 0.5rem;
+}
+.pay-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.pay-figures > p {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e7f2;
+  border-radius: 8px;
+  background: #f8faff;
+  font-size: 0.85rem;
+}
+.pay-figures > .notice {
+  grid-column: 1 / -1;
+}
+.pay-summary ul,
+.pay-history ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+.pay-history ul {
+  list-style: none;
+  padding-left: 0;
+  max-height: 260px;
+  overflow: auto;
+}
+.pay-history li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eef1f7;
+}
+.pay-history li p {
+  margin: 0.1rem 0;
+}
+.pay-actions > section {
+  margin-bottom: 0.6rem;
+}
+.pay-actions .roster-form {
+  max-width: none;
+  margin: 0;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+.pay-actions .roster-form > h4,
+.pay-actions .roster-form > label:has(textarea),
+.pay-actions .roster-form > p,
+.pay-actions .roster-form > button {
+  grid-column: 1 / -1;
+}
+.pay-actions .roster-form > button {
+  justify-self: start;
+}
+.pay-actions .roster-form textarea {
+  min-height: 2.6rem;
+  height: 2.6rem;
+}
+@media (max-width: 960px) {
+  .pay-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Classes screen: compact cards, reachable "create class" */
+.class-grid.compact-cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 0.75rem;
+}
+.compact-cards .class-card {
+  min-height: 0;
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+  box-shadow: none;
+}
+.compact-cards .class-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.compact-cards .class-card p {
+  margin: 0;
+}
+.compact-cards .card-links {
+  margin-top: 0.25rem;
+  gap: 0.4rem;
+}
+.compact-cards .card-links :is(button, a) {
+  min-height: 34px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+#all-students {
+  scroll-margin-top: calc(var(--topbar-h) + 4rem);
+  margin-top: 1.5rem;
+}
+@media (max-width: 760px) {
+  .sticky-heading .roster-actions {
+    flex-direction: column;
+  }
+  .sticky-heading .roster-actions button {
+    width: 100%;
+    flex: none;
+  }
+}
+.compact-cards .class-card .subject {
+  justify-self: start;
+}

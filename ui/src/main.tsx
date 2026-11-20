@@ -4,6 +4,7 @@ import { App } from "./App";
 import "./style.css";
 import "./shell.css";
 import "./account.css";
+import "./density.css";
 
 // Students open an exam by link (#/lam-bai/<token>) without an account (ADR 0006): that page never loads the
 // teacher shell or asks who is signed in.
