@@ -5,8 +5,6 @@ import {
   type MonthlyPreview,
 } from "./reporting-api";
 
-export type ShareResult = "shared" | "downloaded" | "cancelled";
-
 // A saved export can be sent as-is only while it is ready and its source data has not changed.
 export const isSendable = (item: MonthlyExport) =>
   item.state === "ready" && item.freshness?.state === "current";
@@ -25,13 +23,14 @@ async function currentExport(path: string, create: boolean) {
   });
 }
 
-// Reuses the monthly report PDF of one student (ADR 0005): the "Hóa đơn" screen has no separate receipt.
-export async function shareMonthlyReport(
+// The monthly report PDF of one student (ADR 0005): the "Hóa đơn" screen has no separate receipt. The teacher
+// downloads it, or downloads it and opens Zalo to attach it; the system never sends anything itself.
+export async function monthlyReportFile(
   classId: string,
   studentId: string,
   month: string,
   studentName: string,
-): Promise<ShareResult> {
+): Promise<File> {
   const path = reportPath(classId, studentId, month);
   const item = await currentExport(path, true);
   if (!item || item.state !== "ready")
@@ -43,26 +42,14 @@ export async function shareMonthlyReport(
   );
   const response = await fetch(link.url, { credentials: "same-origin" });
   if (!response.ok) throw new Error("Không thể tải file PDF.");
-  const file = new File(
+  return new File(
     [await response.blob()],
     `bao-cao-${month}-${studentName.replace(/\s+/g, "-")}.pdf`,
     { type: "application/pdf" },
   );
-  const data = {
-    files: [file],
-    title: `Báo cáo tháng ${month} · ${studentName}`,
-  };
-  if (navigator.canShare?.(data)) {
-    try {
-      await navigator.share(data);
-      return "shared";
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError")
-        return "cancelled";
-      throw e;
-    }
-  }
-  // Desktop browsers without file sharing: save the file instead.
+}
+
+export function downloadFile(file: File) {
   const url = URL.createObjectURL(file);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -71,5 +58,13 @@ export async function shareMonthlyReport(
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  return "downloaded";
+}
+
+// Zalo cannot be given a file through a link: open the parent's chat when their phone number is known (the
+// contact phone of the profile), otherwise Zalo Web, and the teacher attaches the downloaded PDF.
+export function zaloUrl(phone: string | null | undefined) {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  return digits.length >= 9
+    ? `https://zalo.me/${digits}`
+    : "https://chat.zalo.me/";
 }
