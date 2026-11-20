@@ -381,3 +381,16 @@
 .receipt-toggle {
   justify-self: start;
 }
+
+/* Forms shown inside a popup lose their own card chrome. */
+.popup-body .roster-form {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.popup-body .roster-form > :is(h2, h3, h4):first-child {
+  display: none;
+}

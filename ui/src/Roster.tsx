@@ -3,6 +3,7 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { EnrollmentForm } from "./EnrollmentForm";
 import { PasteStudents } from "./PasteStudents";
 import { StudentForm } from "./StudentForm";
+import { Popup } from "./ui/popup";
 import { Login } from "./Login";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
 
@@ -13,6 +14,7 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [studentLocked, setStudentLocked] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [form, setForm] = useState<
     | { kind: "student"; student?: Student }
@@ -153,15 +155,40 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
           </p>
         )}
         {form?.kind === "student" && (
-          <StudentForm
-            key={form.student?.id ?? "new"}
-            student={form.student}
-            classId={classroom.id}
-            canWrite={access.canWrite}
-            onSaved={saved}
-            onCancel={() => setForm(null)}
-            onDenied={denied}
-          />
+          <Popup
+            open
+            variant="side"
+            title={
+              form.student
+                ? `Sửa hồ sơ: ${form.student.name}`
+                : "Thêm học sinh mới"
+            }
+            onOpenChange={(next) => {
+              if (!next) setForm(null);
+            }}
+            locked={studentLocked}
+            suspended={sessionExpired || !access.canRead}
+            footer={
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading}
+              >
+                Tải lại danh sách
+              </button>
+            }
+          >
+            <StudentForm
+              key={form.student?.id ?? "new"}
+              student={form.student}
+              classId={classroom.id}
+              canWrite={access.canWrite}
+              onSaved={saved}
+              onCancel={() => setForm(null)}
+              onDenied={denied}
+              onLockChange={setStudentLocked}
+            />
+          </Popup>
         )}
         {form?.kind === "paste" && (
           <PasteStudents

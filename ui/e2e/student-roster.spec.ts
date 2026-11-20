@@ -178,7 +178,10 @@ test("teacher manages a persistent roster and retains input after a failed save"
   await expect(
     page.getByRole("button", { name: "Lưu học sinh", exact: true }),
   ).toBeDisabled();
-  await expect(row).toContainText("Nguyễn Bình đã sửa");
+  // The edit dialog is still open, so everything behind it is hidden from role queries: look the row up by text.
+  await expect(page.locator("article", { hasText: "Nguyễn An" })).toContainText(
+    "Nguyễn Bình đã sửa",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

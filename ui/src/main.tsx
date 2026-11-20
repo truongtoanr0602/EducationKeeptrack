@@ -1,10 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
-import "./style.css";
-import "./shell.css";
-import "./account.css";
-import "./density.css";
+import "./styles.css";
 import { trackChromeSize } from "./chrome-size";
 
 // Students open an exam by link (#/lam-bai/<token>) without an account (ADR 0006): that page never loads the

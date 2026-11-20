@@ -16,9 +16,13 @@ export async function openSection(page: Page, section: string) {
   );
 }
 
-// The payments screen keeps the receipt form behind a button until it is needed.
-export async function openReceiptForm(card: Locator) {
+// The payments screen shows the receipt form in a dialog opened from the student's card. While it is open the
+// rest of the page is inert, so every field, the submit button and "Tải lại công nợ" are looked up inside it.
+export async function openReceiptForm(card: Locator): Promise<Locator> {
   await card
     .getByRole("button", { name: "Nhập khoản nhận tiền", exact: true })
     .click();
+  const dialog = card.page().getByRole("dialog");
+  await dialog.waitFor();
+  return dialog;
 }

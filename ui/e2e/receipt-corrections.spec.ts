@@ -62,9 +62,9 @@ test("receipt corrections preserve history and restore balances after reload", a
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(card);
-  await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
-  await card
+  const receipt = await openReceiptForm(card);
+  await receipt.getByLabel("Số tiền nhận (đồng)").fill("500000");
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
   await expect(

@@ -60,12 +60,12 @@ test("fee adjustment shows its reason and matching debt after reload", async ({
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(card);
-  await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
+  const receipt = await openReceiptForm(card);
+  await receipt.getByLabel("Số tiền nhận (đồng)").fill("500000");
   await expect(
-    card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    receipt.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeEnabled();
-  await card
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
   await expect(
