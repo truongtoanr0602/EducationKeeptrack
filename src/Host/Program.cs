@@ -115,6 +115,7 @@ if (args.Contains("--provision-teacher"))
 app.UseForwardedHeaders();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
