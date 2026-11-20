@@ -6,6 +6,7 @@ import { RateForm } from "./RateForm";
 import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
 import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { Reserve } from "./Reserve";
 import { CashflowStatistics } from "./CashflowStatistics";
 import {
@@ -376,6 +377,7 @@ export function Tuition({
                   onDenied={denied}
                   onLockChange={setFormLocked}
                   onSaved={() => {
+                    toast.success("Điều chỉnh học phí đã được lưu.");
                     setAdjustFor(null);
                     void load(appliedMonth);
                   }}

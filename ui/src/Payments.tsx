@@ -4,6 +4,7 @@ import { money } from "./tuition-api";
 import { paymentStatus, type PaymentsReport } from "./payments-api";
 import { ReceiptForm } from "./ReceiptForm";
 import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { ReceiptCorrection } from "./ReceiptCorrection";
 import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
 
@@ -275,6 +276,7 @@ export function Payments({
                 canReplay={canWrite}
                 onLockChange={setReceiptLocked}
                 onSaved={() => {
+                  toast.success("Khoản thu đã được ghi nhận.");
                   setReceiptFor(null);
                   void load();
                   onChanged();

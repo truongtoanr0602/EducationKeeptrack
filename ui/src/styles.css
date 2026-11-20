@@ -9,6 +9,7 @@
 @import "./shell.css" layer(legacy);
 @import "./account.css" layer(legacy);
 @import "./density.css" layer(legacy);
+@import "./theme.css" layer(legacy);
 
 @layer components {
   .popup-overlay[data-state="open"] {

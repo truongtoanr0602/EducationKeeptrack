@@ -4,6 +4,7 @@ import { today } from "./roster-api";
 import { AttendanceBoard } from "./AttendanceBoard";
 import { ScheduleForm } from "./ScheduleForm";
 import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { SessionForm } from "./SessionForm";
 import { SessionStatusForm } from "./SessionStatusForm";
 import { Login } from "./Login";
@@ -139,6 +140,11 @@ export function Sessions({
     }
   }
   function saved() {
+    toast.success(
+      form?.kind === "schedule"
+        ? "Lịch tuần đã được lưu."
+        : "Buổi học đã được tạo.",
+    );
     setForm(null);
     void load(appliedRange);
     onChanged?.();

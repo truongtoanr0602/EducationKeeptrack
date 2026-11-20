@@ -4,6 +4,7 @@ import { EnrollmentForm } from "./EnrollmentForm";
 import { PasteStudents } from "./PasteStudents";
 import { StudentForm } from "./StudentForm";
 import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { Login } from "./Login";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
 
@@ -88,6 +89,11 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
     );
   }, [items, query]);
   function saved() {
+    toast.success(
+      form?.kind === "enrollment"
+        ? "Tình trạng học đã được lưu."
+        : "Hồ sơ học sinh đã được lưu.",
+    );
     setForm(null);
     void load();
   }

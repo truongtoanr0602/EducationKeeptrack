@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import type { Receipt, ReceiptState } from "./payments-api";
@@ -89,6 +90,7 @@ export function ReceiptCorrection({
       setUncertain(false);
       setMode(null);
       setReason("");
+      toast.success("Khoản nhận tiền đã được cập nhật.");
       onSaved();
     } catch (e) {
       if (e instanceof ApiError && e.status < 500) {

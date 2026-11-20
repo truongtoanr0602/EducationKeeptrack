@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { api, ApiError, type Me, type TeacherClass } from "./api";
+import { NavIcon } from "./ui/icons";
 import type { CreateClassDraft } from "./CreateClass";
 import { Login } from "./Login";
 import { Today } from "./Today";
@@ -415,7 +416,7 @@ export function App() {
               href={href({ name: tab.name })}
               aria-current={activeTab === tab.name ? "page" : undefined}
             >
-              <span aria-hidden="true">{tab.icon}</span> {tab.label}
+              <NavIcon name={tab.name} /> {tab.label}
             </a>
           ))}
         </nav>
@@ -591,7 +592,7 @@ export function App() {
             href={href({ name: tab.name })}
             aria-current={activeTab === tab.name ? "page" : undefined}
           >
-            <span aria-hidden="true">{tab.icon}</span>
+            <NavIcon name={tab.name} />
             <span>{tab.short}</span>
           </a>
         ))}
@@ -660,7 +661,7 @@ function SectionNav({
                 href={classHref(route.classId, section.id)}
                 aria-current={route.section === section.id ? "page" : undefined}
               >
-                <span aria-hidden="true">{section.icon}</span> {section.label}
+                <NavIcon name={section.id} /> {section.label}
               </a>
             </li>
           ))}
