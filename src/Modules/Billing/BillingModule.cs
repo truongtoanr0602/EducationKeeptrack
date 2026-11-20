@@ -20,7 +20,7 @@ public static class BillingModule
         services.AddScoped<StatisticsService>(); services.AddScoped<ReserveService>();
         services.AddScoped<IBillingReportSource, BillingReportSource>();
         services.AddScoped<PaymentQrService>();
-        services.AddHttpClient<IVietQrGenerator, VietQrGenerator>(client => client.Timeout = TimeSpan.FromSeconds(8));
+        services.AddSingleton<IVietQrGenerator, LocalVietQrGenerator>();
         services.AddScoped<IClassroomChangeHandler, BillingClassroomHandler>(); services.AddHostedService<BillingWorker>();
         return services;
     }
