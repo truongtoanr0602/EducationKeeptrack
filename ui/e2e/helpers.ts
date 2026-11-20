@@ -26,3 +26,26 @@ export async function openReceiptForm(card: Locator): Promise<Locator> {
   await dialog.waitFor();
   return dialog;
 }
+
+// Monthly report: the draft form and the PDF preview each open in a dialog over the page.
+export async function openReportDraft(region: Locator): Promise<Locator> {
+  await region
+    .getByRole("button", { name: "Soạn nội dung báo cáo", exact: true })
+    .click();
+  const dialog = region
+    .page()
+    .getByRole("dialog", { name: "Nội dung báo cáo" });
+  await dialog.waitFor();
+  return dialog;
+}
+
+export async function openReportPreview(region: Locator): Promise<Locator> {
+  await region
+    .getByRole("button", { name: "Xem trước báo cáo", exact: true })
+    .click();
+  const dialog = region
+    .page()
+    .getByRole("dialog", { name: "Xem trước báo cáo" });
+  await dialog.waitFor();
+  return dialog;
+}

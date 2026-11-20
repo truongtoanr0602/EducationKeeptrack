@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openReportDraft, openReportPreview } from "./helpers";
 
 test("teacher sees which saved PDFs are outdated, reads what changed and exports an updated one", async ({ page }) => {
   await page.goto("/");
@@ -26,12 +27,13 @@ test("teacher sees which saved PDFs are outdated, reads what changed and exports
   await heldSession(classroom.id, student.id, "2026-10-02");
   await page.goto(`/?reportClass=${classroom.id}&reportStudent=${student.id}&reportMonth=2026-10#/classes/${classroom.id}/reports`);
   const region = page.getByRole("region", { name: "Báo cáo PDF tháng", exact: true });
-  await expect(region.getByLabel("Nhận xét báo cáo")).toBeVisible();
+  await expect(region.getByRole("button", { name: "Soạn nội dung báo cáo", exact: true })).toBeVisible();
 
-  await region.getByLabel("Nhận xét báo cáo").fill("Bản đầu tiên");
-  await region.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
-  await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  const draft = await openReportDraft(region);
+  await draft.getByLabel("Nhận xét báo cáo").fill("Bản đầu tiên");
+  await draft.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
+  const preview = await openReportPreview(region);
+  await preview.getByRole("button", { name: "Xuất PDF", exact: true }).click();
   await expect(region.getByTestId("freshness")).toHaveText("Còn mới: khớp dữ liệu hiện tại");
   await expect(region.getByTestId("outdated-banner")).toHaveCount(0);
 
@@ -46,7 +48,8 @@ test("teacher sees which saved PDFs are outdated, reads what changed and exports
 
   // Update: preview from current data, export; the old file stays and is marked outdated, the new one is current.
   await region.getByRole("button", { name: "Cập nhật báo cáo" }).click();
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  const update = page.getByRole("dialog", { name: "Xem trước báo cáo" });
+  await update.getByRole("button", { name: "Xuất PDF", exact: true }).click();
   await expect(region.locator("article[data-freshness='current']")).toHaveCount(1);
   await expect(region.locator("article[data-freshness='outdated']")).toHaveCount(1);
   await expect(region.getByRole("button", { name: "Tải PDF" })).toHaveCount(2);

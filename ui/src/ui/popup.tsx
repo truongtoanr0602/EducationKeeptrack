@@ -37,6 +37,8 @@ export type PopupProps = {
   title: string;
   description?: string;
   variant?: "center" | "side";
+  /** A wider centred dialog, for content such as a document preview. */
+  wide?: boolean;
   locked?: boolean;
   suspended?: boolean;
   footer?: ReactNode;
@@ -53,6 +55,7 @@ export function Popup({
   title,
   description,
   variant = "center",
+  wide = false,
   locked = false,
   suspended = false,
   footer,
@@ -65,7 +68,7 @@ export function Popup({
       {description && <p className={descriptionClass}>{description}</p>}
       <div className="popup-body mt-4">{children}</div>
       {footer && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
+        <div className="sticky bottom-0 mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white pt-3 pb-1">
           {footer}
         </div>
       )}
@@ -106,7 +109,8 @@ export function Popup({
             "fixed z-[61] overflow-y-auto bg-white p-6 shadow-2xl outline-none",
             variant === "side"
               ? "popup-side top-0 right-0 h-full w-[min(100vw,30rem)] border-l border-slate-200"
-              : "popup-center top-1/2 left-1/2 max-h-[88vh] w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl",
+              : "popup-center top-1/2 left-1/2 max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl",
+            wide ? "w-[min(96vw,62rem)]" : "w-[min(92vw,34rem)]",
           )}
           style={hidden}
           aria-describedby={undefined}

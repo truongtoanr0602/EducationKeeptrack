@@ -72,8 +72,9 @@ test("teacher manages a persistent roster and retains input after a failed save"
   ).json();
   await page.unroute("**/api/classes/*/enrollments");
   await page.getByRole("button", { name: "Lưu học sinh", exact: true }).click();
-  const row = page.getByRole("article").filter({
-    has: page.getByRole("heading", { name: "Nguyễn An", exact: true }),
+  // Found by element, not by role: while a dialog is open the page behind it is hidden from role queries.
+  const row = page.locator("article").filter({
+    has: page.locator("h3", { hasText: "Nguyễn An" }),
   });
   await expect(row).toContainText("Nguyễn Bình");
   const profilesAfterRetry = await (

@@ -102,6 +102,8 @@ test("recipient preview and QR modes retain manual instructions without recordin
     exact: true,
   });
   await expect(student).toContainText("Tổng cần thu: 700.000");
+  // The transfer request opens in a dialog; closing it drops the code.
+  const qr = page.getByRole("dialog");
   const report = await (
     await page.request.get(
       `/api/billing/classes/${classId}/payments?month=2026-10`,
@@ -134,41 +136,45 @@ test("recipient preview and QR modes retain manual instructions without recordin
   await request
     .getByRole("button", { name: "Tạo yêu cầu chuyển khoản" })
     .click();
-  await expect(request).toContainText("VietQR có số tiền và nội dung");
+  await expect(qr).toContainText("VietQR có số tiền và nội dung");
   await expect(
-    request.getByRole("img", { name: "VietQR chuyển khoản" }),
+    qr.getByRole("img", { name: "VietQR chuyển khoản" }),
   ).toBeVisible();
   for (const fallback of ["static", "manual"]) {
+    await page.keyboard.press("Escape");
+    await expect(qr).toHaveCount(0);
     kind = fallback;
     await request
       .getByRole("button", { name: "Tạo yêu cầu chuyển khoản" })
       .click();
-    await expect(request).toContainText(
+    await expect(qr).toContainText(
       fallback === "static"
         ? "QR tĩnh — tự nhập số tiền và nội dung"
         : "Chuyển khoản thủ công — tự nhập đầy đủ thông tin",
     );
-    await expect(request.getByRole("alert")).toContainText(
-      "tự nhập đúng số tiền",
-    );
-    await expect(request).toContainText("Số tiền chuyển: 700.000");
-    await expect(request).toContainText("Người nhận: NGUYEN VAN AN");
-    await expect(request).toContainText("Nội dung: HP202610AN");
+    await expect(qr.getByRole("alert")).toContainText("tự nhập đúng số tiền");
+    await expect(qr).toContainText("Số tiền chuyển: 700.000");
+    await expect(qr).toContainText("Người nhận: NGUYEN VAN AN");
+    await expect(qr).toContainText("Nội dung: HP202610AN");
   }
+  await page.keyboard.press("Escape");
+  await expect(qr).toHaveCount(0);
   await expect(student).toContainText("Chưa ghi nhận tiền.");
   kind = "vietqr";
   brokenImage = true;
   await request
     .getByRole("button", { name: "Tạo yêu cầu chuyển khoản" })
     .click();
-  await expect(request).toContainText("QR tĩnh — tự nhập số tiền và nội dung");
+  await expect(qr).toContainText("QR tĩnh — tự nhập số tiền và nội dung");
   await expect(
-    request.getByRole("img", { name: "QR ngân hàng tĩnh" }),
+    qr.getByRole("img", { name: "QR ngân hàng tĩnh" }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(qr).toHaveCount(0);
   await payments
     .getByRole("button", { name: "Tải lại công nợ", exact: true })
     .click();
-  await expect(request.getByText("Nội dung: HP202610AN")).toHaveCount(0);
+  await expect(page.getByText("Nội dung: HP202610AN")).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

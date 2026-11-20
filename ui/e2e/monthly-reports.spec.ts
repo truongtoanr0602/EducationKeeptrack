@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { openReportDraft, openReportPreview } from "./helpers";
 
 async function setup(page: Page, withFee = false) {
   await page.goto("/");
@@ -27,26 +28,35 @@ async function setup(page: Page, withFee = false) {
   }
   await page.goto(`/?reportClass=${classroom.id}&reportStudent=${student.id}&reportMonth=2026-10#/classes/${classroom.id}/reports`);
   const region = page.getByRole("region", { name: "Báo cáo PDF tháng", exact: true });
-  await expect(region.getByLabel("Nhận xét báo cáo")).toBeVisible();
+  await expect(region.getByRole("button", { name: "Soạn nội dung báo cáo", exact: true })).toBeVisible();
   return { region, classroom, student, write };
 }
 
 test("teacher edits monthly draft, previews and downloads only selected student", async ({ page }) => {
   const { region, classroom, student } = await setup(page, true);
   const comment = "Tiến bộ về phân số <script>window.reportInjected=true</script>";
-  await region.getByLabel("Nhận xét báo cáo").fill(comment);
-  await region.getByLabel("Lộ trình báo cáo").fill("Luyện 10 bài toán");
+  const draft = await openReportDraft(region);
+  await draft.getByLabel("Nhận xét báo cáo").fill(comment);
+  await draft.getByLabel("Lộ trình báo cáo").fill("Luyện 10 bài toán");
+  // Closing keeps the typed text; until it is saved the preview stays disabled.
+  await page.keyboard.press("Escape");
+  await expect(draft).toHaveCount(0);
   await expect(region.getByRole("button", { name: "Xem trước báo cáo", exact: true })).toBeDisabled();
-  await region.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
-  await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
+  const again = await openReportDraft(region);
+  await expect(again.getByLabel("Nhận xét báo cáo")).toHaveValue(comment);
+  await again.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
+  await expect(again).toHaveCount(0);
+  const preview = await openReportPreview(region);
   const frame = page.frameLocator('iframe[title="Xem trước báo cáo tháng"]');
   await expect(frame.getByText(comment, { exact: true })).toBeVisible();
   await expect(frame.locator(".kv").filter({ hasText: /Họ và tên\s*An báo cáo tháng/ })).toBeVisible();
   await expect(frame.getByText("Bình không được chọn")).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, "reportInjected"))).toBeUndefined();
-  await expect(region.getByText("Tổng cần thu: 500.000 đồng", { exact: true })).toBeVisible();
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
-  await expect(region.getByText("Chưa cấu hình thông tin thanh toán. Vui lòng liên hệ giáo viên.")).toBeVisible();
+  await expect(preview.getByText("Tổng cần thu: 500.000 đồng", { exact: true })).toBeVisible();
+  await expect(preview.getByText("Chưa cấu hình thông tin thanh toán. Vui lòng liên hệ giáo viên.")).toBeVisible();
+  await preview.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  // A saved export closes the preview.
+  await expect(preview).toHaveCount(0);
   const downloadEvent = page.waitForEvent("download");
   await region.getByRole("button", { name: "Tải PDF", exact: true }).first().click();
   const downloaded = await downloadEvent; const file = await downloaded.path();
@@ -63,7 +73,7 @@ test("teacher edits monthly draft, previews and downloads only selected student"
   await page.goBack();
   await expect.poll(() => new URL(page.url()).hash).toBe(`#/classes/${classroom.id}/reports`);
   await page.reload();
-  await expect(region.getByLabel("Nhận xét báo cáo")).toHaveValue(comment);
+  await expect(region.getByRole("region", { name: "Nội dung báo cáo đã lưu" })).toContainText(comment);
   await expect(region.getByLabel("Tháng báo cáo")).toHaveValue("2026-10");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
@@ -77,36 +87,42 @@ test("read-only access keeps saved preview and export available", async ({ page 
     await route.fulfill({ response, json: { ...me, access: { ...me.access, canWrite: false, status: "expired" } } });
   });
   await page.reload();
-  await expect(region.getByLabel("Nhận xét báo cáo")).toBeDisabled();
-  await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  const readOnly = await openReportDraft(region);
+  await expect(readOnly.getByLabel("Nhận xét báo cáo")).toBeDisabled();
+  await page.keyboard.press("Escape");
+  const preview = await openReportPreview(region);
+  await preview.getByRole("button", { name: "Xuất PDF", exact: true }).click();
   await expect(region.getByRole("button", { name: "Tải PDF", exact: true })).toBeVisible();
-  await expect(region.getByLabel("Nhận xét báo cáo")).toBeDisabled();
+  const reopened = await openReportDraft(region);
+  await expect(reopened.getByLabel("Nhận xét báo cáo")).toBeDisabled();
   expect((await (await page.request.get(`/api${path}/draft`)).json()).version).toBe(1);
 });
 
 test("uncertain export retries same command and source conflict preserves draft", async ({ page }) => {
   const { region, classroom, student, write } = await setup(page);
-  await region.getByLabel("Nhận xét báo cáo").fill("Giữ nội dung khi lỗi nguồn");
-  await region.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
-  await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
+  const draft = await openReportDraft(region);
+  await draft.getByLabel("Nhận xét báo cáo").fill("Giữ nội dung khi lỗi nguồn");
+  await draft.getByRole("button", { name: "Lưu bản nháp báo cáo" }).click();
+  const preview = await openReportPreview(region);
   let first: unknown;
   await page.route("**/api/reporting/**/exports", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     first = route.request().postDataJSON(); await route.fetch(); await route.abort();
   }, { times: 1 });
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
-  await expect(region.getByRole("button", { name: "Thử lại lệnh xuất" })).toBeVisible();
+  await preview.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  await expect(preview.getByRole("button", { name: "Thử lại lệnh xuất" })).toBeVisible();
   const retry = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith("/exports"));
-  await region.getByRole("button", { name: "Thử lại lệnh xuất" }).click();
+  await preview.getByRole("button", { name: "Thử lại lệnh xuất" }).click();
   expect((await retry).postDataJSON()).toEqual(first);
   await expect(region.getByRole("button", { name: "Tải PDF", exact: true })).toHaveCount(1);
   const refreshedPreview = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/previews"));
-  await region.getByRole("button", { name: "Xem trước báo cáo", exact: true }).click();
+  const second = await openReportPreview(region);
   expect((await refreshedPreview).ok()).toBeTruthy();
   await write(`/students/${student.id}`, { name: "Tên nguồn mới", version: 1 }, "PUT");
-  await region.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  await second.getByRole("button", { name: "Xuất PDF", exact: true }).click();
+  // The source changed, so the preview is dropped and the error shows on the page; the draft is kept.
   await expect(region.getByRole("alert")).toContainText("làm mới");
-  await expect(region.getByLabel("Nhận xét báo cáo")).toHaveValue("Giữ nội dung khi lỗi nguồn");
+  const kept = await openReportDraft(region);
+  await expect(kept.getByLabel("Nhận xét báo cáo")).toHaveValue("Giữ nội dung khi lỗi nguồn");
   expect(new URL(page.url()).hash).toBe(`#/classes/${classroom.id}/reports`);
 });

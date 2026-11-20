@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { Popup } from "./ui/popup";
 import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import type { Receipt, ReceiptState } from "./payments-api";
@@ -182,89 +183,103 @@ export function ReceiptCorrection({
         </div>
       )}
       {mode && (
-        <form
-          className="roster-form"
-          aria-label="Sửa hoặc hủy khoản nhận tiền"
-          onSubmit={submit}
-          noValidate
-          aria-busy={busy}
+        <Popup
+          open
+          title={
+            mode === "cancel" ? "Hủy khoản nhận tiền" : "Sửa khoản nhận tiền"
+          }
+          locked={busy || uncertain}
+          onOpenChange={(next) => {
+            if (!next) {
+              setMode(null);
+              setError("");
+            }
+          }}
         >
-          <p>
-            {mode === "cancel"
-              ? "Hủy ghi nhận và khôi phục công nợ. Thao tác này không hoàn tiền."
-              : "Giữ khoản gốc và tạo khoản thay thế; ngày thực nhận khác thời điểm sửa."}
-          </p>
-          {mode === "replace" && (
-            <>
-              <label className="field">
-                Số tiền thay thế (đồng)
-                <input
-                  inputMode="numeric"
-                  maxLength={18}
-                  value={amount}
-                  disabled={busy || uncertain}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                Ngày thực nhận thay thế
-                <input
-                  type="date"
-                  value={date}
-                  disabled={busy || uncertain}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                Ghi chú thay thế
-                <textarea
-                  maxLength={1000}
-                  value={note}
-                  disabled={busy || uncertain}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </label>
-            </>
-          )}
-          <label className="field">
-            Lý do sửa/hủy
-            <textarea
-              maxLength={1000}
-              value={reason}
-              disabled={busy || uncertain}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
-          {error && (
-            <p role="alert" className="error">
-              {error}
+          <form
+            className="roster-form"
+            aria-label="Sửa hoặc hủy khoản nhận tiền"
+            onSubmit={submit}
+            noValidate
+            aria-busy={busy}
+          >
+            <p>
+              {mode === "cancel"
+                ? "Hủy ghi nhận và khôi phục công nợ. Thao tác này không hoàn tiền."
+                : "Giữ khoản gốc và tạo khoản thay thế; ngày thực nhận khác thời điểm sửa."}
             </p>
-          )}
-          <div className="form-actions">
-            <button
-              className="primary"
-              disabled={busy || !(canWrite || (uncertain && canReplay))}
-            >
-              {busy
-                ? "Đang lưu…"
-                : uncertain
-                  ? "Thử lại sửa/hủy"
-                  : mode === "cancel"
-                    ? "Xác nhận hủy khoản nhận tiền"
-                    : "Lưu sửa khoản nhận tiền"}
-            </button>
-            <button
-              type="button"
-              disabled={busy || uncertain}
-              onClick={() => {
-                setMode(null);
-                setError("");
-              }}
-            >
-              Đóng
-            </button>
-          </div>
-        </form>
+            {mode === "replace" && (
+              <>
+                <label className="field">
+                  Số tiền thay thế (đồng)
+                  <input
+                    inputMode="numeric"
+                    maxLength={18}
+                    value={amount}
+                    disabled={busy || uncertain}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  Ngày thực nhận thay thế
+                  <input
+                    type="date"
+                    value={date}
+                    disabled={busy || uncertain}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  Ghi chú thay thế
+                  <textarea
+                    maxLength={1000}
+                    value={note}
+                    disabled={busy || uncertain}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
+            <label className="field">
+              Lý do sửa/hủy
+              <textarea
+                maxLength={1000}
+                value={reason}
+                disabled={busy || uncertain}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </label>
+            {error && (
+              <p role="alert" className="error">
+                {error}
+              </p>
+            )}
+            <div className="form-actions">
+              <button
+                className="primary"
+                disabled={busy || !(canWrite || (uncertain && canReplay))}
+              >
+                {busy
+                  ? "Đang lưu…"
+                  : uncertain
+                    ? "Thử lại sửa/hủy"
+                    : mode === "cancel"
+                      ? "Xác nhận hủy khoản nhận tiền"
+                      : "Lưu sửa khoản nhận tiền"}
+              </button>
+              <button
+                type="button"
+                disabled={busy || uncertain}
+                onClick={() => {
+                  setMode(null);
+                  setError("");
+                }}
+              >
+                Đóng
+              </button>
+            </div>
+          </form>
+        </Popup>
       )}
     </>
   );
