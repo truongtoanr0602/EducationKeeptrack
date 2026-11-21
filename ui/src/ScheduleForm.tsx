@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { type WeeklySchedule } from "./session-api";
@@ -11,6 +11,7 @@ export function ScheduleForm({
   canWrite,
   onSaved,
   onCancel,
+  onLockChange,
   onDenied,
 }: {
   classId: string;
@@ -18,6 +19,7 @@ export function ScheduleForm({
   canWrite: boolean;
   onSaved: () => void;
   onCancel: () => void;
+  onLockChange?: (locked: boolean) => void;
   onDenied: (error: ApiError) => void;
 }) {
   const [slots, setSlots] = useState<Slot[]>(() =>
@@ -37,6 +39,10 @@ export function ScheduleForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    onLockChange?.(busy);
+    return () => onLockChange?.(false);
+  }, [busy, onLockChange]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

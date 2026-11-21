@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:5173",
     trace: "off",
+    // Popups animate in; tests measure positions, so they run with reduced motion.
+    reducedMotion: "reduce",
     ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === "true",
   },
   webServer: process.env.E2E_BASE_URL

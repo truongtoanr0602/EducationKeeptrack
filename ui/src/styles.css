@@ -1,0 +1,48 @@
+@import url("https://fonts.googleapis.com/css2?family=Literata:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap");
+/* Cascade order: the existing hand-written CSS (legacy) sits below Tailwind, so utility classes on the new
+   popup components win over bare element rules such as "button" or "input". Tailwind's preflight reset is
+   not imported: it would restyle every screen that has not been converted yet. */
+@layer legacy, theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./style.css" layer(legacy);
+@import "./shell.css" layer(legacy);
+@import "./account.css" layer(legacy);
+@import "./density.css" layer(legacy);
+@import "./theme.css" layer(legacy);
+
+@layer components {
+  .popup-overlay[data-state="open"] {
+    animation: popup-fade 150ms ease-out;
+  }
+  .popup-center[data-state="open"] {
+    animation: popup-pop 180ms ease-out;
+  }
+  .popup-side[data-state="open"] {
+    animation: popup-slide 200ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .popup-overlay,
+    .popup-center,
+    .popup-side {
+      animation: none !important;
+    }
+  }
+  @keyframes popup-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes popup-pop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.97);
+    }
+  }
+  @keyframes popup-slide {
+    from {
+      transform: translateX(2rem);
+      opacity: 0;
+    }
+  }
+}

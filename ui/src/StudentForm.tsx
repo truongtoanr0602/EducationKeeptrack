@@ -9,6 +9,7 @@ export function StudentForm({
   onSaved,
   onCancel,
   onDenied,
+  onLockChange,
 }: {
   student?: Student;
   classId: string;
@@ -16,6 +17,8 @@ export function StudentForm({
   onSaved: () => void;
   onCancel: () => void;
   onDenied: (error: ApiError) => void;
+  // A new profile exists but its enrolment is not saved yet: a popup around the form must not be dismissed.
+  onLockChange?: (locked: boolean) => void;
 }) {
   const [draft, setDraft] = useState<StudentDraft>({
     name: student?.name ?? "",
@@ -28,6 +31,11 @@ export function StudentForm({
   useEffect(() => {
     if (student) setSavedProfile(student);
   }, [student]);
+  const pendingEnrolment = !student && !!savedProfile;
+  useEffect(() => {
+    onLockChange?.(pendingEnrolment);
+    return () => onLockChange?.(false);
+  }, [pendingEnrolment, onLockChange]);
   const [startDate, setStartDate] = useState(today);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

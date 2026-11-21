@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import {
   statusNames,
@@ -15,6 +15,7 @@ export function EnrollmentForm({
   canWrite,
   onSaved,
   onCancel,
+  onLockChange,
   onDenied,
 }: {
   item?: Enrollment;
@@ -23,6 +24,7 @@ export function EnrollmentForm({
   canWrite: boolean;
   onSaved: () => void;
   onCancel: () => void;
+  onLockChange?: (locked: boolean) => void;
   onDenied: (error: ApiError) => void;
 }) {
   const [studentId, setStudentId] = useState("");
@@ -32,6 +34,10 @@ export function EnrollmentForm({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    onLockChange?.(busy);
+    return () => onLockChange?.(false);
+  }, [busy, onLockChange]);
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!date || (!item && !studentId)) {

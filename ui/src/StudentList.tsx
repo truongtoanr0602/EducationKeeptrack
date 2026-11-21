@@ -21,9 +21,9 @@ export function StudentList() {
     );
   }, [students, query]);
   return (
-    <section aria-label="Tất cả học sinh">
+    <section id="all-students" aria-label="Tất cả học sinh">
       <h2 className="report-sub">Tất cả học sinh</h2>
-      <label className="field">
+      <label className="field list-search">
         Tìm học sinh
         <input
           type="search"
@@ -32,6 +32,11 @@ export function StudentList() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>
+      {students && (
+        <p className="muted">
+          {shown.length}/{students.length} học sinh
+        </p>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}
@@ -39,7 +44,7 @@ export function StudentList() {
       )}
       {!students && !error && <p role="status">Đang tải…</p>}
       {students && shown.length === 0 && <p>Không có học sinh phù hợp.</p>}
-      <ul className="cross-class" aria-label="Danh sách học sinh">
+      <ul className="cross-class student-grid" aria-label="Danh sách học sinh">
         {shown.map((s) => (
           <li key={s.id}>
             <a

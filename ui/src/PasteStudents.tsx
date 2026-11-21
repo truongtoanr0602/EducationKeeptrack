@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { today, type Student } from "./roster-api";
 import {
@@ -46,6 +46,7 @@ export function PasteStudents({
   onChanged,
   onClose,
   onDenied,
+  onLockChange,
 }: {
   classId: string;
   students: Student[];
@@ -55,12 +56,19 @@ export function PasteStudents({
   onChanged: () => void;
   onClose: () => void;
   onDenied: (error: ApiError) => void;
+  /** True while saving or stopped part-way: closing then would lose track of the one student in doubt. */
+  onLockChange?: (locked: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [startDate, setStartDate] = useState(today);
   const [committed, setCommitted] = useState<ImportRow[]>([]);
   const [stop, setStop] = useState<Stop | null>(null);
   const [busy, setBusy] = useState(false);
+  const locked = busy || stop !== null;
+  useEffect(() => {
+    onLockChange?.(locked);
+    return () => onLockChange?.(false);
+  }, [locked, onLockChange]);
   const nextId = useRef(1);
   // Profiles that existed before the first save: a retry never mistakes one of them for a new profile.
   const baseline = useRef<Set<string> | null>(null);

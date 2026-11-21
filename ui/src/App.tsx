@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { api, ApiError, type Me, type TeacherClass } from "./api";
+import { NavIcon } from "./ui/icons";
 import type { CreateClassDraft } from "./CreateClass";
 import { Login } from "./Login";
 import { Today } from "./Today";
@@ -415,7 +416,7 @@ export function App() {
               href={href({ name: tab.name })}
               aria-current={activeTab === tab.name ? "page" : undefined}
             >
-              <span aria-hidden="true">{tab.icon}</span> {tab.label}
+              <NavIcon name={tab.name} /> {tab.label}
             </a>
           ))}
         </nav>
@@ -591,7 +592,7 @@ export function App() {
             href={href({ name: tab.name })}
             aria-current={activeTab === tab.name ? "page" : undefined}
           >
-            <span aria-hidden="true">{tab.icon}</span>
+            <NavIcon name={tab.name} />
             <span>{tab.short}</span>
           </a>
         ))}
@@ -660,7 +661,7 @@ function SectionNav({
                 href={classHref(route.classId, section.id)}
                 aria-current={route.section === section.id ? "page" : undefined}
               >
-                <span aria-hidden="true">{section.icon}</span> {section.label}
+                <NavIcon name={section.id} /> {section.label}
               </a>
             </li>
           ))}
@@ -678,25 +679,63 @@ function ClassesScreen({
   classes: TeacherClass[];
   onCreate: () => void;
 }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLocaleLowerCase("vi");
+  const shown = classes.filter(
+    (item) =>
+      !q ||
+      item.name.toLocaleLowerCase("vi").includes(q) ||
+      item.subject.toLocaleLowerCase("vi").includes(q),
+  );
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading sticky-heading">
         <div>
           <span className="eyebrow">KHÔNG GIAN GIẢNG DẠY</span>
           <h1>Lớp học của tôi</h1>
           <p>Quản lý những lớp học của bạn.</p>
         </div>
-        <button
-          className="primary"
-          disabled={!me.access.canWrite}
-          onClick={onCreate}
-        >
-          <span aria-hidden="true">＋ </span>Tạo lớp mới
-        </button>
+        <div className="roster-actions">
+          {me.access.canRead && classes.length > 0 && (
+            <button
+              onClick={() =>
+                document
+                  .getElementById("all-students")
+                  ?.scrollIntoView({ block: "start" })
+              }
+            >
+              Tất cả học sinh
+            </button>
+          )}
+          <button
+            className="primary"
+            disabled={!me.access.canWrite}
+            onClick={onCreate}
+          >
+            <span aria-hidden="true">＋ </span>Tạo lớp mới
+          </button>
+        </div>
       </div>
+      {classes.length > 6 && (
+        <div className="list-search">
+          <input
+            type="search"
+            aria-label="Tìm lớp"
+            value={query}
+            placeholder="Tìm theo tên lớp hoặc môn"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <span className="muted">
+            {shown.length}/{classes.length} lớp
+          </span>
+        </div>
+      )}
       {classes.length ? (
-        <section className="class-grid" aria-label="Danh sách lớp">
-          {classes.map((item) => (
+        <section
+          className="class-grid compact-cards"
+          aria-label="Danh sách lớp"
+        >
+          {shown.map((item) => (
             <article key={item.id} className="class-card">
               <span className="subject">{item.subject}</span>
               <h2>{item.name}</h2>
@@ -722,12 +761,17 @@ function ClassesScreen({
                 <a className="button-link" href={classHref(item.id, "tuition")}>
                   Học phí
                 </a>
-                <a
-                  className="button-link"
-                  href={classHref(item.id, "personalization")}
-                >
-                  Cá nhân hoá
+                <a className="button-link" href={classHref(item.id, "program")}>
+                  Đề kiểm tra
                 </a>
+                {aiVisible(me.access) && (
+                  <a
+                    className="button-link"
+                    href={classHref(item.id, "personalization")}
+                  >
+                    Cá nhân hoá
+                  </a>
+                )}
               </div>
             </article>
           ))}
@@ -795,7 +839,16 @@ function ClassScreen({
           <Personalization
             classroom={classroom}
             me={me}
-            tab={route.tab ?? "curriculum"}
+            area="personalization"
+            tab={route.tab}
+          />
+        )}
+        {route.section === "program" && (
+          <Personalization
+            classroom={classroom}
+            me={me}
+            area="program"
+            tab={route.tab}
           />
         )}
         {route.section === "reports" && (

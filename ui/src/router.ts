@@ -8,9 +8,14 @@ export type Section =
   | "sessions"
   | "tuition"
   | "assessments"
+  | "program"
   | "personalization"
   | "reports";
-export type PersonalTab = "curriculum" | "materials" | "competency" | "plans";
+// "program" holds the curriculum, lessons, question bank, exams and the competency profile: none of it is AI, so it is
+// always shown. "personalization" holds materials and review plans and is hidden without AI access (ADR 0005).
+export type ProgramTab = "curriculum" | "lessons" | "questions" | "exams" | "competency";
+export type PersonalTab = "materials" | "plans";
+export type ClassTab = ProgramTab | PersonalTab;
 export type Route =
   // Cross-class top-level screens (ADR 0005): today's sessions, tuition owed, monthly reports.
   | { name: "today" }
@@ -18,7 +23,7 @@ export type Route =
   | { name: "reports" }
   | { name: "student"; studentId: string }
   | { name: "classes" }
-  | { name: "class"; classId: string; section: Section; tab?: PersonalTab }
+  | { name: "class"; classId: string; section: Section; tab?: ClassTab }
   // Teacher: service status, payment reconciliation, AI quota, login email.
   | { name: "account" }
   // First-run setup (UX8-5): 1 = class, 2 = receiving account, 3 = students.
@@ -32,13 +37,19 @@ export const sections: { id: Section; label: string; icon: string }[] = [
   { id: "sessions", label: "Lịch & điểm danh", icon: "▦" },
   { id: "tuition", label: "Học phí & thu tiền", icon: "₫" },
   { id: "assessments", label: "Đánh giá", icon: "✎" },
+  { id: "program", label: "Chương trình & kiểm tra", icon: "☷" },
   { id: "personalization", label: "Cá nhân hoá", icon: "✦" },
   { id: "reports", label: "Báo cáo tháng", icon: "▤" },
 ];
-export const personalTabs: { id: PersonalTab; label: string }[] = [
+export const programTabs: { id: ProgramTab; label: string }[] = [
+  { id: "exams", label: "Đề kiểm tra" },
+  { id: "questions", label: "Ngân hàng câu hỏi" },
+  { id: "lessons", label: "Buổi chương trình" },
   { id: "curriculum", label: "Chương trình lớp" },
-  { id: "materials", label: "Học liệu" },
   { id: "competency", label: "Hồ sơ năng lực" },
+];
+export const personalTabs: { id: PersonalTab; label: string }[] = [
+  { id: "materials", label: "Học liệu" },
   { id: "plans", label: "Kế hoạch ôn tập" },
 ];
 
@@ -70,14 +81,20 @@ export function parse(hash: string): Route {
   if (first !== "classes" || !classId || !guid.test(classId))
     return { name: "today" };
   const known = sections.find((x) => x.id === section)?.id ?? "students";
+  // Links from before the split (#/classes/<id>/personalization/curriculum…) open the same tab in its new section.
+  const moved = programTabs.find((x) => x.id === tab)?.id;
+  if (known === "personalization" && moved)
+    return { name: "class", classId, section: "program", tab: moved };
   return {
     name: "class",
     classId,
     section: known,
     tab:
       known === "personalization"
-        ? (personalTabs.find((x) => x.id === tab)?.id ?? "curriculum")
-        : undefined,
+        ? (personalTabs.find((x) => x.id === tab)?.id ?? "materials")
+        : known === "program"
+          ? moved
+          : undefined,
   };
 }
 
@@ -100,7 +117,7 @@ export function href(route: Route): string {
 export function classHref(
   classId: string,
   section: Section,
-  tab?: PersonalTab,
+  tab?: ClassTab,
 ) {
   return href({ name: "class", classId, section, tab });
 }

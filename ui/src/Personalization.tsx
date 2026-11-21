@@ -3,7 +3,10 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { useAccess } from "./access";
 import { Login } from "./Login";
 import { ReviewPlans } from "./ReviewPlans";
-import { classHref, personalTabs, type PersonalTab } from "./router";
+import { LessonsTab } from "./Lessons";
+import { QuestionBankTab } from "./QuestionBank";
+import { ExamsTab } from "./Exams";
+import { classHref, personalTabs, programTabs, type ClassTab } from "./router";
 import {
   competencyStates,
   difficulties,
@@ -24,7 +27,9 @@ type Shared = {
   onCurriculum: (value: Curriculum) => void;
 };
 
-export function Personalization({ classroom, me, tab }: { classroom: TeacherClass; me: Me; tab: PersonalTab }) {
+// One frame for two class sections: "program" (curriculum, lessons, question bank, exams, competency; always shown)
+// and "personalization" (materials and review plans; hidden without AI access, ADR 0005).
+export function Personalization({ classroom, me, area, tab: requested }: { classroom: TeacherClass; me: Me; area: "program" | "personalization"; tab?: ClassTab }) {
   const { access, expired, denied, relogin, canWrite } = useAccess(me);
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [error, setError] = useState("");
@@ -43,16 +48,22 @@ export function Personalization({ classroom, me, tab }: { classroom: TeacherClas
   useEffect(() => {
     void reload();
   }, [reload]);
+  const program = area === "program";
+  const tabs: { id: ClassTab; label: string }[] = program ? programTabs : personalTabs;
+  // Without a tab in the link: exams once the class has a curriculum, otherwise the lessons tab to import one.
+  const tab: ClassTab = requested ?? (program ? (curriculum && !curriculum.configured ? "lessons" : "exams") : "materials");
   return (
-    <section className="panel personalization" aria-label="Cá nhân hoá học tập">
+    <section className="panel personalization" aria-label={program ? "Chương trình và kiểm tra" : "Cá nhân hoá học tập"}>
       <p className="lead">
-        Theo dõi kỹ năng của từng học sinh bằng kết quả đã xác nhận, rồi lập kế hoạch ôn tập tuần do giáo viên duyệt.
+        {program
+          ? "Chương trình theo buổi, ngân hàng câu hỏi và đề kiểm tra online; kết quả đã xác nhận cho biết từng em mạnh, yếu ở kỹ năng nào."
+          : "Học liệu theo kỹ năng và kế hoạch ôn tập tuần do giáo viên duyệt."}
       </p>
-      <nav aria-label="Mục cá nhân hoá">
+      <nav aria-label={program ? "Mục chương trình và kiểm tra" : "Mục cá nhân hoá"}>
         <ul className="tabs">
-          {personalTabs.map((item) => (
+          {tabs.map((item) => (
             <li key={item.id}>
-              <a href={classHref(classroom.id, "personalization", item.id)} aria-current={tab === item.id ? "page" : undefined}>
+              <a href={classHref(classroom.id, area, item.id)} aria-current={tab === item.id ? "page" : undefined}>
                 {item.label}
               </a>
             </li>
@@ -74,14 +85,21 @@ export function Personalization({ classroom, me, tab }: { classroom: TeacherClas
           {tab === "curriculum" && (
             <CurriculumTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} reload={reload} onCurriculum={setCurriculum} />
           )}
-          {tab !== "curriculum" && !curriculum.configured && (
+          {tab === "lessons" && (
+            <LessonsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} onImported={() => void reload()} />
+          )}
+          {tab !== "curriculum" && tab !== "lessons" && !curriculum.configured && (
             <div className="empty">
               <h2>Chưa có chương trình lớp</h2>
-              <p>Cấu hình bộ sách, quy tắc mức đạt và kỹ năng trước khi dùng mục này.</p>
-              <a className="button-link primary" href={classHref(classroom.id, "personalization", "curriculum")}>
+              <p>Cấu hình bộ sách, quy tắc mức đạt và kỹ năng trước khi dùng mục này, hoặc tải file Excel mẫu ở mục Buổi chương trình.</p>
+              <a className="button-link primary" href={classHref(classroom.id, "program", "lessons")}>
                 Cấu hình chương trình lớp
               </a>
             </div>
+          )}
+          {tab === "questions" && curriculum.configured && <QuestionBankTab classroom={classroom} canWrite={canWrite} denied={denied} />}
+          {tab === "exams" && curriculum.configured && (
+            <ExamsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} />
           )}
           {tab === "materials" && curriculum.configured && (
             <MaterialsTab classroom={classroom} curriculum={curriculum} canWrite={canWrite} denied={denied} reload={reload} onCurriculum={setCurriculum} />

@@ -11,6 +11,7 @@
 - **Báo cáo** mở ra thẻ số liệu tháng (số buổi, chuyên cần, tổng thu, còn nợ). Xuất PDF và soạn bản nháp là hành động phụ.
 - **Đánh giá** nằm trong trang chi tiết học sinh. Phần liên quan đến AI ẩn cùng AI.
 - **AI ẩn hẳn khi không có Quyền AI**, không để ô khoá hay quảng cáo. Code AI được lazy-load.
+  Bổ sung 20/11/2026 (#77): chương trình theo buổi, ngân hàng câu hỏi, đề kiểm tra và hồ sơ năng lực không phải AI, nên nằm ở mục lớp riêng **"Chương trình & kiểm tra"** và luôn hiện. Mục "Cá nhân hoá" (học liệu, kế hoạch ôn tập) vẫn ẩn khi không có Quyền AI. Link cũ `…/personalization/<tab của chương trình>` tự chuyển sang mục mới.
 - **Admin ngoài phạm vi**: giữ workspace hiện có, chỉ đảm bảo không hỏng khi đổi shell.
 
 ## Hiệu năng

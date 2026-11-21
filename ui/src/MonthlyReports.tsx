@@ -6,6 +6,7 @@ import { ReportDraftForm } from "./ReportDraftForm";
 import { ReportPreview } from "./ReportPreview";
 import { ReportExports } from "./ReportExports";
 import { classHref } from "./router";
+import { Popup } from "./ui/popup";
 
 export function MonthlyReports({ classId, students, canWrite, onDenied }: { classId: string; students: Student[]; canWrite: boolean; onDenied: (error: ApiError) => void }) {
   const query = new URLSearchParams(location.search);
@@ -20,7 +21,7 @@ export function MonthlyReports({ classId, students, canWrite, onDenied }: { clas
   }, [classId, selected, month]);
   return <section className="monthly-reports" aria-label="Báo cáo PDF tháng">
     <h3>Báo cáo PDF tháng</h3><p>Lưu nhận xét, kiểm tra nguồn và xuất báo cáo riêng cho từng học sinh.</p>
-    <div className="report-scope">
+    <div className="report-scope sticky-scope">
       <label>Học sinh báo cáo<select value={selected} onChange={e => setStudentId(e.target.value)}>{students.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
       <label>Tháng báo cáo<input type="month" value={month} min="0001-01" max="9998-12" onChange={e => { if (e.target.value) setMonth(e.target.value); }} /></label>
     </div>
@@ -37,6 +38,8 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [uncertain, setUncertain] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const command = useRef<ExportCommand | null>(null);
   const inFlight = useRef(false);
   const dirty = !!draft && JSON.stringify(draft) !== saved;
@@ -57,7 +60,12 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
   async function save() {
     if (!draft || !canWrite) return;
     const result = await api<ReportDraft>(path + "/draft", "PUT", draft);
-    setDraft(result); setSaved(JSON.stringify(result)); setPreview(null); setNotice("Đã lưu bản nháp báo cáo.");
+    setDraft(result); setSaved(JSON.stringify(result)); setPreview(null); setNotice("Đã lưu bản nháp báo cáo."); setDraftOpen(false);
+  }
+  async function showPreview() {
+    if (dirty || uncertain) return;
+    await capture();
+    setPreviewOpen(true);
   }
   async function capture() {
     if (dirty || uncertain) return;
@@ -68,7 +76,7 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
     command.current ??= { previewId: preview.id, draftVersion: preview.draftVersion, idempotencyKey: crypto.randomUUID() };
     try {
       const item = await api<MonthlyExport>(path + "/exports", "POST", command.current);
-      command.current = null; setUncertain(false); setExports(items => [item, ...items.filter(x => x.id !== item.id)]); setNotice("PDF đã lưu trong kho riêng tư.");
+      command.current = null; setUncertain(false); setExports(items => [item, ...items.filter(x => x.id !== item.id)]); setNotice("PDF đã lưu trong kho riêng tư."); setPreviewOpen(false);
       // The list carries which saved PDFs are now outdated; the export response does not.
       try { setExports(await api<MonthlyExport[]>(path + "/exports")); } catch { /* the saved export is already shown */ }
     } catch (e) {
@@ -86,15 +94,33 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
   return <>
     {!canWrite && <p className="notice">Bản đã lưu vẫn được xem trước, xuất và tải. Nội dung báo cáo hiện chỉ đọc.</p>}
     {error && <p role="alert" className="error">{error}</p>}{notice && <p role="status">{notice}</p>}
-    <ReportDraftForm draft={draft} path={path} disabled={!canWrite || busy || uncertain} dirty={dirty} onChange={value => { setDraft(value); setPreview(null); }} onSave={() => void act(save)} />
+    <section className="report-summary" aria-label="Nội dung báo cáo đã lưu">
+      <p><strong>Nhận xét:</strong> {draft.comment.trim() ? excerpt(draft.comment) : "Chưa có nhận xét."}</p>
+      <p><strong>Lộ trình:</strong> {draft.roadmap.trim() ? excerpt(draft.roadmap) : "Chưa có lộ trình."}</p>
+    </section>
     {dirty && <p className="notice">Lưu nội dung trước khi xem trước hoặc xuất PDF.</p>}
     {uncertain && <p className="notice">Lệnh xuất chưa rõ kết quả. Thử lại cùng lệnh để tránh xuất trùng.</p>}
-    <div className="roster-actions">
-      <button disabled={busy || dirty || uncertain} onClick={() => void act(capture)}>Xem trước báo cáo</button>
+    <div className="roster-actions sticky-actions">
+      <button onClick={() => setDraftOpen(true)}>Soạn nội dung báo cáo</button>
+      <button disabled={busy || dirty || uncertain} onClick={() => void act(showPreview)}>Xem trước báo cáo</button>
       <button disabled={busy || dirty || !preview} onClick={() => void act(exportPdf)}>{uncertain ? "Thử lại lệnh xuất" : "Xuất PDF"}</button>
       <a className="button-link" href={classHref(classId, "tuition")}>Đối chiếu học phí</a>
     </div>
-    {preview && <ReportPreview preview={preview} path={path} />}
-    <ReportExports items={exports} busy={busy} canUpdate={!dirty && !uncertain} onDownload={id => void act(() => download(id))} onRecheck={() => void act(recheck)} onUpdate={() => void act(capture)} />
+    {draftOpen && <Popup open variant="side" title="Nội dung báo cáo" locked={busy} onOpenChange={next => { if (!next) setDraftOpen(false); }}>
+      {error && <p role="alert" className="error">{error}</p>}
+      <ReportDraftForm draft={draft} path={path} disabled={!canWrite || busy || uncertain} dirty={dirty} onChange={value => { setDraft(value); setPreview(null); }} onSave={() => void act(save)} />
+    </Popup>}
+    {previewOpen && preview && <Popup open wide title="Xem trước báo cáo" locked={busy || uncertain} onOpenChange={next => { if (!next) setPreviewOpen(false); }}
+      footer={<button className="primary" disabled={busy || dirty || !preview} onClick={() => void act(exportPdf)}>{uncertain ? "Thử lại lệnh xuất" : "Xuất PDF"}</button>}>
+      {error && <p role="alert" className="error">{error}</p>}
+      {uncertain && <p className="notice">Lệnh xuất chưa rõ kết quả. Thử lại cùng lệnh để tránh xuất trùng.</p>}
+      <ReportPreview preview={preview} path={path} />
+    </Popup>}
+    <ReportExports items={exports} busy={busy} canUpdate={!dirty && !uncertain} onDownload={id => void act(() => download(id))} onRecheck={() => void act(recheck)} onUpdate={() => void act(showPreview)} />
   </>;
+}
+
+function excerpt(text: string) {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > 220 ? flat.slice(0, 220) + "…" : flat;
 }

@@ -99,10 +99,8 @@ test.describe("paste a list of students", () => {
     });
     const roster = await enrolled(page, id);
     expect(roster.map((r) => r.student.name).sort()).toEqual([...names].sort());
-    // The roster behind the panel was refreshed.
-    await expect(
-      page.getByRole("heading", { name: names[0], exact: true }),
-    ).toBeVisible();
+    // The roster behind the panel was refreshed (hidden from role queries while the panel is open).
+    await expect(page.locator("h3", { hasText: names[0] })).toBeVisible();
     await panel.getByRole("button", { name: "Đóng" }).click();
     await expect(panel).toHaveCount(0);
   });

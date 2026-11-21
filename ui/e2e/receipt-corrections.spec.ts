@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openReceiptForm } from "./helpers";
 
 test("receipt corrections preserve history and restore balances after reload", async ({
   page,
@@ -61,8 +62,9 @@ test("receipt corrections preserve history and restore balances after reload", a
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
-  await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
-  await card
+  const receipt = await openReceiptForm(card);
+  await receipt.getByLabel("Số tiền nhận (đồng)").fill("500000");
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
   await expect(
@@ -75,9 +77,10 @@ test("receipt corrections preserve history and restore balances after reload", a
   await history
     .getByRole("button", { name: "Sửa khoản nhận tiền", exact: true })
     .click();
-  const form = history.getByRole("form", {
-    name: "Sửa hoặc hủy khoản nhận tiền",
-  });
+  // The correction form opens in a dialog.
+  const form = page
+    .getByRole("dialog")
+    .getByRole("form", { name: "Sửa hoặc hủy khoản nhận tiền" });
   await form.getByLabel("Số tiền thay thế (đồng)").fill("200000");
   await form.getByLabel("Ngày thực nhận thay thế").fill("2026-10-08");
   await form
@@ -124,9 +127,9 @@ test("receipt corrections preserve history and restore balances after reload", a
   await history
     .getByRole("button", { name: "Hủy khoản nhận tiền", exact: true })
     .click();
-  const cancel = history.getByRole("form", {
-    name: "Sửa hoặc hủy khoản nhận tiền",
-  });
+  const cancel = page
+    .getByRole("dialog")
+    .getByRole("form", { name: "Sửa hoặc hủy khoản nhận tiền" });
   await cancel.getByLabel("Lý do sửa/hủy").fill("Khoản nhận bị trùng");
   await cancel
     .getByRole("button", { name: "Xác nhận hủy khoản nhận tiền", exact: true })

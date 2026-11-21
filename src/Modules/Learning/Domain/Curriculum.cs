@@ -46,6 +46,8 @@ public sealed class ClassCurriculum
     public int Version { get; private set; } = 1;
     public DateTimeOffset UpdatedAt { get; private set; }
     public List<Skill> Skills { get; private set; } = [];
+    public List<CurriculumLesson> Lessons { get; private set; } = [];
+    public const int MaxLessons = 200;
     private ClassCurriculum() { }
     public ClassCurriculum(string owner, Guid classId, CurriculumInput input, DateTimeOffset now)
     {
@@ -116,6 +118,105 @@ public sealed class ClassCurriculum
         Bump(now);
         foreach (var action in events) added.Add(new SkillEvent(skill, Version, action, actor, now, null));
         return CurriculumOutcome.Ok;
+    }
+
+    public CurriculumOutcome AddLesson(LessonInput input, DateTimeOffset now)
+    {
+        if (input.Version != Version) return CurriculumOutcome.Conflict;
+        var errors = ValidateLesson(input, null);
+        if (errors.Count > 0) return new(400, errors);
+        if (Lessons.Count >= MaxLessons) return CurriculumOutcome.Invalid("lesson", $"Một chương trình có tối đa {MaxLessons} buổi.");
+        var lesson = new CurriculumLesson(this, input, now);
+        Lessons.Add(lesson);
+        added.Add(lesson);
+        Bump(now);
+        return CurriculumOutcome.Ok;
+    }
+
+    public CurriculumOutcome EditLesson(Guid id, LessonInput input, DateTimeOffset now)
+    {
+        var lesson = Lessons.SingleOrDefault(x => x.Id == id);
+        if (lesson is null) return CurriculumOutcome.NotFound;
+        if (input.Version != Version) return CurriculumOutcome.Conflict;
+        var errors = ValidateLesson(input, id);
+        if (errors.Count > 0) return new(400, errors);
+        if (lesson.Apply(input, now)) Bump(now);
+        return CurriculumOutcome.Ok;
+    }
+
+    private Dictionary<string, string[]> ValidateLesson(LessonInput input, Guid? except)
+    {
+        var errors = CurriculumLesson.Validate(input);
+        if ((input.SkillIds ?? []).Any(id => Skills.All(s => s.Id != id))) errors["skillIds"] = ["Kỹ năng không thuộc chương trình của lớp."];
+        if (!input.Archived && Lessons.Any(x => !x.Archived && x.Id != except && x.No == input.No)) errors["no"] = [$"Buổi {input.No} đã có trong chương trình."];
+        return errors;
+    }
+
+    /// <summary>
+    /// Upserts skills by code (an archived skill frees its code, so a new one is created). Skills the teacher
+    /// uploads are approved: uploading is the teacher's own decision. Taught, archive and status stay as they are.
+    /// </summary>
+    public (int Added, int Updated, List<ImportIssue> Issues) ImportSkills(IReadOnlyList<SkillImportRow> rows, string actor, DateTimeOffset now)
+    {
+        var issues = new List<ImportIssue>();
+        int addedCount = 0, updated = 0;
+        foreach (var row in rows)
+        {
+            var existing = Skills.FirstOrDefault(x => !x.Archived && string.Equals(x.Code, row.Code, StringComparison.OrdinalIgnoreCase));
+            var input = new SkillInput(row.Code, row.Name, row.Strand, existing?.IsTaught ?? false, false, Version, row.Criteria,
+                existing?.Source ?? "Import Excel", existing?.Status ?? SkillStatus.Approved);
+            var errors = ValidateSkill(input);
+            if (errors.Count > 0) { issues.Add(new(ImportSheets.Skills, row.Row, "", string.Join(" ", errors.Values.SelectMany(x => x)))); continue; }
+            if (existing is null)
+            {
+                if (Skills.Count >= MaxSkills) { issues.Add(new(ImportSheets.Skills, row.Row, "", $"Một lớp có tối đa {MaxSkills} kỹ năng.")); continue; }
+                var skill = new Skill(this, input, now, Today(now));
+                Skills.Add(skill);
+                added.Add(skill);
+                added.Add(new SkillEvent(skill, Version + 1, "created", actor, now, "import"));
+                addedCount++;
+            }
+            else
+            {
+                var events = existing.Apply(input, Today(now), actor, now);
+                foreach (var action in events) added.Add(new SkillEvent(existing, Version + 1, action, actor, now, "import"));
+                if (events.Count > 0) updated++;
+            }
+        }
+        if (addedCount + updated > 0) Bump(now);
+        return (addedCount, updated, issues);
+    }
+
+    /// <summary>Upserts live lessons by number; skill codes must name live skills of this curriculum.</summary>
+    public (int Added, int Updated, List<ImportIssue> Issues) ImportLessons(IReadOnlyList<LessonImportRow> rows, DateTimeOffset now)
+    {
+        var issues = new List<ImportIssue>();
+        int addedCount = 0, updated = 0;
+        foreach (var row in rows)
+        {
+            var ids = new List<Guid>();
+            foreach (var code in row.SkillCodes)
+            {
+                var skill = Skills.FirstOrDefault(x => !x.Archived && string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase));
+                if (skill is null) issues.Add(new(ImportSheets.Lessons, row.Row, "Mã kỹ năng", $"Không có kỹ năng mã \"{code}\" trong sheet Kỹ năng hoặc trong lớp."));
+                else ids.Add(skill.Id);
+            }
+            var existing = Lessons.FirstOrDefault(x => !x.Archived && x.No == row.No);
+            var input = new LessonInput(row.No, row.Topic, row.Title, row.Knowledge, row.Outcomes, row.SkillsText, row.Competencies, [.. ids], false, Version);
+            var errors = CurriculumLesson.Validate(input);
+            if (errors.Count > 0) { issues.Add(new(ImportSheets.Lessons, row.Row, "", string.Join(" ", errors.Values.SelectMany(x => x)))); continue; }
+            if (existing is null)
+            {
+                if (Lessons.Count >= MaxLessons) { issues.Add(new(ImportSheets.Lessons, row.Row, "", $"Một chương trình có tối đa {MaxLessons} buổi.")); continue; }
+                var lesson = new CurriculumLesson(this, input, now);
+                Lessons.Add(lesson);
+                added.Add(lesson);
+                addedCount++;
+            }
+            else if (existing.Apply(input, now)) updated++;
+        }
+        if (addedCount + updated > 0) Bump(now);
+        return (addedCount, updated, issues);
     }
 
     /// <summary>Skills that count for results, profiles and plans: in use and approved.</summary>

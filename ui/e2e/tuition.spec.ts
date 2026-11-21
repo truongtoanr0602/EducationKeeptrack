@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { classIdOf, openSection } from "./helpers";
+import { classIdOf, openSection, openRateForm } from "./helpers";
 
 test("teacher sets effective tuition, reloads the monthly breakdown, and sees corrected attendance", async ({
   page,
@@ -32,8 +32,9 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
   ).toBeVisible();
   await openSection(page, "tuition");
   const tuition = page.getByRole("region", { name: "Học phí theo buổi" });
-  await tuition.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-01");
-  await tuition.getByLabel("Đơn giá mỗi buổi (đồng)").fill("150000");
+  const rate = await openRateForm(tuition);
+  await rate.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-01");
+  await rate.getByLabel("Đơn giá mỗi buổi (đồng)").fill("150000");
   await page.route("**/api/billing/classes/*/rates", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({
@@ -45,17 +46,13 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
         })
       : route.continue(),
   );
-  await tuition
-    .getByRole("button", { name: "Lưu đơn giá", exact: true })
-    .click();
-  await expect(tuition.getByRole("alert")).toContainText("Vui lòng thử lại");
-  await expect(tuition.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
+  await rate.getByRole("button", { name: "Lưu đơn giá", exact: true }).click();
+  await expect(rate.getByRole("alert")).toContainText("Vui lòng thử lại");
+  await expect(rate.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
     "150000",
   );
   await page.unroute("**/api/billing/classes/*/rates");
-  await tuition
-    .getByRole("button", { name: "Lưu đơn giá", exact: true })
-    .click();
+  await rate.getByRole("button", { name: "Lưu đơn giá", exact: true }).click();
   await expect(
     tuition.getByText("Đã lưu đơn giá.", { exact: true }),
   ).toBeVisible();
@@ -140,33 +137,31 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
   await expect(
     tuition.getByRole("status", { name: "Tổng học phí" }),
   ).toContainText("1.050.000");
-  await tuition.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-20");
-  await tuition.getByLabel("Đơn giá mỗi buổi (đồng)").fill("250000");
+  const rate2 = await openRateForm(tuition);
+  await rate2.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-20");
+  await rate2.getByLabel("Đơn giá mỗi buổi (đồng)").fill("250000");
   await write(`/billing/classes/${classId}/rates`, {
     effectiveFrom: "2026-10-16",
     unitPriceVnd: "200000",
     version: 1,
   });
-  await tuition
-    .getByRole("button", { name: "Lưu đơn giá", exact: true })
-    .click();
-  await expect(tuition.getByRole("alert")).toContainText("đã thay đổi");
-  await tuition.getByRole("button", { name: "Tải lại bảng phí" }).click();
-  await expect(tuition.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
+  await rate2.getByRole("button", { name: "Lưu đơn giá", exact: true }).click();
+  await expect(rate2.getByRole("alert")).toContainText("đã thay đổi");
+  await rate2.getByRole("button", { name: "Tải lại bảng phí" }).click();
+  await expect(rate2.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
     "250000",
   );
   await expect(
-    tuition.getByText("Đã cập nhật bảng phí.", { exact: true }),
+    page.getByText("Đã cập nhật bảng phí.", { exact: true }),
   ).toBeVisible();
-  await tuition
-    .getByRole("button", { name: "Lưu đơn giá", exact: true })
-    .click();
-  await expect(tuition.getByRole("alert")).toHaveCount(0);
+  await rate2.getByRole("button", { name: "Lưu đơn giá", exact: true }).click();
+  await expect(rate2.getByRole("alert")).toHaveCount(0);
   await expect(
     tuition.getByRole("list", { name: "Đơn giá đã lưu" }),
   ).toContainText("250.000");
-  await tuition.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-25");
-  await tuition.getByLabel("Đơn giá mỗi buổi (đồng)").fill("300000");
+  const rate3 = await openRateForm(tuition);
+  await rate3.getByLabel("Đơn giá áp dụng từ ngày").fill("2026-10-25");
+  await rate3.getByLabel("Đơn giá mỗi buổi (đồng)").fill("300000");
   await page.route("**/api/billing/classes/*/rates", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({
@@ -191,15 +186,13 @@ test("teacher sets effective tuition, reloads the monthly breakdown, and sees co
       }),
     }),
   );
-  await tuition
-    .getByRole("button", { name: "Lưu đơn giá", exact: true })
-    .click();
-  await expect(tuition.getByRole("alert")).toContainText("hết hạn");
-  await expect(tuition.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
+  await rate3.getByRole("button", { name: "Lưu đơn giá", exact: true }).click();
+  await expect(rate3.getByRole("alert")).toContainText("hết hạn");
+  await expect(rate3.getByLabel("Đơn giá mỗi buổi (đồng)")).toHaveValue(
     "300000",
   );
   await expect(
-    tuition.getByRole("button", { name: "Lưu đơn giá", exact: true }),
+    rate3.getByRole("button", { name: "Lưu đơn giá", exact: true }),
   ).toBeDisabled();
   expect(
     await page.evaluate(

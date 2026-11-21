@@ -52,7 +52,8 @@ public sealed class ReviewPlanService(
             return new(null, 400, new() { ["sessions"] = ["Tuần này lớp chưa có buổi học. Chọn ngày và số phút của buổi ôn trước khi nhờ AI."] });
 
         var results = (await competency.ConfirmedAsync(owner, classId, ct)).ToLookup(x => (x.StudentId, x.SkillId));
-        var skills = curriculum.GetEffectiveSkills().Where(x => x.IsTaught).ToDictionary(x => x.Id, x => new DraftSkill(x.Id, x.Code, x.Name));
+        var taughtSkills = await competency.TaughtSkillsAsync(owner, classId, curriculum, ct);
+        var skills = curriculum.GetEffectiveSkills().Where(x => taughtSkills.Contains(x.Id)).ToDictionary(x => x.Id, x => new DraftSkill(x.Id, x.Code, x.Name));
         List<Attempt> AttemptsOf(Guid student, Guid skill) => results[(student, skill)]
             .Where(x => x.Result.Status == SkillResultStatus.Assessed && x.Result.Correct is not null && x.Result.TaskCount > 0)
             .OrderBy(x => x.Result.Date).ThenBy(x => x.Result.AssessmentId).Select(x => new Attempt(x.Result.TaskCount, x.Result.Correct!.Value)).ToList();
@@ -182,7 +183,8 @@ public sealed class ReviewPlanService(
         if (start is null || end is null || week7 is null) return null;
         var students = start.Students.Concat(end.Students).GroupBy(x => x.Id).ToDictionary(x => x.Key, x => x.First().Name);
         var curriculum = await curricula.FindAsync(owner, classId, false, ct);
-        var taught = (curriculum?.GetEffectiveSkills() ?? []).Where(x => x.IsTaught).Select(x => x.Id).ToHashSet();
+        var taughtSkills = await competency.TaughtSkillsAsync(owner, classId, curriculum, ct);
+        var taught = (curriculum?.GetEffectiveSkills() ?? []).Where(x => taughtSkills.Contains(x.Id)).Select(x => x.Id).ToHashSet();
         var approved = (await materials.ListAsync(owner, classId, ct)).Where(x => x.Status == MaterialStatus.Approved).ToDictionary(x => x.Id, x => x.SkillId);
         var held = week7.Where(x => x.Status != "cancelled").ToDictionary(x => x.Id, x => x.Date);
         var profile = (await competency.ProfileAsync(owner, classId, ct)).Value ?? new CompetencyProfile(false, null, 0, []);
