@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { SetupCard } from "./SetupCard";
 import { api, ApiError, type Me } from "./api";
 import { useAccess } from "./access";
@@ -9,6 +9,7 @@ import {
   saveAttendance,
   sessionStatusNames,
 } from "./session-api";
+import { today as todayDate } from "./roster-api";
 import { useSwr } from "./swr";
 import {
   loadToday,
@@ -16,6 +17,8 @@ import {
   type TodaySession,
   type TodayView,
 } from "./today-api";
+
+const TodayCalendar = lazy(() => import("./TodayCalendar"));
 
 type Mark = { status: "present" | "absent"; excused: boolean };
 type Undo = { studentId: string; before: Attendance; version: number }[];
@@ -316,6 +319,8 @@ export function Today({ me }: { me: Me }) {
     if (failure) denied(failure);
   }, [failure, denied]);
   const current = view?.date;
+  const [refreshKey, setRefreshKey] = useState(0);
+  const now = todayDate();
   return (
     <>
       <div className="page-heading compact">
@@ -346,31 +351,50 @@ export function Today({ me }: { me: Me }) {
         </button>
       </div>
       <SetupCard me={me} />
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      {!view && !error && <p role="status">Đang tải…</p>}
-      {view && view.sessions.length === 0 && (
-        <section className="empty">
-          <h2>Không có buổi học nào</h2>
-          <p>Tạo lịch tuần trong chi tiết lớp để các buổi xuất hiện ở đây.</p>
-        </section>
-      )}
-      {view && view.sessions.length > 0 && (
-        <ul className="today-list" aria-label="Buổi học trong ngày">
-          {view.sessions.map((item) => (
-            <SessionCard
-              key={item.session.id}
-              item={item}
-              canWrite={canWrite}
-              onChanged={() => void refresh()}
-              onDenied={denied}
+      <div className="today-layout">
+        <div>
+          <Suspense fallback={null}>
+            <TodayCalendar
+              selected={current ?? date ?? now}
+              today={now}
+              refreshKey={refreshKey}
+              onSelect={(d) => setDate(d === now ? undefined : d)}
             />
-          ))}
-        </ul>
-      )}
+          </Suspense>
+        </div>
+        <aside aria-label="Buổi học của ngày đang chọn">
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          {!view && !error && <p role="status">Đang tải…</p>}
+          {view && view.sessions.length === 0 && (
+            <section className="empty">
+              <h2>Không có buổi học nào</h2>
+              <p>
+                Tạo lịch tuần trong chi tiết lớp để các buổi xuất hiện ở đây.
+              </p>
+            </section>
+          )}
+          {view && view.sessions.length > 0 && (
+            <ul className="today-list" aria-label="Buổi học trong ngày">
+              {view.sessions.map((item) => (
+                <SessionCard
+                  key={item.session.id}
+                  item={item}
+                  canWrite={canWrite}
+                  onChanged={() => {
+                    void refresh();
+                    setRefreshKey((k) => k + 1);
+                  }}
+                  onDenied={denied}
+                />
+              ))}
+            </ul>
+          )}
+        </aside>
+      </div>
     </>
   );
 }
