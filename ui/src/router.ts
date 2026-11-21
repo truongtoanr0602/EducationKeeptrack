@@ -4,16 +4,14 @@ import { useEffect, useState } from "react";
 // working behind the same-origin API without server-side routes. Per-screen state (month, selected
 // assessment, report scope…) stays in the query string, as before.
 export type Section =
-  | "students"
-  | "sessions"
-  | "tuition"
-  | "assessments"
-  | "program"
-  | "personalization"
-  | "reports";
+  "students" | "sessions" | "tuition" | "learning" | "reports";
+// "learning" (Học tập) holds three areas, each with its own tabs (ADR 0005, 22/11/2026): the assessments, the program
+// and the personalization. The old section names are still accepted by classHref and by old links.
+export type LearningArea = "assessments" | "program" | "personalization";
 // "program" holds the curriculum, lessons, question bank, exams and the competency profile: none of it is AI, so it is
 // always shown. "personalization" holds materials and review plans and is hidden without AI access (ADR 0005).
-export type ProgramTab = "curriculum" | "lessons" | "questions" | "exams" | "competency";
+export type ProgramTab =
+  "curriculum" | "lessons" | "questions" | "exams" | "competency";
 export type PersonalTab = "materials" | "plans";
 export type ClassTab = ProgramTab | PersonalTab;
 export type Route =
@@ -23,7 +21,14 @@ export type Route =
   | { name: "reports" }
   | { name: "student"; studentId: string }
   | { name: "classes" }
-  | { name: "class"; classId: string; section: Section; tab?: ClassTab }
+  | {
+      name: "class";
+      classId: string;
+      section: Section;
+      /** Only for section "learning": which area. */
+      area?: LearningArea;
+      tab?: ClassTab;
+    }
   // Teacher: service status, payment reconciliation, AI quota, login email.
   | { name: "account" }
   // First-run setup (UX8-5): 1 = class, 2 = receiving account, 3 = students.
@@ -34,12 +39,15 @@ export type Route =
 
 export const sections: { id: Section; label: string; icon: string }[] = [
   { id: "students", label: "Học sinh", icon: "◎" },
-  { id: "sessions", label: "Lịch & điểm danh", icon: "▦" },
-  { id: "tuition", label: "Học phí & thu tiền", icon: "₫" },
-  { id: "assessments", label: "Đánh giá", icon: "✎" },
-  { id: "program", label: "Chương trình & kiểm tra", icon: "☷" },
-  { id: "personalization", label: "Cá nhân hoá", icon: "✦" },
-  { id: "reports", label: "Báo cáo tháng", icon: "▤" },
+  { id: "sessions", label: "Lịch", icon: "▦" },
+  { id: "tuition", label: "Học phí", icon: "₫" },
+  { id: "learning", label: "Học tập", icon: "☷" },
+  { id: "reports", label: "Báo cáo", icon: "▤" },
+];
+export const learningAreas: { id: LearningArea; label: string }[] = [
+  { id: "assessments", label: "Đánh giá" },
+  { id: "program", label: "Chương trình & kiểm tra" },
+  { id: "personalization", label: "Cá nhân hoá" },
 ];
 export const programTabs: { id: ProgramTab; label: string }[] = [
   { id: "exams", label: "Đề kiểm tra" },
@@ -60,7 +68,9 @@ export function parse(hash: string): Route {
   // Links from before screen navigation used "#<classId>".
   if (guid.test(raw))
     return { name: "class", classId: raw, section: "students" };
-  const [first, classId, section, tab] = raw.replace(/^\//, "").split("/");
+  const [first, classId, section, tab, inner] = raw
+    .replace(/^\//, "")
+    .split("/");
   if (first === "account") return { name: "account" };
   if (first === "setup")
     return {
@@ -80,22 +90,40 @@ export function parse(hash: string): Route {
   if (first === "classes" && !classId) return { name: "classes" };
   if (first !== "classes" || !classId || !guid.test(classId))
     return { name: "today" };
-  const known = sections.find((x) => x.id === section)?.id ?? "students";
-  // Links from before the split (#/classes/<id>/personalization/curriculum…) open the same tab in its new section.
-  const moved = programTabs.find((x) => x.id === tab)?.id;
-  if (known === "personalization" && moved)
-    return { name: "class", classId, section: "program", tab: moved };
-  return {
-    name: "class",
-    classId,
-    section: known,
-    tab:
-      known === "personalization"
-        ? (personalTabs.find((x) => x.id === tab)?.id ?? "materials")
-        : known === "program"
-          ? moved
-          : undefined,
+  const learning = (area: LearningArea, tabId?: string): Route => {
+    // Links from before the split (#/classes/<id>/personalization/curriculum…) open the same tab in the program area.
+    const moved = programTabs.find((x) => x.id === tabId)?.id;
+    if (area === "personalization" && moved)
+      return {
+        name: "class",
+        classId,
+        section: "learning",
+        area: "program",
+        tab: moved,
+      };
+    return {
+      name: "class",
+      classId,
+      section: "learning",
+      area,
+      tab:
+        area === "personalization"
+          ? (personalTabs.find((x) => x.id === tabId)?.id ?? "materials")
+          : area === "program"
+            ? moved
+            : undefined,
+    };
   };
+  // Old section names (#/classes/<id>/assessments, /program/<tab>, /personalization/<tab>) move into "learning".
+  const legacy = learningAreas.find((x) => x.id === section)?.id;
+  if (legacy) return learning(legacy, tab);
+  if (section === "learning")
+    return learning(
+      learningAreas.find((x) => x.id === tab)?.id ?? "assessments",
+      inner,
+    );
+  const known = sections.find((x) => x.id === section)?.id ?? "students";
+  return { name: "class", classId, section: known };
 }
 
 export function href(route: Route): string {
@@ -111,15 +139,20 @@ export function href(route: Route): string {
     return route.teacherId
       ? `#/admin/teachers/${route.teacherId}`
       : "#/admin/teachers";
-  return `#/classes/${route.classId}/${route.section}${route.tab ? `/${route.tab}` : ""}`;
+  if (route.section === "learning")
+    return `#/classes/${route.classId}/learning/${route.area ?? "assessments"}${route.tab ? `/${route.tab}` : ""}`;
+  return `#/classes/${route.classId}/${route.section}`;
 }
 
 export function classHref(
   classId: string,
-  section: Section,
+  section: Section | LearningArea,
   tab?: ClassTab,
 ) {
-  return href({ name: "class", classId, section, tab });
+  const area = learningAreas.find((x) => x.id === section)?.id;
+  if (area)
+    return href({ name: "class", classId, section: "learning", area, tab });
+  return href({ name: "class", classId, section: section as Section });
 }
 
 export function navigate(route: Route) {
