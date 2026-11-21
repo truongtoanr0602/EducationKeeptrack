@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import "./calendar.css";
+import { BulkCreate } from "./BulkCreate";
 import {
   attention,
+  bulkPlan,
   classColor,
   dayLabel,
   ddmm,
@@ -36,12 +38,17 @@ export default function TodayCalendar({
   today,
   onSelect,
   refreshKey,
+  canWrite,
+  onCreated,
 }: {
   selected: string;
   today: string;
   onSelect: (date: string) => void;
   /** Changes whenever Today saved something, so the overview refetches. */
   refreshKey: number;
+  canWrite: boolean;
+  /** Sessions were created from the overview: refresh the day list. */
+  onCreated: () => void;
 }) {
   const [month, setMonth] = useState(false);
   const dates = month ? monthDays(selected) : weekDays(selected);
@@ -101,6 +108,7 @@ export default function TodayCalendar({
     (e): e is Extract<DayEntry, { kind: "unplanned" }> =>
       e.kind === "unplanned",
   );
+  const plan = bulkPlan(data?.unplanned, today);
   const touch = useRef<number | null>(null);
   const unit = month ? "tháng" : "tuần";
   const title = month
@@ -209,6 +217,16 @@ export default function TodayCalendar({
             ))}
           </ul>
         </div>
+      )}
+      {canWrite && (
+        <BulkCreate
+          plan={plan}
+          scopeLabel={month ? "trong tháng này" : "trong tuần này"}
+          onCreated={() => {
+            void reload();
+            onCreated();
+          }}
+        />
       )}
       <p className="cal-legend">
         ● đã có buổi · ◌ chưa tạo buổi · ■ chưa điểm danh hoặc quá hạn · bù: học

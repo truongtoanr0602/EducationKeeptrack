@@ -124,3 +124,46 @@ test("calendar shows the week, marks an unplanned slot and an overdue session, a
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("bulk create previews every class, creates on confirm and reports per class", async ({
+  page,
+}) => {
+  await signIn(page);
+  const today = vietnamToday();
+  const name = `Hàng loạt ${Date.now()}`;
+  const classroom = await write(page, "/classes", { name, subject: "Toán" });
+  await write(
+    page,
+    `/classes/${classroom.id}/schedule`,
+    {
+      version: 0,
+      effectiveFrom: "2020-01-01",
+      slots: [
+        {
+          dayOfWeek: weekday(today),
+          startTime: "05:00:00",
+          endTime: "05:45:00",
+        },
+      ],
+    },
+    "PUT",
+  );
+  await page.reload();
+  const calendar = page.getByRole("region", { name: "Lịch tuần và tháng" });
+  await calendar
+    .getByRole("button", { name: /Tạo \d+ buổi chưa có trong tuần này/ })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText(`${name}: 1 buổi`);
+  await dialog.getByRole("button", { name: /Xác nhận tạo/ }).click();
+  await expect(
+    dialog.getByRole("listitem").filter({ hasText: name }),
+  ).toContainText("Đã tạo 1 buổi.");
+  await dialog.locator("button.primary", { hasText: "Đóng" }).click();
+  const sessions = page
+    .getByRole("list", { name: "Buổi học trong ngày" })
+    .getByRole("listitem");
+  await expect(sessions.filter({ hasText: name })).toContainText("05:00");
+  // Nothing left to create for that class: it no longer appears among the unplanned slots.
+  await expect(calendar.getByText(`05:00–05:45 · ${name}`)).toHaveCount(0);
+});

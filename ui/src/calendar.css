@@ -48,3 +48,6 @@
 .cal-unplanned { margin-top: 10px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .cal-unplanned h3 { margin: 0 0 4px; font-size: 0.9rem; }
 .cal-unplanned ul { margin: 0; padding-left: 18px; font-size: 0.85rem; }
+.cal-bulk { margin-top: 10px; min-height: 44px; }
+.cal-bulk-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.cal-bulk-list .ok { color: #15803d; }

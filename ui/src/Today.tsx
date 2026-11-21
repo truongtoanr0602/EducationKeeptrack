@@ -358,6 +358,8 @@ export function Today({ me }: { me: Me }) {
               selected={current ?? date ?? now}
               today={now}
               refreshKey={refreshKey}
+              canWrite={canWrite}
+              onCreated={() => void refresh()}
               onSelect={(d) => setDate(d === now ? undefined : d)}
             />
           </Suspense>

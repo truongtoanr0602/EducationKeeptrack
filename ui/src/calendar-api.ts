@@ -157,3 +157,38 @@ export function dayLabel(date: string, list: DayEntry[], today: string) {
     .filter(Boolean)
     .join(", ");
 }
+
+export type BulkClass = {
+  classId: string;
+  className: string;
+  count: number;
+  from: string;
+  to: string;
+};
+/** Per class, the unplanned slots from today on, for the "create sessions" preview. Past slots are never created from here. */
+export function bulkPlan(
+  unplanned: UnplannedSlot[] | undefined,
+  today: string,
+): BulkClass[] {
+  const plan = new Map<string, BulkClass>();
+  for (const slot of unplanned ?? []) {
+    if (slot.date < today) continue;
+    const row = plan.get(slot.classId);
+    if (!row)
+      plan.set(slot.classId, {
+        classId: slot.classId,
+        className: slot.className,
+        count: 1,
+        from: slot.date,
+        to: slot.date,
+      });
+    else {
+      row.count++;
+      if (slot.date < row.from) row.from = slot.date;
+      if (slot.date > row.to) row.to = slot.date;
+    }
+  }
+  return [...plan.values()].sort((a, b) =>
+    a.className.localeCompare(b.className),
+  );
+}
