@@ -219,7 +219,7 @@ export function CashflowStatistics({
             </p>
           </div>
           <CashflowChart report={cash} />
-          <div className="tuition-table-wrap table-scroll">
+          <div className="tuition-table-wrap table-scroll" tabIndex={0}>
             <table aria-label="Chi tiết thực thu">
               <thead>
                 <tr>
@@ -305,7 +305,7 @@ export function CashflowStatistics({
             totalPaid={debts.totalPaidVnd}
             totalDebt={debts.totalDebtVnd}
           />
-          <div className="tuition-table-wrap table-scroll">
+          <div className="tuition-table-wrap table-scroll" tabIndex={0}>
             <table aria-label="Chi tiết công nợ kỳ">
               <thead>
                 <tr>

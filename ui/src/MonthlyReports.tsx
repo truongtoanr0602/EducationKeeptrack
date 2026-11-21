@@ -20,7 +20,7 @@ export function MonthlyReports({ classId, students, canWrite, onDenied }: { clas
     history.replaceState(null, "", url);
   }, [classId, selected, month]);
   return <section className="monthly-reports" aria-label="Báo cáo PDF tháng">
-    <h3>Báo cáo PDF tháng</h3><p>Lưu nhận xét, kiểm tra nguồn và xuất báo cáo riêng cho từng học sinh.</p>
+    <h2>Báo cáo PDF tháng</h2><p>Lưu nhận xét, kiểm tra nguồn và xuất báo cáo riêng cho từng học sinh.</p>
     <div className="report-scope sticky-scope">
       <label>Học sinh báo cáo<select value={selected} onChange={e => setStudentId(e.target.value)}>{students.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
       <label>Tháng báo cáo<input type="month" value={month} min="0001-01" max="9998-12" onChange={e => { if (e.target.value) setMonth(e.target.value); }} /></label>

@@ -365,7 +365,7 @@ export function AccountScreen({
             </form>
           )}
           {profile.requests.length > 0 && (
-            <div className="table-wrap">
+            <div className="table-wrap" tabIndex={0}>
               <table className="data-table" aria-label="Lịch sử yêu cầu">
                 <thead>
                   <tr>

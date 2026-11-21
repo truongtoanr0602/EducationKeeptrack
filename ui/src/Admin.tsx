@@ -228,7 +228,7 @@ function TeacherList({
         ) : shown.length === 0 ? (
           <p className="muted">Không có hồ sơ phù hợp.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table className="data-table">
               <thead>
                 <tr>

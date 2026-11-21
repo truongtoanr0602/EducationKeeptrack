@@ -124,7 +124,7 @@ function StudentReserveCard({
         trong bảo lưu {money(student.reservedVnd)} · Có thể xét bảo lưu tối đa{" "}
         {money(student.availableVnd)}
       </p>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table>
           <caption>Nguồn tiền đã thu</caption>
           <thead>

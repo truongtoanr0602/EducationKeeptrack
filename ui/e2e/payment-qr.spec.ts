@@ -99,8 +99,7 @@ test("recipient preview and QR modes retain manual instructions without recordin
     .click();
   const student = payments.getByRole("article", { name: "Công nợ An QR" });
   const request = student.getByRole("region", {
-    name: "Yêu cầu chuyển khoản",
-    exact: true,
+    name: /^Yêu cầu chuyển khoản/,
   });
   await expect(student).toContainText("Tổng cần thu: 700.000");
   // The transfer request opens in a dialog; closing it drops the code.

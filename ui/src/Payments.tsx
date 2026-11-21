@@ -176,6 +176,7 @@ export function Payments({
                   <PaymentQr
                     classId={classId}
                     studentId={student.studentId}
+                    studentName={student.name}
                     month={month}
                     version={report.version}
                     recipient={recipient}

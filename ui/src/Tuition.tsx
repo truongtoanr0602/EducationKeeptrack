@@ -276,6 +276,7 @@ export function Tuition({
                   </button>
                   <div
                     className="tuition-table-wrap"
+                    tabIndex={0}
                     hidden={expanded !== student.studentId}
                   >
                     <table aria-label={`Căn cứ học phí ${student.name}`}>
