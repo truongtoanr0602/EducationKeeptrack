@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { formatDate } from "./format-date";
 
 export type WeeklySlot = {
   dayOfWeek: number;
@@ -77,4 +78,4 @@ export type MissingAttendance = {
 };
 export type DateRange = { from: string; to: string };
 export const sessionLabel = (session: ClassSession) =>
-  `${session.date} · ${session.startTime.slice(0, 5)}–${session.endTime.slice(0, 5)} · ${sessionStatusNames[session.status]}`;
+  `${formatDate(session.date)} · ${session.startTime.slice(0, 5)}–${session.endTime.slice(0, 5)} · ${sessionStatusNames[session.status]}`;

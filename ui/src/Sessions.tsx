@@ -17,6 +17,7 @@ import {
   type MissingAttendance,
   type DateRange,
 } from "./session-api";
+import { formatDate, formatMonth } from "./format-date";
 
 function monthRange(): DateRange {
   const date = today();
@@ -219,7 +220,8 @@ export function Sessions({
         {schedule.effectiveFrom && (
           <p>
             Lịch phiên bản {schedule.version}, áp dụng từ{" "}
-            {schedule.effectiveFrom}. Buổi cũ giữ nguyên khi đổi lịch.
+            {formatDate(schedule.effectiveFrom)}. Buổi cũ giữ nguyên khi đổi
+            lịch.
           </p>
         )}
         {form && (
@@ -327,8 +329,8 @@ export function Sessions({
             {missing.map((m) => (
               <li key={`${m.sessionId}-${m.studentId}`}>
                 <button onClick={() => setSelectedId(m.sessionId)}>
-                  {m.date} · {m.startTime.slice(0, 5)} · {m.name} · Chưa điểm
-                  danh
+                  {formatDate(m.date)} · {m.startTime.slice(0, 5)} · {m.name} ·
+                  Chưa điểm danh
                 </button>
               </li>
             ))}
@@ -356,7 +358,7 @@ export function Sessions({
                       <span className="si-time">
                         {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
                       </span>
-                      <small>{s.date.slice(0, 7)}</small>
+                      <small>{formatMonth(s.date.slice(0, 7))}</small>
                     </span>
                     <span className="si-badges">
                       {s.kind === "makeup" && (

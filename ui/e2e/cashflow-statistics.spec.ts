@@ -118,7 +118,7 @@ test("cashflow and period totals reconcile with details after correction and rel
   expect(BigInt((await total.innerText()).replace(/[^0-9]/g, ""))).toBe(sum);
   await table
     .getByRole("button", {
-      name: "Đối chiếu khoản nhận 2026-11-05",
+      name: "Đối chiếu khoản nhận 05/11/2026",
       exact: true,
     })
     .click();
@@ -127,7 +127,7 @@ test("cashflow and period totals reconcile with details after correction and rel
   ).toContainText(receipt.id);
   await expect(
     stats.getByRole("region", { name: "Đối chiếu giao dịch", exact: true }),
-  ).toContainText("2026-10: 500.000");
+  ).toContainText("10/2026: 500.000");
   await stats
     .getByRole("button", { name: "Mở lịch sử khoản nhận tiền", exact: true })
     .click();
@@ -166,7 +166,7 @@ test("cashflow and period totals reconcile with details after correction and rel
     .click();
   await expect(
     stats.getByRole("region", { name: "Đối chiếu kỳ", exact: true }),
-  ).toContainText("2026-11-05");
+  ).toContainText("05/11/2026");
   const current = await (
     await page.request.get(
       `/api/billing/classes/${classId}/payments?month=2026-11`,

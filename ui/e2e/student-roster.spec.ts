@@ -96,7 +96,7 @@ test("teacher manages a persistent roster and retains input after a failed save"
   await expect(row).toContainText("Nghỉ có phép");
   await expect(row).toContainText("Nguyễn Bình đã sửa");
   await row.getByText("Lịch sử theo học", { exact: true }).click();
-  await expect(row).toContainText("2026-10-05");
+  await expect(row).toContainText("05/10/2026");
   const classId = classIdOf(page);
   const roster = await (
     await page.request.get(`/api/classes/${classId}/enrollments`)
@@ -121,12 +121,12 @@ test("teacher manages a persistent roster and retains input after a failed save"
   await page.getByRole("button", { name: "Lưu tình trạng" }).click();
   await expect(page.getByRole("alert")).toContainText("đã thay đổi");
   await page.getByRole("button", { name: "Tải lại danh sách" }).click();
-  await expect(row).toContainText("2026-10-07");
+  await expect(row).toContainText("07/10/2026");
   await expect(page.getByLabel("Tình trạng mới")).toHaveValue("stopped");
   await expect(page.getByLabel("Ngày hiệu lực")).toHaveValue("2026-10-10");
   await page.getByRole("button", { name: "Lưu tình trạng" }).click();
   await expect(page.getByLabel("Ngày hiệu lực")).toHaveCount(0);
-  await expect(row).toContainText("Kết thúc: 2026-10-10");
+  await expect(row).toContainText("Kết thúc: 10/10/2026");
   await page
     .getByRole("button", { name: "Chọn học sinh đã có", exact: true })
     .click();

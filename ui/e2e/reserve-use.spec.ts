@@ -50,7 +50,7 @@ test("teacher deducts an approved reserve from the next month, reverses it and c
   await form.getByRole("button", { name: "Khấu trừ", exact: true }).click();
   await expect(balance).toContainText("Đã khấu trừ vào học phí 450.000");
   await expect(balance).toContainText("Còn lại 0");
-  await expect(panel.getByRole("list", { name: "Các lần khấu trừ bảo lưu" })).toContainText("Kỳ 2026-11");
+  await expect(panel.getByRole("list", { name: "Các lần khấu trừ bảo lưu" })).toContainText("Kỳ 11/2026");
   await expect(panel.getByTestId(`reserve-movements-${student.id}`)).toContainText("chuyển sang kỳ sau 0");
   // The tuition screen shows the November debt net of the reserve: 500.000 of fees - 450.000 = 50.000.
   await expect(page.getByText("Tổng công nợ các kỳ: 50.000")).toBeVisible();

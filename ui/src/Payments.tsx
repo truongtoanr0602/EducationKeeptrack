@@ -7,6 +7,7 @@ import { Popup } from "./ui/popup";
 import { toast } from "sonner";
 import { ReceiptCorrection } from "./ReceiptCorrection";
 import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
+import { formatDate, formatMonth } from "./format-date";
 
 export function Payments({
   classId,
@@ -152,11 +153,12 @@ export function Payments({
                     <h4>Công nợ: {student.name}</h4>
                     <div className="pay-figures">
                       <p>
-                        Nợ trước tháng {report.month}:{" "}
+                        Nợ trước tháng {formatMonth(report.month)}:{" "}
                         {money(student.oldDebtVnd)}
                       </p>
                       <p>
-                        Nợ tháng {report.month}: {money(student.currentDebtVnd)}
+                        Nợ tháng {formatMonth(report.month)}:{" "}
+                        {money(student.currentDebtVnd)}
                       </p>
                       <p>Tổng cần thu: {money(student.totalDebtVnd)}</p>
                       <p>Tiền chưa phân bổ: {money(student.unallocatedVnd)}</p>
@@ -170,7 +172,8 @@ export function Payments({
                     <ul aria-label="Công nợ từng kỳ">
                       {student.periods.map((period) => (
                         <li key={period.month}>
-                          {period.month} · {paymentStatus[period.status]} · Phí:{" "}
+                          {formatMonth(period.month)} ·{" "}
+                          {paymentStatus[period.status]} · Phí:{" "}
                           {money(period.feesVnd)} · Đã phân bổ:{" "}
                           {money(period.paidVnd)} · Còn nợ:{" "}
                           {money(period.debtVnd)}
@@ -215,7 +218,7 @@ export function Payments({
                       {student.receipts.map((receipt) => (
                         <li key={receipt.id} id={`receipt-${receipt.id}`}>
                           <p>
-                            {receipt.receivedOn} · Nhận{" "}
+                            {formatDate(receipt.receivedOn)} · Nhận{" "}
                             {money(receipt.amountVnd)}
                             {receipt.note && ` · ${receipt.note}`}
                           </p>
@@ -225,7 +228,8 @@ export function Payments({
                               ? "Chưa phân bổ"
                               : receipt.allocations
                                   .map(
-                                    (a) => `${a.month}: ${money(a.amountVnd)}`,
+                                    (a) =>
+                                      `${formatMonth(a.month)}: ${money(a.amountVnd)}`,
                                   )
                                   .join("; ")}
                           </p>

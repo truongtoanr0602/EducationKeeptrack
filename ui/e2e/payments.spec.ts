@@ -138,8 +138,8 @@ test("teacher records partial receipts, retries a lost response once, and reload
   ).toHaveCount(1);
   await expect(student).toContainText("Đã trả đủ");
   await expect(student).toContainText("Trả một phần");
-  await expect(student).toContainText("2026-10: 500.000");
-  await expect(student).toContainText("2026-11: 200.000");
+  await expect(student).toContainText("10/2026: 500.000");
+  await expect(student).toContainText("11/2026: 200.000");
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(
     student.getByText("Tổng cần thu: 700.000", { exact: false }),

@@ -11,6 +11,7 @@ import { money } from "./tuition-api";
 import { paymentStatus } from "./payments-api";
 import type { CashflowReport, PeriodReport } from "./statistics-api";
 import { CashflowChart, PeriodChart } from "./StatsCharts";
+import { formatDate, formatMonth } from "./format-date";
 
 type View = "cashflow" | "period";
 type Report =
@@ -220,7 +221,8 @@ export function CashflowStatistics({
       {cash && (
         <>
           <p>
-            Thực thu từ {cash.from} đến {cash.to} (gồm hai ngày đầu/cuối).
+            Thực thu từ {formatDate(cash.from)} đến {formatDate(cash.to)} (gồm
+            hai ngày đầu/cuối).
           </p>
           <div className="kpi-row">
             <p role="status" aria-label="Tổng thực thu">
@@ -245,7 +247,7 @@ export function CashflowStatistics({
               <tbody>
                 {cash.receipts.map((row) => (
                   <tr key={row.receipt.id}>
-                    <td>{row.receipt.receivedOn}</td>
+                    <td>{formatDate(row.receipt.receivedOn)}</td>
                     <td>{row.studentName}</td>
                     <td>{money(row.receipt.amountVnd)}</td>
                     <td>
@@ -253,7 +255,8 @@ export function CashflowStatistics({
                         type="button"
                         onClick={() => setSelected(row.receipt.id)}
                       >
-                        Đối chiếu khoản nhận {row.receipt.receivedOn}
+                        Đối chiếu khoản nhận{" "}
+                        {formatDate(row.receipt.receivedOn)}
                       </button>
                     </td>
                   </tr>
@@ -271,14 +274,14 @@ export function CashflowStatistics({
           <h4>Khoản nhận của {receipt.studentName}</h4>
           <p>Mã giao dịch: {receipt.receipt.id}</p>
           <p>
-            Ngày thực nhận: {receipt.receipt.receivedOn} · Số tiền:{" "}
+            Ngày thực nhận: {formatDate(receipt.receipt.receivedOn)} · Số tiền:{" "}
             {money(receipt.receipt.amountVnd)}
           </p>
           <p>Ghi chú: {receipt.receipt.note || "Không có"}</p>
           <p>
             Phân bổ:{" "}
             {receipt.receipt.allocations
-              .map((a) => `${a.month}: ${money(a.amountVnd)}`)
+              .map((a) => `${formatMonth(a.month)}: ${money(a.amountVnd)}`)
               .join("; ") || "Chưa phân bổ"}
           </p>
           <p>Tiền chưa phân bổ: {money(receipt.receipt.unallocatedVnd)}</p>
@@ -295,8 +298,8 @@ export function CashflowStatistics({
       {debts && (
         <>
           <p>
-            Công nợ kỳ nghĩa vụ {debts.month}, gồm các khoản phân bổ trả kỳ này
-            bất kể ngày nhận tiền.
+            Công nợ kỳ nghĩa vụ {formatMonth(debts.month)}, gồm các khoản phân
+            bổ trả kỳ này bất kể ngày nhận tiền.
           </p>
           <div className="kpi-row">
             <p role="status" aria-label="Tổng học phí kỳ">
@@ -354,7 +357,7 @@ export function CashflowStatistics({
       {student && (
         <section aria-label="Đối chiếu kỳ" className="class-card">
           <h4>
-            {student.name} · Kỳ {debts?.month}
+            {student.name} · Kỳ {formatMonth(debts?.month)}
           </h4>
           <p>
             Học phí sau điều chỉnh: {money(student.feesVnd)} · Đã thanh toán:{" "}
@@ -367,7 +370,8 @@ export function CashflowStatistics({
           <ul>
             {student.allocations.map((a) => (
               <li key={a.receiptId}>
-                {a.receivedOn} · Phân bổ vào kỳ: {money(a.amountVnd)}
+                {formatDate(a.receivedOn)} · Phân bổ vào kỳ:{" "}
+                {money(a.amountVnd)}
                 {a.note && ` · ${a.note}`} ·{" "}
                 <button
                   type="button"

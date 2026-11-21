@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import type { ReserveRequest, StudentReserve } from "./reserve-api";
+import { formatDate, formatMonth } from "./format-date";
 
 const text = (e: unknown) =>
   e instanceof ApiError
@@ -43,9 +44,9 @@ export function ReserveLedgerBlock({
         {money(reserve.usedVnd)} · Còn lại {money(reserve.remainingVnd)}
       </p>
       <p data-testid={`reserve-movements-${student.studentId}`}>
-        Tháng {movements.month}: đầu kỳ {money(movements.openingVnd)} · mới
-        duyệt {money(movements.approvedVnd)} · đã dùng{" "}
-        {money(movements.usedVnd)}
+        Tháng {formatMonth(movements.month)}: đầu kỳ{" "}
+        {money(movements.openingVnd)} · mới duyệt {money(movements.approvedVnd)}{" "}
+        · đã dùng {money(movements.usedVnd)}
         {BigInt(movements.cancelledVnd) > 0n
           ? ` · đã hủy ${money(movements.cancelledVnd)}`
           : ""}{" "}
@@ -53,7 +54,7 @@ export function ReserveLedgerBlock({
       </p>
       {excess.map((p) => (
         <p key={p.month} className="notice" role="status">
-          Kỳ {p.month}: bảo lưu đã dùng vượt nghĩa vụ{" "}
+          Kỳ {formatMonth(p.month)}: bảo lưu đã dùng vượt nghĩa vụ{" "}
           {money(p.reserveExcessVnd)} (học phí đã giảm). Hãy hủy lần khấu trừ
           tương ứng; hệ thống không tự dùng lại.
         </p>
@@ -73,7 +74,8 @@ export function ReserveLedgerBlock({
         <ul aria-label="Các lần khấu trừ bảo lưu">
           {student.uses.map((u) => (
             <li key={u.id} data-status={u.status}>
-              Kỳ {u.month} · {money(u.amountVnd)} · ngày {u.usedOn} ·{" "}
+              Kỳ {formatMonth(u.month)} · {money(u.amountVnd)} · ngày{" "}
+              {formatDate(u.usedOn)} ·{" "}
               {u.status === "active"
                 ? "Đang áp dụng"
                 : `Đã hủy: ${u.reversalReason ?? ""}`}
@@ -191,7 +193,7 @@ function UseForm({
         >
           {periods.map((p) => (
             <option key={p.month} value={p.month}>
-              {p.month} · còn phải trả {money(p.debtVnd)}
+              {formatMonth(p.month)} · còn phải trả {money(p.debtVnd)}
             </option>
           ))}
         </select>

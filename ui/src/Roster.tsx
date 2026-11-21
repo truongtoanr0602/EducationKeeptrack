@@ -7,6 +7,7 @@ import { Popup } from "./ui/popup";
 import { toast } from "sonner";
 import { Login } from "./Login";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
+import { formatDate } from "./format-date";
 
 export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
   const [items, setItems] = useState<Enrollment[]>([]);
@@ -262,15 +263,15 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
                 {item.student.email && <p>Email: {item.student.email}</p>}
                 {item.student.notes && <p>{item.student.notes}</p>}
                 <p>
-                  Bắt đầu: {item.startDate}
-                  {item.endDate && ` · Kết thúc: ${item.endDate}`}
+                  Bắt đầu: {formatDate(item.startDate)}
+                  {item.endDate && ` · Kết thúc: ${formatDate(item.endDate)}`}
                 </p>
                 <details>
                   <summary>Lịch sử theo học</summary>
                   <ol>
                     {item.history.map((h) => (
                       <li key={h.version}>
-                        {h.effectiveDate} · {statusNames[h.status]}
+                        {formatDate(h.effectiveDate)} · {statusNames[h.status]}
                       </li>
                     ))}
                   </ol>

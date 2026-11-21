@@ -16,6 +16,7 @@ import {
   type TodaySession,
   type TodayView,
 } from "./today-api";
+import { formatDate } from "./format-date";
 
 type Mark = { status: "present" | "absent"; excused: boolean };
 type Undo = { studentId: string; before: Attendance; version: number }[];
@@ -322,7 +323,7 @@ export function Today({ me }: { me: Me }) {
         <div>
           <span className="eyebrow">BUỔI DẠY</span>
           <h1>Hôm nay</h1>
-          {current && <p>{current}</p>}
+          {current && <p>{formatDate(current)}</p>}
         </div>
       </div>
       <div className="today-nav" role="group" aria-label="Chọn ngày">
