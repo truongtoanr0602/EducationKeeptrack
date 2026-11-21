@@ -3,6 +3,8 @@ import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import { paymentStatus, type PaymentsReport } from "./payments-api";
 import { ReceiptForm } from "./ReceiptForm";
+import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { ReceiptCorrection } from "./ReceiptCorrection";
 import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
 
@@ -25,6 +27,9 @@ export function Payments({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
+  const [receiptFor, setReceiptFor] = useState<string | null>(null);
+  const [recipientOpen, setRecipientOpen] = useState(false);
+  const [receiptLocked, setReceiptLocked] = useState(false);
   const request = useRef(0);
   const load = useCallback(async () => {
     const current = ++request.current;
@@ -56,10 +61,22 @@ export function Payments({
     };
   }, [load, refreshToken]);
   useEffect(() => {
+    let active = true;
+    api<Recipient>("/billing/recipient")
+      .then((r) => active && setRecipient(r))
+      .catch(() => active && setRecipient(null));
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
     if (report?.status !== "pending" || loading || error) return;
     const timer = window.setTimeout(() => void load(), 1500);
     return () => window.clearTimeout(timer);
   }, [report, loading, error, load]);
+  const receiptTarget = report?.students.find(
+    (student) => student.studentId === receiptFor,
+  );
   return (
     <section aria-label="Thanh toán và công nợ" className="payments-workspace">
       <div className="card-heading">
@@ -68,11 +85,31 @@ export function Payments({
           Tải lại công nợ
         </button>
       </div>
-      <RecipientSettings
-        canWrite={canWrite}
-        onDenied={onDenied}
-        onChanged={setRecipient}
-      />
+      <div className="recipient-summary">
+        <p>
+          {recipient
+            ? `Tài khoản nhận tiền: ${recipient.bankName} · ${recipient.accountNo} · ${recipient.accountName}`
+            : "Chưa có tài khoản nhận tiền."}
+        </p>
+        <button type="button" onClick={() => setRecipientOpen(true)}>
+          Thiết lập tài khoản nhận tiền
+        </button>
+      </div>
+      {recipientOpen && (
+        <Popup
+          open
+          title="Tài khoản nhận tiền"
+          onOpenChange={(next) => {
+            if (!next) setRecipientOpen(false);
+          }}
+        >
+          <RecipientSettings
+            canWrite={canWrite}
+            onDenied={onDenied}
+            onChanged={setRecipient}
+          />
+        </Popup>
+      )}
       <p>
         Trả kỳ nợ cũ nhất trước. Tiền dư được giữ riêng, chưa tự dùng cho kỳ sau
         hoặc hoàn tiền. Quét QR hay ảnh chuyển khoản chưa xác nhận đã nhận tiền.
@@ -152,25 +189,13 @@ export function Payments({
                     }
                     onDenied={onDenied}
                   />
-                  <ReceiptForm
-                  collapsible
-                    classId={classId}
-                    studentId={student.studentId}
-                    version={report.version}
-                    canWrite={
-                      canWrite &&
-                      !loading &&
-                      !error &&
-                      report.status === "ready" &&
-                      report.month === month
-                    }
-                    onDenied={onDenied}
-                    canReplay={canWrite}
-                    onSaved={() => {
-                      void load();
-                      onChanged();
-                    }}
-                  />
+                  <button
+                    type="button"
+                    className="receipt-toggle"
+                    onClick={() => setReceiptFor(student.studentId)}
+                  >
+                    Nhập khoản nhận tiền
+                  </button>
                 </div>
                 <div className="pay-history">
                   <h4>Lịch sử nhận tiền</h4>
@@ -217,6 +242,48 @@ export function Payments({
               </article>
             ))}
           </div>
+          {receiptTarget && (
+            <Popup
+              open
+              onOpenChange={(next) => {
+                if (!next) setReceiptFor(null);
+              }}
+              title={`Nhận tiền học phí: ${receiptTarget.name}`}
+              locked={receiptLocked}
+              footer={
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  disabled={loading}
+                >
+                  Tải lại công nợ
+                </button>
+              }
+            >
+              <ReceiptForm
+                key={receiptTarget.studentId}
+                classId={classId}
+                studentId={receiptTarget.studentId}
+                version={report.version}
+                canWrite={
+                  canWrite &&
+                  !loading &&
+                  !error &&
+                  report.status === "ready" &&
+                  report.month === month
+                }
+                onDenied={onDenied}
+                canReplay={canWrite}
+                onLockChange={setReceiptLocked}
+                onSaved={() => {
+                  toast.success("Khoản thu đã được ghi nhận.");
+                  setReceiptFor(null);
+                  void load();
+                  onChanged();
+                }}
+              />
+            </Popup>
+          )}
         </>
       )}
     </section>

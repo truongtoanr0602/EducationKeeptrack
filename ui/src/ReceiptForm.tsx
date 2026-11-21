@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import type { Receipt, ReceiptDraft } from "./payments-api";
@@ -10,7 +10,7 @@ export function ReceiptForm({
   canWrite,
   canReplay,
   suggested,
-  collapsible = false,
+  onLockChange,
   onSaved,
   onDenied,
 }: {
@@ -20,8 +20,8 @@ export function ReceiptForm({
   canWrite: boolean;
   canReplay: boolean;
   suggested?: string;
-  // Payments keeps the form behind a button; failures and unknown outcomes open it again.
-  collapsible?: boolean;
+  // Tells a popup around the form when it must not be closed (a request may already have committed).
+  onLockChange?: (locked: boolean) => void;
   onSaved: () => void;
   onDenied: (error: ApiError) => void;
 }) {
@@ -32,7 +32,6 @@ export function ReceiptForm({
   const [error, setError] = useState("");
   const [uncertain, setUncertain] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [open, setOpen] = useState(false);
   // Keep the exact request after a transport/server failure: it may already have committed.
   const pending = useRef<ReceiptDraft | null>(null);
   const submitting = useRef(false);
@@ -92,17 +91,10 @@ export function ReceiptForm({
     }
   }
   const locked = busy || uncertain;
-  if (collapsible && !(open || uncertain || error || saved))
-    return (
-      <button
-        type="button"
-        className="receipt-toggle"
-        aria-expanded={false}
-        onClick={() => setOpen(true)}
-      >
-        Nhập khoản nhận tiền
-      </button>
-    );
+  useEffect(() => {
+    onLockChange?.(busy || uncertain);
+    return () => onLockChange?.(false);
+  }, [busy, uncertain, onLockChange]);
   return (
     <form
       className="roster-form"

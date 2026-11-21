@@ -81,13 +81,13 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     student.getByText("Tổng cần thu: 1.400.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(student);
+  const receipt = await openReceiptForm(student);
   await expect(
-    student.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    receipt.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeEnabled();
-  await student.getByLabel("Số tiền nhận (đồng)").fill("700000");
-  await student.getByLabel("Ngày nhận tiền").fill("2026-11-05");
-  await student.getByLabel("Ghi chú nhận tiền").fill("Lần đầu");
+  await receipt.getByLabel("Số tiền nhận (đồng)").fill("700000");
+  await receipt.getByLabel("Ngày nhận tiền").fill("2026-11-05");
+  await receipt.getByLabel("Ghi chú nhận tiền").fill("Lần đầu");
   await page.route("**/api/billing/classes/*/payments", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({
@@ -99,15 +99,15 @@ test("teacher records partial receipts, retries a lost response once, and reload
         })
       : route.continue(),
   );
-  await student
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
-  await expect(student.getByRole("alert")).toContainText("đã thay đổi");
-  await expect(student.getByLabel("Số tiền nhận (đồng)")).toHaveValue("700000");
+  await expect(receipt.getByRole("alert")).toContainText("đã thay đổi");
+  await expect(receipt.getByLabel("Số tiền nhận (đồng)")).toHaveValue("700000");
   await page.unroute("**/api/billing/classes/*/payments");
-  await payments.getByRole("button", { name: "Tải lại công nợ" }).click();
+  await receipt.getByRole("button", { name: "Tải lại công nợ" }).click();
   await expect(
-    student.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    receipt.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeEnabled();
   // The server commits, but the browser loses the response. Retry must reuse the original request.
   await page.route("**/api/billing/classes/*/payments", async (route) => {
@@ -116,16 +116,18 @@ test("teacher records partial receipts, retries a lost response once, and reload
     expect(response.status()).toBe(201);
     await route.abort("failed");
   });
-  await student
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
-  await expect(student.getByRole("alert")).toContainText("chưa rõ");
-  await expect(student.getByLabel("Số tiền nhận (đồng)")).toHaveValue("700000");
-  await expect(student.getByLabel("Số tiền nhận (đồng)")).toBeDisabled();
+  await expect(receipt.getByRole("alert")).toContainText("chưa rõ");
+  await expect(receipt.getByLabel("Số tiền nhận (đồng)")).toHaveValue("700000");
+  await expect(receipt.getByLabel("Số tiền nhận (đồng)")).toBeDisabled();
   await page.unroute("**/api/billing/classes/*/payments");
-  await student
+  await receipt
     .getByRole("button", { name: "Thử lại khoản nhận tiền", exact: true })
     .click();
+  // A saved receipt closes the dialog.
+  await expect(receipt).toHaveCount(0);
   await expect(
     student.getByText("Tổng cần thu: 700.000", { exact: false }),
   ).toBeVisible();
@@ -142,10 +144,10 @@ test("teacher records partial receipts, retries a lost response once, and reload
   await expect(
     student.getByText("Tổng cần thu: 700.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(student);
-  await student.getByLabel("Số tiền nhận (đồng)").fill("800000");
-  await student.getByLabel("Ghi chú nhận tiền").fill("Trả đủ và dư");
-  await student
+  const second = await openReceiptForm(student);
+  await second.getByLabel("Số tiền nhận (đồng)").fill("800000");
+  await second.getByLabel("Ghi chú nhận tiền").fill("Trả đủ và dư");
+  await second
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
   await expect(
@@ -159,7 +161,8 @@ test("teacher records partial receipts, retries a lost response once, and reload
       .getByRole("list", { name: "Lịch sử nhận tiền" })
       .getByRole("listitem"),
   ).toHaveCount(2);
-  await student.getByLabel("Số tiền nhận (đồng)").fill("10000");
+  const third = await openReceiptForm(student);
+  await third.getByLabel("Số tiền nhận (đồng)").fill("10000");
   await page.route("**/api/billing/classes/*/payments", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({
@@ -184,13 +187,13 @@ test("teacher records partial receipts, retries a lost response once, and reload
       }),
     }),
   );
-  await student
+  await third
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
-  await expect(student.getByRole("alert")).toContainText("hết hạn");
-  await expect(student.getByLabel("Số tiền nhận (đồng)")).toHaveValue("10000");
+  await expect(third.getByRole("alert")).toContainText("hết hạn");
+  await expect(third.getByLabel("Số tiền nhận (đồng)")).toHaveValue("10000");
   await expect(
-    student.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    third.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeDisabled();
   expect(
     await page.evaluate(

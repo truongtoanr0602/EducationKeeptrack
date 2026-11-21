@@ -3,6 +3,8 @@ import { api, ApiError, type Me, type TeacherClass } from "./api";
 import { EnrollmentForm } from "./EnrollmentForm";
 import { PasteStudents } from "./PasteStudents";
 import { StudentForm } from "./StudentForm";
+import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { Login } from "./Login";
 import { statusNames, type Enrollment, type Student } from "./roster-api";
 
@@ -13,6 +15,7 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [formLocked, setFormLocked] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [form, setForm] = useState<
     | { kind: "student"; student?: Student }
@@ -86,6 +89,11 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
     );
   }, [items, query]);
   function saved() {
+    toast.success(
+      form?.kind === "enrollment"
+        ? "Tình trạng học đã được lưu."
+        : "Hồ sơ học sinh đã được lưu.",
+    );
     setForm(null);
     void load();
   }
@@ -152,39 +160,74 @@ export function Roster({ classroom, me }: { classroom: TeacherClass; me: Me }) {
             {error}
           </p>
         )}
-        {form?.kind === "student" && (
-          <StudentForm
-            key={form.student?.id ?? "new"}
-            student={form.student}
-            classId={classroom.id}
-            canWrite={access.canWrite}
-            onSaved={saved}
-            onCancel={() => setForm(null)}
-            onDenied={denied}
-          />
-        )}
-        {form?.kind === "paste" && (
-          <PasteStudents
-            classId={classroom.id}
-            students={students}
-            enrolledIds={items.map((item) => item.studentId)}
-            canWrite={access.canWrite}
-            onChanged={() => void load()}
-            onClose={() => setForm(null)}
-            onDenied={denied}
-          />
-        )}
-        {form?.kind === "enrollment" && (
-          <EnrollmentForm
-            key={form.item?.id ?? "new"}
-            item={form.item}
-            students={students}
-            classId={classroom.id}
-            canWrite={access.canWrite}
-            onSaved={saved}
-            onCancel={() => setForm(null)}
-            onDenied={denied}
-          />
+        {form && (
+          <Popup
+            open
+            variant="side"
+            title={
+              form.kind === "paste"
+                ? "Dán danh sách học sinh"
+                : form.kind === "enrollment"
+                  ? form.item
+                    ? `Đổi tình trạng: ${form.item.student.name}`
+                    : "Chọn học sinh đã có"
+                  : form.student
+                    ? `Sửa hồ sơ: ${form.student.name}`
+                    : "Thêm học sinh mới"
+            }
+            onOpenChange={(next) => {
+              if (!next) setForm(null);
+            }}
+            locked={formLocked}
+            suspended={sessionExpired || !access.canRead}
+            footer={
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading}
+              >
+                Tải lại danh sách
+              </button>
+            }
+          >
+            {form.kind === "student" && (
+              <StudentForm
+                key={form.student?.id ?? "new"}
+                student={form.student}
+                classId={classroom.id}
+                canWrite={access.canWrite}
+                onSaved={saved}
+                onCancel={() => setForm(null)}
+                onDenied={denied}
+                onLockChange={setFormLocked}
+              />
+            )}
+            {form.kind === "paste" && (
+              <PasteStudents
+                classId={classroom.id}
+                students={students}
+                enrolledIds={items.map((item) => item.studentId)}
+                canWrite={access.canWrite}
+                onChanged={() => void load()}
+                onClose={() => setForm(null)}
+                onDenied={denied}
+                onLockChange={setFormLocked}
+              />
+            )}
+            {form.kind === "enrollment" && (
+              <EnrollmentForm
+                key={form.item?.id ?? "new"}
+                item={form.item}
+                students={students}
+                classId={classroom.id}
+                canWrite={access.canWrite}
+                onSaved={saved}
+                onCancel={() => setForm(null)}
+                onDenied={denied}
+                onLockChange={setFormLocked}
+              />
+            )}
+          </Popup>
         )}
         {items.length > 5 && (
           <div className="list-search">

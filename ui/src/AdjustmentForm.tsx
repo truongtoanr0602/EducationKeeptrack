@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 
 type Draft = {
@@ -20,6 +20,7 @@ export function AdjustmentForm({
   canReplay,
   onSaved,
   onDenied,
+  onLockChange,
 }: {
   classId: string;
   studentId: string;
@@ -29,6 +30,8 @@ export function AdjustmentForm({
   canReplay: boolean;
   onSaved: () => void;
   onDenied: (error: ApiError) => void;
+  // A request may already have committed: the popup around the form must not be dismissed.
+  onLockChange?: (locked: boolean) => void;
 }) {
   const [direction, setDirection] = useState("increase");
   const [amount, setAmount] = useState("");
@@ -37,6 +40,10 @@ export function AdjustmentForm({
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    onLockChange?.(busy || uncertain);
+    return () => onLockChange?.(false);
+  }, [busy, uncertain, onLockChange]);
   const pending = useRef<Draft | null>(null);
   const submitting = useRef(false);
   async function submit(event: FormEvent) {

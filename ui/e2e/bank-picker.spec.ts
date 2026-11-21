@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openRecipientSettings } from "./helpers";
 
 // The receiving-account form (#54). The recipient belongs to the teacher, not to a class, so these tests share one
 // row; run them in order with a single worker (`--workers=1`) and reset the account through the API in each test.
@@ -50,10 +51,9 @@ async function openSettings(page: Page) {
     (id) => (window.location.hash = `#/classes/${id}/tuition`),
     made.id,
   );
-  const settings = page.getByRole("region", {
-    name: "Tài khoản nhận tiền",
-    exact: true,
-  });
+  const settings = await openRecipientSettings(
+    page.getByRole("region", { name: "Thanh toán và công nợ", exact: true }),
+  );
   await expect(
     settings.getByRole("button", { name: "Lưu tài khoản nhận tiền" }),
   ).toBeEnabled();

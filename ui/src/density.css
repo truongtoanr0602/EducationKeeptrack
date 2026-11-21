@@ -381,3 +381,49 @@
 .receipt-toggle {
   justify-self: start;
 }
+
+/* Forms shown inside a popup lose their own card chrome. */
+.popup-body .roster-form {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.popup-body .roster-form > :is(h2, h3, h4):first-child {
+  display: none;
+}
+
+.report-summary {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e2e7f2;
+  border-radius: 10px;
+  background: #f8faff;
+}
+.report-summary p {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.popup-body .report-preview iframe {
+  height: min(65vh, 720px);
+}
+.popup-body .report-draft fieldset {
+  grid-template-columns: 1fr;
+}
+
+.recipient-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.5rem 0;
+}
+.recipient-summary p {
+  margin: 0;
+}
+.popup-body section[aria-label="Tài khoản nhận tiền"] > .card-heading > h4 {
+  display: none;
+}

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import type { Me, TeacherClass } from "./api";
+import { api, type Me, type TeacherClass } from "./api";
 import { useAccess } from "./access";
 import { loadDebts, type DebtItem, type DebtsView } from "./billing-api";
 import { useSwr } from "./swr";
 import { ReceiptForm } from "./ReceiptForm";
-import { today } from "./roster-api";
+import { today, type Student } from "./roster-api";
 import { money } from "./tuition-api";
 import { classHref } from "./router";
-import { shareMonthlyReport } from "./share-report";
+import { downloadFile, monthlyReportFile, zaloUrl } from "./share-report";
 
 const PAGE_SIZE = 20;
 const notReady: Record<string, string> = {
@@ -26,6 +26,10 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [sharing, setSharing] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<Record<string, string>>({});
+  // The contact phone of a profile is the parent's number: it opens the right Zalo chat.
+  const { data: students } = useSwr<Student[]>("students", () =>
+    api<Student[]>("/students"),
+  );
   const {
     data: view,
     error: failure,
@@ -42,29 +46,35 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
     if (failure) denied(failure);
   }, [failure, denied]);
 
-  async function share(item: DebtItem, key: string) {
+  async function prepare(item: DebtItem, key: string, zalo: boolean) {
     setSharing(key);
     setShareNote((n) => ({ ...n, [key]: "" }));
+    // A new tab can only be opened straight from the click, not after the PDF has been prepared.
+    const tab = zalo ? window.open("about:blank", "_blank") : null;
+    if (tab) tab.opener = null;
     try {
-      const result = await shareMonthlyReport(
+      const file = await monthlyReportFile(
         item.classId,
         item.studentId,
         month,
         item.name,
       );
+      downloadFile(file);
+      if (tab)
+        tab.location.href = zaloUrl(
+          students?.find((s) => s.id === item.studentId)?.phone,
+        );
       setShareNote((n) => ({
         ...n,
-        [key]:
-          result === "shared"
-            ? "Đã mở bảng chia sẻ."
-            : result === "downloaded"
-              ? "Đã tải PDF về máy."
-              : "",
+        [key]: zalo
+          ? "Đã tải PDF về máy. Đính kèm file này trong cuộc trò chuyện Zalo để gửi."
+          : "Đã tải PDF về máy.",
       }));
     } catch (e) {
+      tab?.close();
       setShareNote((n) => ({
         ...n,
-        [key]: e instanceof Error ? e.message : "Không thể chia sẻ báo cáo.",
+        [key]: e instanceof Error ? e.message : "Không thể chuẩn bị báo cáo.",
       }));
       denied(e);
     } finally {
@@ -166,10 +176,22 @@ export function Billing({ me, classes }: { me: Me; classes: TeacherClass[] }) {
                     </button>
                     <button
                       disabled={sharing !== null}
-                      onClick={() => void share(item, key)}
+                      onClick={() => void prepare(item, key, false)}
                     >
-                      {sharing === key ? "Đang chuẩn bị…" : "Gửi báo cáo PDF"}
+                      {sharing === key ? "Đang chuẩn bị…" : "Tải báo cáo PDF"}
                     </button>
+                    <button
+                      disabled={sharing !== null}
+                      onClick={() => void prepare(item, key, true)}
+                    >
+                      Gửi qua Zalo
+                    </button>
+                    <a
+                      className="button-link"
+                      href={`${location.pathname}?reportClass=${item.classId}&reportStudent=${item.studentId}&reportMonth=${month}${classHref(item.classId, "reports")}`}
+                    >
+                      Xem trước PDF
+                    </a>
                     <a
                       className="button-link"
                       href={classHref(item.classId, "tuition")}

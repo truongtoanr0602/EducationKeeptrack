@@ -60,10 +60,10 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(card);
-  await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
+  const receipt = await openReceiptForm(card);
+  await receipt.getByLabel("Số tiền nhận (đồng)").fill("500000");
   await expect(
-    card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    receipt.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeEnabled();
   await page.route("**/api/billing/classes/*/payments", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
@@ -71,25 +71,26 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
     expect(response.status()).toBe(201);
     await route.abort("failed");
   });
-  await card
+  await receipt
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })
     .click();
-  await expect(card.getByRole("alert")).toContainText("chưa rõ");
+  await expect(receipt.getByRole("alert")).toContainText("chưa rõ");
   await page.unroute("**/api/billing/classes/*/payments");
   await write(attendance, { status: "absent", version: 1 }, "PUT");
-  await payments.getByRole("button", { name: "Tải lại công nợ" }).click();
+  await receipt.getByRole("button", { name: "Tải lại công nợ" }).click();
+  // The receipt dialog is open: the card behind it is hidden from role queries, so find it by its label.
   await expect(
-    card.getByText("Tiền giữ để đối chiếu: 500.000", { exact: false }),
+    page
+      .locator('article[aria-label="Công nợ An đối chiếu"]')
+      .getByText("Tiền giữ để đối chiếu: 500.000", { exact: false }),
   ).toBeVisible();
   await expect(
-    payments.getByText(/Khoản này đang giữ để đối chiếu/),
+    page.getByText(/Khoản này đang giữ để đối chiếu/),
   ).toBeVisible();
-  await card
+  await receipt
     .getByRole("button", { name: "Thử lại khoản nhận tiền", exact: true })
     .click();
-  await expect(
-    card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
-  ).toBeDisabled();
+  await expect(receipt).toHaveCount(0);
   await expect(
     card.getByRole("list", { name: "Lịch sử nhận tiền" }).getByRole("listitem"),
   ).toHaveCount(1);
@@ -102,8 +103,8 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
   await expect(
     card.getByText("Tiền giữ để đối chiếu: 500.000", { exact: false }),
   ).toBeVisible();
-  await openReceiptForm(card);
+  const reopened = await openReceiptForm(card);
   await expect(
-    card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
+    reopened.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeDisabled();
 });
