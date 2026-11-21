@@ -4,6 +4,11 @@ import { toast } from "sonner";
 import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import type { Receipt, ReceiptState } from "./payments-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 type Command = {
   action: "cancel" | "replace";
@@ -49,23 +54,31 @@ export function ReceiptCorrection({
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState(false);
+  const fields = useFieldErrors();
   const pending = useRef<Command | null>(null);
   const submitting = useRef(false);
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     if (submitting.current || !mode || !(canWrite || (uncertain && canReplay)))
       return;
     setError("");
+    fields.clear();
     if (!pending.current) {
-      if (!reason.trim()) {
-        setError("Vui lòng nhập lý do sửa/hủy.");
-        return;
+      const invalid: FieldErrors = {};
+      if (!reason.trim()) invalid.reason = "Nhập lý do sửa hoặc hủy.";
+      if (mode === "replace") {
+        if (!/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n)
+          invalid.amount = "Nhập số tiền là số nguyên đồng dương.";
+        if (!date) invalid.date = "Chọn ngày thực nhận.";
       }
-      if (
-        mode === "replace" &&
-        (!/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n || !date)
-      ) {
-        setError("Nhập số nguyên đồng dương và ngày thực nhận.");
+      if (Object.keys(invalid).length > 0) {
+        fields.show(invalid, form);
+        setError(
+          invalid.reason
+            ? "Vui lòng nhập lý do sửa/hủy."
+            : "Nhập số nguyên đồng dương và ngày thực nhận.",
+        );
         return;
       }
       pending.current = {
@@ -96,6 +109,14 @@ export function ReceiptCorrection({
       if (e instanceof ApiError && e.status < 500) {
         pending.current = null;
         setUncertain(false);
+        fields.show(
+          apiFieldErrors(e, {
+            reason: "reason",
+            amountVnd: "amount",
+            receivedOn: "date",
+          }),
+          form,
+        );
         setError(
           Object.values(e.errors ?? {})
             .flat()
@@ -220,8 +241,10 @@ export function ReceiptCorrection({
                     value={amount}
                     disabled={busy || uncertain}
                     onChange={(e) => setAmount(e.target.value)}
+                    {...fields.props("amount")}
                   />
                 </label>
+                {fields.message("amount")}
                 <label className="field">
                   Ngày thực nhận thay thế
                   <input
@@ -229,8 +252,10 @@ export function ReceiptCorrection({
                     value={date}
                     disabled={busy || uncertain}
                     onChange={(e) => setDate(e.target.value)}
+                    {...fields.props("date")}
                   />
                 </label>
+                {fields.message("date")}
                 <label className="field">
                   Ghi chú thay thế
                   <textarea
@@ -249,8 +274,10 @@ export function ReceiptCorrection({
                 value={reason}
                 disabled={busy || uncertain}
                 onChange={(e) => setReason(e.target.value)}
+                {...fields.props("reason")}
               />
             </label>
+            {fields.message("reason")}
             {error && (
               <p role="alert" className="error">
                 {error}

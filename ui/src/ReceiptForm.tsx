@@ -2,6 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import type { Receipt, ReceiptDraft } from "./payments-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 export function ReceiptForm({
   classId,
@@ -32,18 +37,27 @@ export function ReceiptForm({
   const [error, setError] = useState("");
   const [uncertain, setUncertain] = useState(false);
   const [saved, setSaved] = useState(false);
+  const fields = useFieldErrors();
   // Keep the exact request after a transport/server failure: it may already have committed.
   const pending = useRef<ReceiptDraft | null>(null);
   const submitting = useRef(false);
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     if (submitting.current || !(canWrite || (uncertain && canReplay))) return;
     setError("");
     setSaved(false);
+    fields.clear();
     if (
       !pending.current &&
       (!date || !/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n)
     ) {
+      const invalid: FieldErrors = {};
+      if (!/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n)
+        invalid.amount =
+          "Nhập số tiền là số nguyên đồng dương, tối đa 18 chữ số.";
+      if (!date) invalid.date = "Chọn ngày nhận tiền.";
+      fields.show(invalid, form);
       setError("Nhập ngày nhận và số nguyên đồng dương, tối đa 18 chữ số.");
       return;
     }
@@ -73,6 +87,13 @@ export function ReceiptForm({
       if (e instanceof ApiError && e.status < 500) {
         pending.current = null;
         setUncertain(false);
+        fields.show(
+          apiFieldErrors(e, {
+            amountVnd: "amount",
+            receivedOn: "date",
+          }),
+          form,
+        );
         setError(
           Object.values(e.errors ?? {})
             .flat()
@@ -112,8 +133,10 @@ export function ReceiptForm({
           value={amount}
           disabled={locked}
           onChange={(e) => setAmount(e.target.value)}
+          {...fields.props("amount")}
         />
       </label>
+      {fields.message("amount")}
       <label className="field">
         Ngày nhận tiền
         <input
@@ -121,8 +144,10 @@ export function ReceiptForm({
           value={date}
           disabled={locked}
           onChange={(e) => setDate(e.target.value)}
+          {...fields.props("date")}
         />
       </label>
+      {fields.message("date")}
       <label className="field">
         Ghi chú nhận tiền
         <textarea

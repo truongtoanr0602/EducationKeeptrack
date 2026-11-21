@@ -2,6 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { type RatePlan } from "./tuition-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 export function RateForm({
   classId,
@@ -26,10 +31,18 @@ export function RateForm({
     return () => onLockChange?.(false);
   }, [busy, onLockChange]);
   const [error, setError] = useState("");
-  async function submit(event: FormEvent) {
+  const fields = useFieldErrors();
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setError("");
+    fields.clear();
     if (!date || !/^\d{1,18}$/.test(amount)) {
+      const invalid: FieldErrors = {};
+      if (!date) invalid.date = "Chọn ngày bắt đầu áp dụng đơn giá.";
+      if (!/^\d{1,18}$/.test(amount))
+        invalid.amount = "Nhập số đồng không âm, tối đa 18 chữ số.";
+      fields.show(invalid, form);
       setError(
         "Vui lòng nhập ngày hiệu lực và số nguyên đồng không âm, tối đa 18 chữ số.",
       );
@@ -45,6 +58,10 @@ export function RateForm({
         }),
       );
     } catch (e) {
+      fields.show(
+        apiFieldErrors(e, { effectiveFrom: "date", unitPriceVnd: "amount" }),
+        form,
+      );
       setError(
         e instanceof ApiError
           ? Object.values(e.errors ?? {})
@@ -72,7 +89,9 @@ export function RateForm({
           disabled={busy}
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          {...fields.props("date")}
         />
+        {fields.message("date")}
       </div>
       <div className="field">
         <label htmlFor="tuition-price-amount">Đơn giá mỗi buổi (đồng)</label>
@@ -84,7 +103,9 @@ export function RateForm({
           disabled={busy}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          {...fields.props("amount")}
         />
+        {fields.message("amount")}
         <small>
           Nhập số đồng, không dùng dấu chấm/phẩy. Có thể nhập 0 cho buổi miễn
           phí.

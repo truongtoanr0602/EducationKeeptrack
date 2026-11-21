@@ -68,7 +68,13 @@ export function Popup({
       {description && <p className={descriptionClass}>{description}</p>}
       <div className="popup-body mt-4">{children}</div>
       {footer && (
-        <div className="sticky bottom-0 mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white pt-3 pb-1">
+        <div
+          className={cn(
+            "mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3",
+            // Only a preview keeps its action in reach: on a form the sticky bar would sit over the fields and buttons.
+            wide && "sticky bottom-0 bg-white pb-1",
+          )}
+        >
           {footer}
         </div>
       )}

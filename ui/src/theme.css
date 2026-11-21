@@ -180,3 +180,21 @@ table tbody tr:hover td {
     min-height: 44px;
   }
 }
+
+/* Field-level validation messages: next to the field, not by colour alone (the "Lỗi:" label), tied to it for screen readers. */
+.field-error {
+  display: block;
+  margin-top: 0.25rem;
+  color: #a12626;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.field-error b {
+  font-weight: 800;
+}
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border-color: #ba1a1a;
+  box-shadow: 0 0 0 1px #ba1a1a;
+}

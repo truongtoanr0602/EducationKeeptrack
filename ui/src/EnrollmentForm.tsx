@@ -7,6 +7,11 @@ import {
   type Enrollment,
   type EnrollmentStatus,
 } from "./roster-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 export function EnrollmentForm({
   item,
@@ -38,9 +43,18 @@ export function EnrollmentForm({
     onLockChange?.(busy);
     return () => onLockChange?.(false);
   }, [busy, onLockChange]);
-  async function submit(event: FormEvent) {
+  const fields = useFieldErrors();
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    fields.clear();
     if (!date || (!item && !studentId)) {
+      const invalid: FieldErrors = {};
+      if (!item && !studentId)
+        invalid.student = "Chọn một học sinh trong danh sách.";
+      if (!date)
+        invalid.date = item ? "Chọn ngày hiệu lực." : "Chọn ngày bắt đầu.";
+      fields.show(invalid, form);
       setError("Vui lòng chọn học sinh và ngày hiệu lực.");
       return;
     }
@@ -56,6 +70,15 @@ export function EnrollmentForm({
       );
       onSaved();
     } catch (e) {
+      fields.show(
+        apiFieldErrors(e, {
+          studentId: "student",
+          startDate: "date",
+          effectiveDate: "date",
+          status: "status",
+        }),
+        form,
+      );
       setError(
         e instanceof ApiError
           ? Object.values(e.errors ?? {})
@@ -82,6 +105,7 @@ export function EnrollmentForm({
             value={status}
             disabled={busy}
             onChange={(e) => setStatus(e.target.value as EnrollmentStatus)}
+            {...fields.props("status")}
           >
             {(Object.keys(statusNames) as EnrollmentStatus[]).map((s) => (
               <option value={s} key={s}>
@@ -89,6 +113,7 @@ export function EnrollmentForm({
               </option>
             ))}
           </select>
+          {fields.message("status")}
         </div>
       ) : (
         <div className="field">
@@ -98,6 +123,7 @@ export function EnrollmentForm({
             value={studentId}
             disabled={busy}
             onChange={(e) => setStudentId(e.target.value)}
+            {...fields.props("student")}
           >
             <option value="">Chọn học sinh của bạn</option>
             {students.map((s) => (
@@ -107,6 +133,7 @@ export function EnrollmentForm({
               </option>
             ))}
           </select>
+          {fields.message("student")}
         </div>
       )}
       <div className="field">
@@ -120,7 +147,9 @@ export function EnrollmentForm({
           min={item?.history.at(-1)?.effectiveDate}
           disabled={busy}
           onChange={(e) => setDate(e.target.value)}
+          {...fields.props("date")}
         />
+        {fields.message("date")}
       </div>
       {status === "stopped" && item && (
         <p>
