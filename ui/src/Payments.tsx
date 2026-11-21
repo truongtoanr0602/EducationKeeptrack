@@ -15,11 +15,14 @@ export function Payments({
   canWrite,
   onDenied,
   onChanged,
+  studentId,
 }: {
   classId: string;
   month: string;
   refreshToken: string;
   canWrite: boolean;
+  /** Show only this student (the detail pane of the tuition screen); all students when omitted. */
+  studentId?: string | null;
   onDenied: (error: ApiError) => void;
   onChanged: () => void;
 }) {
@@ -135,113 +138,123 @@ export function Payments({
           </p>
           <p>Tổng công nợ các kỳ: {money(report.totalDebtVnd)}</p>
           <div className="tuition-students">
-            {report.students.map((student) => (
-              <article
-                key={student.studentId}
-                className="class-card pay-card"
-                aria-label={`Công nợ ${student.name}`}
-              >
-                <div className="pay-summary">
-                  <h4>Công nợ: {student.name}</h4>
-                  <div className="pay-figures">
-                    <p>
-                      Nợ trước tháng {report.month}: {money(student.oldDebtVnd)}
-                    </p>
-                    <p>
-                      Nợ tháng {report.month}: {money(student.currentDebtVnd)}
-                    </p>
-                    <p>Tổng cần thu: {money(student.totalDebtVnd)}</p>
-                    <p>Tiền chưa phân bổ: {money(student.unallocatedVnd)}</p>
+            {report.students
+              .filter(
+                (student) => !studentId || student.studentId === studentId,
+              )
+              .map((student) => (
+                <article
+                  key={student.studentId}
+                  className="class-card pay-card"
+                  aria-label={`Công nợ ${student.name}`}
+                >
+                  <div className="pay-summary">
+                    <h4>Công nợ: {student.name}</h4>
+                    <div className="pay-figures">
+                      <p>
+                        Nợ trước tháng {report.month}:{" "}
+                        {money(student.oldDebtVnd)}
+                      </p>
+                      <p>
+                        Nợ tháng {report.month}: {money(student.currentDebtVnd)}
+                      </p>
+                      <p>Tổng cần thu: {money(student.totalDebtVnd)}</p>
+                      <p>Tiền chưa phân bổ: {money(student.unallocatedVnd)}</p>
+                    </div>
+                    {student.allocationExcessVnd !== "0" && (
+                      <p className="notice">
+                        Tiền giữ để đối chiếu:{" "}
+                        {money(student.allocationExcessVnd)}
+                      </p>
+                    )}
+                    <ul aria-label="Công nợ từng kỳ">
+                      {student.periods.map((period) => (
+                        <li key={period.month}>
+                          {period.month} · {paymentStatus[period.status]} · Phí:{" "}
+                          {money(period.feesVnd)} · Đã phân bổ:{" "}
+                          {money(period.paidVnd)} · Còn nợ:{" "}
+                          {money(period.debtVnd)}
+                          {period.allocationExcessVnd !== "0" &&
+                            ` · Giữ để đối chiếu: ${money(period.allocationExcessVnd)}`}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  {student.allocationExcessVnd !== "0" && (
-                    <p className="notice">
-                      Tiền giữ để đối chiếu:{" "}
-                      {money(student.allocationExcessVnd)}
-                    </p>
-                  )}
-                  <ul aria-label="Công nợ từng kỳ">
-                    {student.periods.map((period) => (
-                      <li key={period.month}>
-                        {period.month} · {paymentStatus[period.status]} · Phí:{" "}
-                        {money(period.feesVnd)} · Đã phân bổ:{" "}
-                        {money(period.paidVnd)} · Còn nợ:{" "}
-                        {money(period.debtVnd)}
-                        {period.allocationExcessVnd !== "0" &&
-                          ` · Giữ để đối chiếu: ${money(period.allocationExcessVnd)}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="pay-actions">
-                  <PaymentQr
-                    classId={classId}
-                    studentId={student.studentId}
-                    studentName={student.name}
-                    month={month}
-                    version={report.version}
-                    recipient={recipient}
-                    enabled={
-                      canWrite &&
-                      !loading &&
-                      !error &&
-                      report.status === "ready" &&
-                      report.month === month &&
-                      student.totalDebtVnd !== "0"
-                    }
-                    onDenied={onDenied}
-                  />
-                  <button
-                    type="button"
-                    className="receipt-toggle"
-                    onClick={() => setReceiptFor(student.studentId)}
-                  >
-                    Nhập khoản nhận tiền
-                  </button>
-                </div>
-                <div className="pay-history">
-                  <h4>Lịch sử nhận tiền</h4>
-                  {student.receipts.length === 0 && <p>Chưa ghi nhận tiền.</p>}
-                  <ul aria-label="Lịch sử nhận tiền">
-                    {student.receipts.map((receipt) => (
-                      <li key={receipt.id} id={`receipt-${receipt.id}`}>
-                        <p>
-                          {receipt.receivedOn} · Nhận {money(receipt.amountVnd)}
-                          {receipt.note && ` · ${receipt.note}`}
-                        </p>
-                        <p>
-                          Phân bổ:{" "}
-                          {receipt.allocations.length === 0
-                            ? "Chưa phân bổ"
-                            : receipt.allocations
-                                .map((a) => `${a.month}: ${money(a.amountVnd)}`)
-                                .join("; ")}
-                        </p>
-                        <p>Chưa phân bổ: {money(receipt.unallocatedVnd)}</p>
-                        <ReceiptCorrection
-                          receipt={receipt}
-                          classId={classId}
-                          version={report.version}
-                          canWrite={
-                            canWrite &&
-                            !loading &&
-                            !error &&
-                            report.month === month &&
-                            (report.status === "ready" ||
-                              report.status === "needs-review")
-                          }
-                          canReplay={canWrite}
-                          onDenied={onDenied}
-                          onSaved={() => {
-                            void load();
-                            onChanged();
-                          }}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </article>
-            ))}
+                  <div className="pay-actions">
+                    <PaymentQr
+                      classId={classId}
+                      studentId={student.studentId}
+                      studentName={student.name}
+                      month={month}
+                      version={report.version}
+                      recipient={recipient}
+                      enabled={
+                        canWrite &&
+                        !loading &&
+                        !error &&
+                        report.status === "ready" &&
+                        report.month === month &&
+                        student.totalDebtVnd !== "0"
+                      }
+                      onDenied={onDenied}
+                    />
+                    <button
+                      type="button"
+                      className="receipt-toggle"
+                      onClick={() => setReceiptFor(student.studentId)}
+                    >
+                      Nhập khoản nhận tiền
+                    </button>
+                  </div>
+                  <div className="pay-history">
+                    <h4>Lịch sử nhận tiền</h4>
+                    {student.receipts.length === 0 && (
+                      <p>Chưa ghi nhận tiền.</p>
+                    )}
+                    <ul aria-label="Lịch sử nhận tiền">
+                      {student.receipts.map((receipt) => (
+                        <li key={receipt.id} id={`receipt-${receipt.id}`}>
+                          <p>
+                            {receipt.receivedOn} · Nhận{" "}
+                            {money(receipt.amountVnd)}
+                            {receipt.note && ` · ${receipt.note}`}
+                          </p>
+                          <p>
+                            Phân bổ:{" "}
+                            {receipt.allocations.length === 0
+                              ? "Chưa phân bổ"
+                              : receipt.allocations
+                                  .map(
+                                    (a) => `${a.month}: ${money(a.amountVnd)}`,
+                                  )
+                                  .join("; ")}
+                          </p>
+                          <p>Chưa phân bổ: {money(receipt.unallocatedVnd)}</p>
+                          <ReceiptCorrection
+                            receipt={receipt}
+                            classId={classId}
+                            version={report.version}
+                            canWrite={
+                              canWrite &&
+                              !loading &&
+                              !error &&
+                              report.month === month &&
+                              (report.status === "ready" ||
+                                report.status === "needs-review")
+                            }
+                            canReplay={canWrite}
+                            onDenied={onDenied}
+                            onSaved={() => {
+                              void load();
+                              onChanged();
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </article>
+              ))}
           </div>
           {receiptTarget && (
             <Popup

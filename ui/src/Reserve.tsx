@@ -31,11 +31,14 @@ export function Reserve({
   canWrite,
   onDenied,
   onChanged,
+  studentId,
 }: {
   classId: string;
   month: string;
   refreshToken: string;
   canWrite: boolean;
+  /** Show only this student; all students when omitted. */
+  studentId?: string | null;
   onDenied: (error: ApiError) => void;
   onChanged: () => void;
 }) {
@@ -81,17 +84,19 @@ export function Reserve({
           <p className="notice" data-testid="reserve-policy">
             {report.policy.message}
           </p>
-          {report.students.map((student) => (
-            <StudentReserveCard
-              key={student.studentId}
-              classId={classId}
-              student={student}
-              version={report.version}
-              canWrite={canWrite}
-              onDenied={onDenied}
-              onChanged={changed}
-            />
-          ))}
+          {report.students
+            .filter((student) => !studentId || student.studentId === studentId)
+            .map((student) => (
+              <StudentReserveCard
+                key={student.studentId}
+                classId={classId}
+                student={student}
+                version={report.version}
+                canWrite={canWrite}
+                onDenied={onDenied}
+                onChanged={changed}
+              />
+            ))}
         </>
       )}
     </section>

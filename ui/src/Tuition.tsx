@@ -5,6 +5,7 @@ import { Login } from "./Login";
 import { RateForm } from "./RateForm";
 import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
+import type { PaymentsReport } from "./payments-api";
 import { Popup } from "./ui/popup";
 import { toast } from "sonner";
 import { Reserve } from "./Reserve";
@@ -42,6 +43,10 @@ export function Tuition({
   const [rateOpen, setRateOpen] = useState(false);
   const [adjustFor, setAdjustFor] = useState<string | null>(null);
   const [formLocked, setFormLocked] = useState(false);
+  // The student whose fees, payments and reserve fill the detail pane; the first one until another is picked.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Debt per student for the list on the left, from the same API the payments section uses.
+  const [debts, setDebts] = useState<Record<string, string>>({});
   const request = useRef(0);
   const path = `/billing/classes/${classroom.id}`;
   const denied = useCallback((e: ApiError) => {
@@ -112,6 +117,26 @@ export function Tuition({
     },
     [],
   );
+  useEffect(() => {
+    if (!report) return;
+    let active = true;
+    api<PaymentsReport>(
+      `${path}/payments?month=${encodeURIComponent(appliedMonth)}`,
+    )
+      .then(
+        (payments) =>
+          active &&
+          setDebts(
+            Object.fromEntries(
+              payments.students.map((s) => [s.studentId, s.totalDebtVnd]),
+            ),
+          ),
+      )
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [report, path, appliedMonth]);
   async function resume() {
     const user = await api<Me>("/auth/me");
     if (user.email !== me.email) {
@@ -121,6 +146,22 @@ export function Tuition({
     setAccess(user.access);
     setSessionExpired(false);
     await load(appliedMonth);
+  }
+  const activeId =
+    report?.students.find((s) => s.studentId === selectedId)?.studentId ??
+    report?.students[0]?.studentId ??
+    null;
+  function pick(id: string) {
+    setSelectedId(id);
+    // On a phone the detail sits under the list: bring it into view.
+    if (window.matchMedia("(max-width: 1000px)").matches)
+      window.setTimeout(
+        () =>
+          document
+            .getElementById("fee-detail")
+            ?.scrollIntoView({ block: "start" }),
+        50,
+      );
   }
   const adjustTarget = report?.students.find(
     (student) => student.studentId === adjustFor,
@@ -257,90 +298,6 @@ export function Tuition({
             {report.students.length === 0 && (
               <p>Chưa có học sinh trong lớp này.</p>
             )}
-            <div className="tuition-students">
-              {report.students.map((student) => (
-                <article className="class-card" key={student.studentId}>
-                  <h3>Học phí: {student.name}</h3>
-                  <p>{money(student.totalVnd)}</p>
-                  <button
-                    aria-expanded={expanded === student.studentId}
-                    onClick={() =>
-                      setExpanded(
-                        expanded === student.studentId
-                          ? null
-                          : student.studentId,
-                      )
-                    }
-                  >
-                    Chi tiết {student.name}
-                  </button>
-                  <div
-                    className="tuition-table-wrap"
-                    tabIndex={0}
-                    hidden={expanded !== student.studentId}
-                  >
-                    <table aria-label={`Căn cứ học phí ${student.name}`}>
-                      <thead>
-                        <tr>
-                          <th>Buổi học</th>
-                          <th>Căn cứ</th>
-                          <th>Đơn giá</th>
-                          <th>Phí buổi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {student.lines.map((line) => (
-                          <tr key={line.sessionId}>
-                            <td>
-                              {line.date} · {line.startTime.slice(0, 5)}
-                            </td>
-                            <td>{feeBasis(line)}</td>
-                            <td>
-                              {line.unitPriceVnd === null
-                                ? "—"
-                                : money(line.unitPriceVnd)}
-                            </td>
-                            <td>{money(line.amountVnd)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <h4>Lịch sử điều chỉnh</h4>
-                    <ul aria-label="Lịch sử điều chỉnh">
-                      {student.adjustments.map((adjustment) => (
-                        <li key={adjustment.id}>
-                          {adjustment.month} ·{" "}
-                          {adjustment.direction === "increase"
-                            ? "Tăng"
-                            : "Giảm"}{" "}
-                          {money(adjustment.amountVnd)} · {adjustment.reason}
-                          <p>
-                            Người ghi: {adjustment.recordedBy} ·{" "}
-                            {new Date(adjustment.recordedAt).toLocaleString(
-                              "vi-VN",
-                            )}{" "}
-                            · Phiên bản {adjustment.version}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                    {student.adjustments.length === 0 && (
-                      <p>Chưa có điều chỉnh.</p>
-                    )}
-                    <button
-                      type="button"
-                      disabled={!access.canWrite}
-                      onClick={() => setAdjustFor(student.studentId)}
-                    >
-                      Điều chỉnh học phí
-                    </button>
-                    {student.lines.length === 0 && (
-                      <p>Không có buổi học trong tháng.</p>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
             {adjustTarget && (
               <Popup
                 open
@@ -387,30 +344,165 @@ export function Tuition({
             )}
           </>
         )}
+        <div className="fee-split">
+          {report && report.students.length > 0 && (
+            <aside className="fee-master" aria-label="Học sinh của lớp">
+              <ul>
+                {report.students.map((student) => {
+                  const debt = debts[student.studentId];
+                  const owes = debt !== undefined && debt !== "0";
+                  return (
+                    <li key={student.studentId}>
+                      <button
+                        className="fee-row"
+                        aria-pressed={student.studentId === activeId}
+                        aria-label={`Chọn học sinh ${student.name}`}
+                        onClick={() => pick(student.studentId)}
+                      >
+                        <span className="fr-name">{student.name}</span>
+                        <span className="fr-fee">
+                          Học phí {money(student.totalVnd)}
+                        </span>
+                        <span
+                          className={`fr-debt ${debt === undefined ? "" : owes ? "owes" : "clear"}`}
+                        >
+                          {debt === undefined
+                            ? "…"
+                            : owes
+                              ? `Nợ ${money(debt)}`
+                              : "Đã đủ"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+          )}
+          <div className="fee-detail" id="fee-detail">
+            {report && (
+              <div className="tuition-students">
+                {report.students
+                  .filter((student) => student.studentId === activeId)
+                  .map((student) => (
+                    <article className="class-card" key={student.studentId}>
+                      <h3>Học phí: {student.name}</h3>
+                      <p>{money(student.totalVnd)}</p>
+                      <button
+                        aria-expanded={expanded === student.studentId}
+                        onClick={() =>
+                          setExpanded(
+                            expanded === student.studentId
+                              ? null
+                              : student.studentId,
+                          )
+                        }
+                      >
+                        Chi tiết {student.name}
+                      </button>
+                      <div
+                        className="tuition-table-wrap"
+                        tabIndex={0}
+                        hidden={expanded !== student.studentId}
+                      >
+                        <table aria-label={`Căn cứ học phí ${student.name}`}>
+                          <thead>
+                            <tr>
+                              <th>Buổi học</th>
+                              <th>Căn cứ</th>
+                              <th>Đơn giá</th>
+                              <th>Phí buổi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {student.lines.map((line) => (
+                              <tr key={line.sessionId}>
+                                <td>
+                                  {line.date} · {line.startTime.slice(0, 5)}
+                                </td>
+                                <td>{feeBasis(line)}</td>
+                                <td>
+                                  {line.unitPriceVnd === null
+                                    ? "—"
+                                    : money(line.unitPriceVnd)}
+                                </td>
+                                <td>{money(line.amountVnd)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <h4>Lịch sử điều chỉnh</h4>
+                        <ul aria-label="Lịch sử điều chỉnh">
+                          {student.adjustments.map((adjustment) => (
+                            <li key={adjustment.id}>
+                              {adjustment.month} ·{" "}
+                              {adjustment.direction === "increase"
+                                ? "Tăng"
+                                : "Giảm"}{" "}
+                              {money(adjustment.amountVnd)} ·{" "}
+                              {adjustment.reason}
+                              <p>
+                                Người ghi: {adjustment.recordedBy} ·{" "}
+                                {new Date(adjustment.recordedAt).toLocaleString(
+                                  "vi-VN",
+                                )}{" "}
+                                · Phiên bản {adjustment.version}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                        {student.adjustments.length === 0 && (
+                          <p>Chưa có điều chỉnh.</p>
+                        )}
+                        <button
+                          type="button"
+                          disabled={!access.canWrite}
+                          onClick={() => setAdjustFor(student.studentId)}
+                        >
+                          Điều chỉnh học phí
+                        </button>
+                        {student.lines.length === 0 && (
+                          <p>Không có buổi học trong tháng.</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            )}
+            <Payments
+              key={classroom.id}
+              classId={classroom.id}
+              month={appliedMonth}
+              refreshToken={`${refreshToken}:${report?.version ?? 0}`}
+              studentId={activeId}
+              canWrite={access.canWrite && !sessionExpired}
+              onDenied={denied}
+              onChanged={() => void load(appliedMonth)}
+            />
+            <Reserve
+              key={`reserve:${classroom.id}`}
+              classId={classroom.id}
+              month={appliedMonth}
+              refreshToken={`${refreshToken}:${report?.version ?? 0}`}
+              studentId={activeId}
+              canWrite={access.canWrite && !sessionExpired}
+              onDenied={denied}
+              onChanged={() => void load(appliedMonth)}
+            />
+          </div>
+        </div>
         <CashflowStatistics
           key={`statistics:${classroom.id}`}
           classId={classroom.id}
           month={appliedMonth}
           refreshToken={`${refreshToken}:${report?.version ?? 0}`}
           onDenied={denied}
-        />
-        <Payments
-          key={classroom.id}
-          classId={classroom.id}
-          month={appliedMonth}
-          refreshToken={`${refreshToken}:${report?.version ?? 0}`}
-          canWrite={access.canWrite && !sessionExpired}
-          onDenied={denied}
-          onChanged={() => void load(appliedMonth)}
-        />
-        <Reserve
-          key={`reserve:${classroom.id}`}
-          classId={classroom.id}
-          month={appliedMonth}
-          refreshToken={`${refreshToken}:${report?.version ?? 0}`}
-          canWrite={access.canWrite && !sessionExpired}
-          onDenied={denied}
-          onChanged={() => void load(appliedMonth)}
+          onSelectStudent={({ id, name }) => {
+            const found = report?.students.find((s) =>
+              id ? s.studentId === id : s.name === name,
+            );
+            if (found) setSelectedId(found.studentId);
+          }}
         />
       </div>
       {!access.canRead && !sessionExpired && (
