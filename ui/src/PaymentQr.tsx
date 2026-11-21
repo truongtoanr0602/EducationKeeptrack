@@ -476,35 +476,58 @@ export function PaymentQr({
                     số tiền và nội dung bên dưới.
                   </p>
                 ) : null}
-                {transfer.qrDataUrl && !imageFailed && (
-                  <img
-                    className="payment-qr"
-                    src={
-                      useStatic ? transfer.staticQrDataUrl! : transfer.qrDataUrl
-                    }
-                    alt={
-                      transfer.qrKind === "vietqr" && !useStatic
-                        ? "VietQR chuyển khoản"
-                        : "QR ngân hàng tĩnh"
-                    }
-                    onError={() => {
-                      if (
-                        transfer.qrKind === "vietqr" &&
-                        !useStatic &&
-                        transfer.staticQrDataUrl
-                      )
-                        setUseStatic(true);
-                      else setImageFailed(true);
-                    }}
-                  />
-                )}
-                <p>
-                  Ngân hàng: {transfer.bankName} ({transfer.bankBin})
-                </p>
-                <p>Tài khoản: {transfer.accountNo}</p>
-                <p>Người nhận: {transfer.accountName}</p>
-                <p>Số tiền chuyển: {money(transfer.amountVnd)}</p>
-                <p>Nội dung: {transfer.content}</p>
+                <div className="vietqr-card">
+                  <div className="vietqr-head">
+                    <span className="vietqr-brand" aria-hidden="true">
+                      <b className="viet">VIET</b>
+                      <b className="qr">QR</b>
+                    </span>
+                    <small>Quét mã bằng ứng dụng ngân hàng</small>
+                  </div>
+                  {transfer.qrDataUrl && !imageFailed && (
+                    <img
+                      className="payment-qr"
+                      src={
+                        useStatic
+                          ? transfer.staticQrDataUrl!
+                          : transfer.qrDataUrl
+                      }
+                      alt={
+                        transfer.qrKind === "vietqr" && !useStatic
+                          ? "VietQR chuyển khoản"
+                          : "QR ngân hàng tĩnh"
+                      }
+                      onError={() => {
+                        if (
+                          transfer.qrKind === "vietqr" &&
+                          !useStatic &&
+                          transfer.staticQrDataUrl
+                        )
+                          setUseStatic(true);
+                        else setImageFailed(true);
+                      }}
+                    />
+                  )}
+                  <div className="vietqr-amount">
+                    <span>Số tiền chuyển:</span>{" "}
+                    <strong>{money(transfer.amountVnd)}</strong>
+                  </div>
+                  <div className="vietqr-info">
+                    <p>
+                      <span>Ngân hàng:</span> {transfer.bankName} (
+                      {transfer.bankBin})
+                    </p>
+                    <p>
+                      <span>Tài khoản:</span> {transfer.accountNo}
+                    </p>
+                    <p>
+                      <span>Người nhận:</span> {transfer.accountName}
+                    </p>
+                    <p>
+                      <span>Nội dung:</span> {transfer.content}
+                    </p>
+                  </div>
+                </div>
                 <p>
                   Quét QR không xác nhận đã nhận tiền. Chỉ ghi nhận sau khi kiểm
                   tra tài khoản ngân hàng.
