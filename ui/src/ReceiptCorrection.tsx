@@ -138,7 +138,7 @@ export function ReceiptCorrection({
             Xem trước/sau
           </button>
           {history && (
-            <div className="tuition-table-wrap">
+            <div className="tuition-table-wrap" tabIndex={0}>
               <table aria-label="Đối chiếu trước/sau">
                 <thead>
                   <tr>

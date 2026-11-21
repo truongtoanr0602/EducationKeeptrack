@@ -153,7 +153,7 @@ function ReportView({ report }: { report: ImportReport }) {
         <p className="error">Thiếu ảnh: {report.missingImages.join(", ")}. Chọn các ảnh này ở ô "Ảnh câu hỏi" rồi xem trước lại.</p>
       )}
       {report.issues.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="data-table">
             <thead><tr><th scope="col">Sheet</th><th scope="col">Dòng</th><th scope="col">Cột</th><th scope="col">Lỗi</th></tr></thead>
             <tbody>

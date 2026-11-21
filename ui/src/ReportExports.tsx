@@ -12,7 +12,7 @@ export function ReportExports({ items, busy, canUpdate, onDownload, onRecheck, o
   onDownload: (id: string) => void; onRecheck: () => void; onUpdate: () => void;
 }) {
   const outdated = items.filter(x => x.freshness?.state === "outdated");
-  return <div className="report-exports"><h4>Các bản xuất đã lưu</h4>
+  return <div className="report-exports"><h3>Các bản xuất đã lưu</h3>
     {!items.length && <p>Chưa có bản xuất trong tháng này.</p>}
     {outdated.length > 0 && <p className="notice" role="status" data-testid="outdated-banner">
       Có {outdated.length} bản PDF đã lỗi thời. File đã xuất không bị sửa; muốn có bản mới hãy xem trước và xuất lại. Hệ thống không tự gửi cho phụ huynh.

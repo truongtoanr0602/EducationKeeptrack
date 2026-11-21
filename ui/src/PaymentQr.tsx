@@ -341,6 +341,7 @@ export function RecipientSettings({
 export function PaymentQr({
   classId,
   studentId,
+  studentName,
   month,
   version,
   recipient,
@@ -349,6 +350,7 @@ export function PaymentQr({
 }: {
   classId: string;
   studentId: string;
+  studentName: string;
   month: string;
   version: number;
   recipient: Recipient | null;
@@ -404,7 +406,7 @@ export function PaymentQr({
     };
   }, [transfer, classId, month]);
   return (
-    <section aria-label="Yêu cầu chuyển khoản">
+    <section aria-label={`Yêu cầu chuyển khoản · ${studentName}`}>
       <button
         disabled={!enabled || busy}
         onClick={async () => {

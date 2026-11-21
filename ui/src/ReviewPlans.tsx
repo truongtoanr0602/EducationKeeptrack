@@ -747,7 +747,7 @@ function Execution({
     <section className="card" aria-label="Ghi nhận buổi ôn">
       <h3>Ghi nhận buổi ôn</h3>
       <p className="hint">Ghi rõ vắng hoặc chưa làm; đây là tình trạng thực tế, không phải kết luận học tập.</p>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data-table">
           <thead>
             <tr>
@@ -848,7 +848,7 @@ function Progress({ base, planId, version, denied }: { base: string; planId: str
       {error && <p className="error" role="alert">{error}</p>}
       {!progress && !error && <p role="status">Đang tải…</p>}
       {progress && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="data-table">
             <thead>
               <tr>

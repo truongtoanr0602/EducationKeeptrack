@@ -301,7 +301,7 @@ function SkillsEditor({ classroom, curriculum, canWrite, denied, reload, onCurri
       {curriculum.skills.length === 0 ? (
         <p className="muted">Chưa có kỹ năng nào.</p>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="data-table">
             <thead>
               <tr>

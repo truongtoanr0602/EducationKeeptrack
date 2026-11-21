@@ -350,7 +350,7 @@ function SeatsBoard({ exam, canWrite, busy, onReset }: { exam: Exam; canWrite: b
           Mỗi ô là số câu đúng / số câu của kỹ năng chính. <span className="band strong">xanh</span> ≥ 80%, <span className="band weak">đỏ</span> dưới 50%.
         </p>
       )}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data-table">
           <thead>
             <tr>

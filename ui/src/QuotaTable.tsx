@@ -55,7 +55,7 @@ export function QuotaInputs({
 
 export function QuotaTable({ quotas }: { quotas: QuotaBalance[] }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0}>
       <table className="data-table" aria-label="Hạn mức AI theo loại">
         <thead>
           <tr>

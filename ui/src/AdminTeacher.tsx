@@ -126,7 +126,7 @@ export function TeacherDetail({
             {teacher.periods.length === 0 ? (
               <p className="muted">Chưa được cấp kỳ nào.</p>
             ) : (
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -186,7 +186,7 @@ export function TeacherDetail({
             {teacher.history.length === 0 ? (
               <p className="muted">Chưa có thao tác.</p>
             ) : (
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="data-table" aria-label="Lịch sử thao tác">
                   <thead>
                     <tr>
