@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openReceiptForm } from "./helpers";
 
 test("fee reduction holds allocated money and safe receipt retry remains possible", async ({
   page,
@@ -59,6 +60,7 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
+  await openReceiptForm(card);
   await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
   await expect(
     card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
@@ -100,6 +102,7 @@ test("fee reduction holds allocated money and safe receipt retry remains possibl
   await expect(
     card.getByText("Tiền giữ để đối chiếu: 500.000", { exact: false }),
   ).toBeVisible();
+  await openReceiptForm(card);
   await expect(
     card.getByRole("button", { name: "Ghi nhận tiền", exact: true }),
   ).toBeDisabled();

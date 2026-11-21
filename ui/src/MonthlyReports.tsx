@@ -20,7 +20,7 @@ export function MonthlyReports({ classId, students, canWrite, onDenied }: { clas
   }, [classId, selected, month]);
   return <section className="monthly-reports" aria-label="Báo cáo PDF tháng">
     <h3>Báo cáo PDF tháng</h3><p>Lưu nhận xét, kiểm tra nguồn và xuất báo cáo riêng cho từng học sinh.</p>
-    <div className="report-scope">
+    <div className="report-scope sticky-scope">
       <label>Học sinh báo cáo<select value={selected} onChange={e => setStudentId(e.target.value)}>{students.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
       <label>Tháng báo cáo<input type="month" value={month} min="0001-01" max="9998-12" onChange={e => { if (e.target.value) setMonth(e.target.value); }} /></label>
     </div>
@@ -89,7 +89,7 @@ function ReportEditor({ path, classId, canWrite, onDenied }: { path: string; cla
     <ReportDraftForm draft={draft} path={path} disabled={!canWrite || busy || uncertain} dirty={dirty} onChange={value => { setDraft(value); setPreview(null); }} onSave={() => void act(save)} />
     {dirty && <p className="notice">Lưu nội dung trước khi xem trước hoặc xuất PDF.</p>}
     {uncertain && <p className="notice">Lệnh xuất chưa rõ kết quả. Thử lại cùng lệnh để tránh xuất trùng.</p>}
-    <div className="roster-actions">
+    <div className="roster-actions sticky-actions">
       <button disabled={busy || dirty || uncertain} onClick={() => void act(capture)}>Xem trước báo cáo</button>
       <button disabled={busy || dirty || !preview} onClick={() => void act(exportPdf)}>{uncertain ? "Thử lại lệnh xuất" : "Xuất PDF"}</button>
       <a className="button-link" href={classHref(classId, "tuition")}>Đối chiếu học phí</a>

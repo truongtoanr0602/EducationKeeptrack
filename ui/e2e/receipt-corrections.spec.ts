@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openReceiptForm } from "./helpers";
 
 test("receipt corrections preserve history and restore balances after reload", async ({
   page,
@@ -61,6 +62,7 @@ test("receipt corrections preserve history and restore balances after reload", a
   await expect(
     card.getByText("Tổng cần thu: 500.000", { exact: false }),
   ).toBeVisible();
+  await openReceiptForm(card);
   await card.getByLabel("Số tiền nhận (đồng)").fill("500000");
   await card
     .getByRole("button", { name: "Ghi nhận tiền", exact: true })

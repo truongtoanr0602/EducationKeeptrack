@@ -119,59 +119,71 @@ export function CashflowStatistics({
       className="payments-workspace"
     >
       <h3>Thống kê thu tiền và công nợ</h3>
-      <p>
-        Theo lớp hiện tại. Ngày thực nhận theo giờ Việt Nam (Asia/Ho_Chi_Minh);
-        kỳ nghĩa vụ là tháng phát sinh học phí. Chỉ khoản nhận còn hiệu lực được
-        tính là thực thu. Dùng bảo lưu không phải tiền mới nhận.
-      </p>
-      <div className="form-actions">
-        <button
-          type="button"
-          aria-pressed={view === "cashflow"}
-          onClick={() => setView("cashflow")}
+      <details className="stats-help">
+        <summary>Cách tính số liệu</summary>
+        <p>
+          Theo lớp hiện tại. Ngày thực nhận theo giờ Việt Nam
+          (Asia/Ho_Chi_Minh); kỳ nghĩa vụ là tháng phát sinh học phí. Chỉ khoản
+          nhận còn hiệu lực được tính là thực thu. Dùng bảo lưu không phải tiền
+          mới nhận.
+        </p>
+      </details>
+      <div className="stats-toolbar">
+        <div className="segmented">
+          <button
+            type="button"
+            aria-pressed={view === "cashflow"}
+            onClick={() => setView("cashflow")}
+          >
+            Thực thu theo ngày nhận
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === "period"}
+            onClick={() => setView("period")}
+          >
+            Công nợ theo kỳ học
+          </button>
+        </div>
+        <form
+          className="session-range stats-filter"
+          onSubmit={submit}
+          noValidate
         >
-          Thực thu theo ngày nhận
-        </button>
-        <button
-          type="button"
-          aria-pressed={view === "period"}
-          onClick={() => setView("period")}
-        >
-          Công nợ theo kỳ học
-        </button>
+          {view === "cashflow" ? (
+            <>
+              <label>
+                Từ ngày thực nhận
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                />
+              </label>
+              <label>
+                Đến ngày thực nhận
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                />
+              </label>
+            </>
+          ) : (
+            <label>
+              Kỳ nghĩa vụ
+              <input
+                type="month"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+              />
+            </label>
+          )}
+          <button className="primary" disabled={loading}>
+            Tải thống kê
+          </button>
+        </form>
       </div>
-      <form className="session-range" onSubmit={submit} noValidate>
-        {view === "cashflow" ? (
-          <>
-            <label>
-              Từ ngày thực nhận
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </label>
-            <label>
-              Đến ngày thực nhận
-              <input
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </label>
-          </>
-        ) : (
-          <label>
-            Kỳ nghĩa vụ
-            <input
-              type="month"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-            />
-          </label>
-        )}
-        <button disabled={loading}>Tải thống kê</button>
-      </form>
       {loading && <p role="status">Đang tải thống kê…</p>}
       {error && (
         <p role="alert" className="error">
@@ -197,15 +209,17 @@ export function CashflowStatistics({
           <p>
             Thực thu từ {cash.from} đến {cash.to} (gồm hai ngày đầu/cuối).
           </p>
-          <p role="status" aria-label="Tổng thực thu">
-            Tổng thực thu: {money(cash.totalReceivedVnd)}
-          </p>
-          <p>
-            Tiền chưa phân bổ từ các khoản nhận trong khoảng:{" "}
-            {money(cash.totalUnallocatedVnd)}
-          </p>
+          <div className="kpi-row">
+            <p role="status" aria-label="Tổng thực thu">
+              Tổng thực thu: {money(cash.totalReceivedVnd)}
+            </p>
+            <p>
+              Tiền chưa phân bổ từ các khoản nhận trong khoảng:{" "}
+              {money(cash.totalUnallocatedVnd)}
+            </p>
+          </div>
           <CashflowChart report={cash} />
-          <div className="tuition-table-wrap">
+          <div className="tuition-table-wrap table-scroll">
             <table aria-label="Chi tiết thực thu">
               <thead>
                 <tr>
@@ -273,23 +287,25 @@ export function CashflowStatistics({
             Công nợ kỳ nghĩa vụ {debts.month}, gồm các khoản phân bổ trả kỳ này
             bất kể ngày nhận tiền.
           </p>
-          <p role="status" aria-label="Tổng học phí kỳ">
-            Tổng học phí sau điều chỉnh: {money(debts.totalFeesVnd)}
-          </p>
-          <p role="status" aria-label="Tổng đã thanh toán kỳ">
-            Tổng đã thanh toán: {money(debts.totalPaidVnd)}
-          </p>
-          <p role="status" aria-label="Tổng công nợ kỳ">
-            Tổng còn nợ: {money(debts.totalDebtVnd)}
-          </p>
-          <p>Tiền giữ để đối chiếu kỳ: {money(debts.totalHeldVnd)}</p>
+          <div className="kpi-row">
+            <p role="status" aria-label="Tổng học phí kỳ">
+              Tổng học phí sau điều chỉnh: {money(debts.totalFeesVnd)}
+            </p>
+            <p role="status" aria-label="Tổng đã thanh toán kỳ">
+              Tổng đã thanh toán: {money(debts.totalPaidVnd)}
+            </p>
+            <p role="status" aria-label="Tổng công nợ kỳ">
+              Tổng còn nợ: {money(debts.totalDebtVnd)}
+            </p>
+            <p>Tiền giữ để đối chiếu kỳ: {money(debts.totalHeldVnd)}</p>
+          </div>
           <PeriodChart
             students={debts.students}
             totalFees={debts.totalFeesVnd}
             totalPaid={debts.totalPaidVnd}
             totalDebt={debts.totalDebtVnd}
           />
-          <div className="tuition-table-wrap">
+          <div className="tuition-table-wrap table-scroll">
             <table aria-label="Chi tiết công nợ kỳ">
               <thead>
                 <tr>
