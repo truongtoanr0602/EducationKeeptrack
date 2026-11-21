@@ -427,3 +427,74 @@
 .popup-body section[aria-label="Tài khoản nhận tiền"] > .card-heading > h4 {
   display: none;
 }
+
+/* VietQR card: the frame teachers expect around the code, with the transfer details next to it. */
+.vietqr-card {
+  border: 2px solid #1a3a8f;
+  border-radius: 16px;
+  background: #fff;
+  padding: 0.75rem 1rem 1rem;
+  text-align: center;
+}
+.vietqr-head {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.4rem;
+}
+.vietqr-brand {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+.vietqr-brand .viet {
+  color: #e31e24;
+}
+.vietqr-brand .qr {
+  color: #1a3a8f;
+}
+.vietqr-head small {
+  color: #5b6577;
+}
+.vietqr-card .payment-qr {
+  display: block;
+  margin: 0.25rem auto;
+  width: min(100%, 240px);
+}
+.vietqr-amount {
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.95rem;
+  color: #5b6577;
+}
+.vietqr-amount strong {
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  color: #1a3a8f;
+}
+.vietqr-amount span {
+  display: block;
+}
+.vietqr-info {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  border-top: 1px dashed #c5cbe0;
+  padding-top: 0.6rem;
+}
+.vietqr-info p {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9rem;
+  color: #0d1c2f;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.vietqr-info p span {
+  flex: none;
+  min-width: 6.2rem;
+  color: #5b6577;
+  font-weight: 500;
+}
