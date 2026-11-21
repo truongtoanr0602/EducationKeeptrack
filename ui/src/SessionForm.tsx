@@ -2,6 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { sessionLabel, type ClassSession } from "./session-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 export function SessionForm({
   classId,
@@ -37,10 +42,20 @@ export function SessionForm({
     return () => onLockChange?.(false);
   }, [busy, onLockChange]);
   const [error, setError] = useState("");
-  async function submit(event: FormEvent) {
+  const fields = useFieldErrors();
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setError("");
+    fields.clear();
     if (!date || !startTime || !endTime || startTime >= endTime) {
+      const invalid: FieldErrors = {};
+      if (!date) invalid.date = "Chọn ngày buổi học.";
+      if (!startTime) invalid.startTime = "Chọn giờ bắt đầu.";
+      if (!endTime) invalid.endTime = "Chọn giờ kết thúc.";
+      else if (startTime && startTime >= endTime)
+        invalid.endTime = "Giờ kết thúc phải sau giờ bắt đầu.";
+      fields.show(invalid, form);
       setError("Vui lòng nhập ngày và khung giờ hợp lệ trong cùng ngày.");
       return;
     }
@@ -56,6 +71,10 @@ export function SessionForm({
       });
       onSaved();
     } catch (e) {
+      fields.show(
+        apiFieldErrors(e, { date: "date", time: "startTime", kind: "kind" }),
+        form,
+      );
       setError(
         e instanceof ApiError
           ? Object.values(e.errors ?? {})
@@ -79,7 +98,9 @@ export function SessionForm({
           value={date}
           disabled={busy}
           onChange={(e) => setDate(e.target.value)}
+          {...fields.props("date")}
         />
+        {fields.message("date")}
       </div>
       <div className="field">
         <label htmlFor="session-start">Giờ bắt đầu buổi</label>
@@ -89,7 +110,9 @@ export function SessionForm({
           value={startTime}
           disabled={busy}
           onChange={(e) => setStartTime(e.target.value)}
+          {...fields.props("startTime")}
         />
+        {fields.message("startTime")}
       </div>
       <div className="field">
         <label htmlFor="session-end">Giờ kết thúc buổi</label>
@@ -99,7 +122,9 @@ export function SessionForm({
           value={endTime}
           disabled={busy}
           onChange={(e) => setEndTime(e.target.value)}
+          {...fields.props("endTime")}
         />
+        {fields.message("endTime")}
       </div>
       <div className="field">
         <label htmlFor="session-kind">Loại buổi</label>

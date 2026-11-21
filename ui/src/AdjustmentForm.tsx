@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 type Draft = {
   studentId: string;
@@ -40,21 +45,29 @@ export function AdjustmentForm({
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const fields = useFieldErrors();
   useEffect(() => {
     onLockChange?.(busy || uncertain);
     return () => onLockChange?.(false);
   }, [busy, uncertain, onLockChange]);
   const pending = useRef<Draft | null>(null);
   const submitting = useRef(false);
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     if (submitting.current || !(canWrite || (uncertain && canReplay))) return;
     setError("");
     setSaved(false);
+    fields.clear();
     if (
       !pending.current &&
       (!/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n || !reason.trim())
     ) {
+      const invalid: FieldErrors = {};
+      if (!/^\d{1,18}$/.test(amount) || BigInt(amount) <= 0n)
+        invalid.amount = "Nhập số tiền là số nguyên đồng dương.";
+      if (!reason.trim()) invalid.reason = "Nhập lý do điều chỉnh.";
+      fields.show(invalid, form);
       setError(
         "Nhập số nguyên đồng dương, tối đa 18 chữ số và lý do điều chỉnh.",
       );
@@ -87,6 +100,10 @@ export function AdjustmentForm({
       if (e instanceof ApiError && e.status < 500) {
         pending.current = null;
         setUncertain(false);
+        fields.show(
+          apiFieldErrors(e, { amountVnd: "amount", reason: "reason" }),
+          form,
+        );
         setError(
           Object.values(e.errors ?? {})
             .flat()
@@ -132,8 +149,10 @@ export function AdjustmentForm({
           value={amount}
           disabled={busy || uncertain}
           onChange={(e) => setAmount(e.target.value)}
+          {...fields.props("amount")}
         />
       </label>
+      {fields.message("amount")}
       <label className="field">
         Lý do điều chỉnh
         <textarea
@@ -141,8 +160,10 @@ export function AdjustmentForm({
           value={reason}
           disabled={busy || uncertain}
           onChange={(e) => setReason(e.target.value)}
+          {...fields.props("reason")}
         />
       </label>
+      {fields.message("reason")}
       <p>
         Khoản giảm tối đa bằng nghĩa vụ của kỳ. Tiền đã phân bổ vượt phí được
         giữ riêng để đối chiếu.

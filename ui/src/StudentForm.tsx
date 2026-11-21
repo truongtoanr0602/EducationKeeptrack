@@ -1,6 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today, type Student, type StudentDraft } from "./roster-api";
+import {
+  apiFieldErrors,
+  useFieldErrors,
+  type FieldErrors,
+} from "./ui/field-errors";
 
 export function StudentForm({
   student,
@@ -39,9 +44,16 @@ export function StudentForm({
   const [startDate, setStartDate] = useState(today);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  async function submit(event: FormEvent) {
+  const fields = useFieldErrors();
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    fields.clear();
     if (!draft.name.trim() || (!student && !startDate)) {
+      const invalid: FieldErrors = {};
+      if (!draft.name.trim()) invalid.name = "Nhập tên học sinh.";
+      if (!student && !startDate) invalid.startDate = "Chọn ngày bắt đầu.";
+      fields.show(invalid, form);
       setError("Vui lòng nhập tên học sinh và ngày bắt đầu.");
       return;
     }
@@ -62,6 +74,17 @@ export function StudentForm({
         });
       onSaved();
     } catch (e) {
+      fields.show(
+        apiFieldErrors(e, {
+          name: "name",
+          parentName: "parentName",
+          phone: "phone",
+          email: "email",
+          notes: "notes",
+          startDate: "startDate",
+        }),
+        form,
+      );
       setError(
         e instanceof ApiError
           ? Object.values(e.errors ?? {})
@@ -110,7 +133,9 @@ export function StudentForm({
             value={draft[field]}
             disabled={busy}
             onChange={(e) => setDraft({ ...draft, [field]: e.target.value })}
+            {...fields.props(field)}
           />
+          {fields.message(field)}
         </div>
       ))}
       {!student && (
@@ -122,7 +147,9 @@ export function StudentForm({
             value={startDate}
             disabled={busy}
             onChange={(e) => setStartDate(e.target.value)}
+            {...fields.props("startDate")}
           />
+          {fields.message("startDate")}
         </div>
       )}
       {error && (
