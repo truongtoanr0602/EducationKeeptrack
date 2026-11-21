@@ -548,3 +548,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Today: the card clipped with overflow:hidden, which made it the scroll container of the sticky save bar. The bar
+   then stayed 68px above the card's own bottom edge and covered the last student rows. overflow:clip keeps the
+   rounded corners without creating a scroll container, so the bar sticks to the viewport and sits after the list
+   once the end is reached. */
+.today-card {
+  overflow: hidden;
+  overflow: clip;
+}
+.today-actions {
+  bottom: calc(var(--bottom-tabs-h, 57px) + 8px + env(safe-area-inset-bottom));
+  z-index: 2;
+  padding-bottom: 8px;
+  box-shadow: 0 -6px 8px -6px rgb(15 23 42 / 0.18);
+}
+@media (min-width: 961px) {
+  .today-actions {
+    bottom: 0;
+  }
+}
