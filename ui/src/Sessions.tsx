@@ -11,6 +11,7 @@ import { Login } from "./Login";
 import {
   weekDays,
   sessionLabel,
+  sessionStatusNames,
   type WeeklySchedule,
   type ClassSession,
   type MissingAttendance,
@@ -26,6 +27,8 @@ function monthRange(): DateRange {
     to: `${date.slice(0, 7)}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`,
   };
 }
+const shortDays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
 export function Sessions({
   classroom,
   me,
@@ -331,61 +334,95 @@ export function Sessions({
             ))}
           </ul>
         </aside>
-        <ul className="session-list" aria-label="Buổi học đã lưu">
-          {sessions.map((s) => (
-            <li key={s.id}>
-              <button
-                aria-pressed={selectedId === s.id}
-                onClick={() => setSelectedId(s.id)}
-              >
-                {sessionLabel(s)}
-              </button>
-              {s.kind === "makeup" && <span>Học bù</span>}
-              {s.reason && <p>{s.reason}</p>}
-            </li>
-          ))}
-        </ul>
-        {!loading && !error && sessions.length === 0 && (
-          <p>Chưa có buổi trong khoảng ngày đã chọn.</p>
-        )}
-        {selected && (
-          <section className="selected-session">
-            <h3>
-              {sessionLabel(selected)}
-              {selected.kind === "makeup" ? " · Học bù" : ""}
-            </h3>
-            <SessionStatusForm
-              key={selected.id}
-              classId={classroom.id}
-              session={selected}
-              canWrite={access.canWrite}
-              onSaved={() => {
-                void load(appliedRange);
-                onChanged?.();
-              }}
-              onDenied={denied}
-            />
-            {selected.status === "cancelled" && (
-              <button
-                disabled={!access.canWrite || !!form}
-                onClick={() => setForm({ kind: "session", source: selected })}
-              >
-                Tạo học bù cho buổi này
-              </button>
+        <div className="sessions-split">
+          <div className="sessions-pane">
+            <ul className="session-list" aria-label="Buổi học đã lưu">
+              {sessions.map((s) => (
+                <li key={s.id}>
+                  <button
+                    className="session-item"
+                    data-status={s.status}
+                    aria-pressed={selectedId === s.id}
+                    aria-label={sessionLabel(s)}
+                    onClick={() => setSelectedId(s.id)}
+                  >
+                    <span className="si-day">
+                      <b>{s.date.slice(8, 10)}</b>
+                      <small>
+                        {shortDays[new Date(`${s.date}T00:00:00`).getDay()]}
+                      </small>
+                    </span>
+                    <span className="si-main">
+                      <span className="si-time">
+                        {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
+                      </span>
+                      <small>{s.date.slice(0, 7)}</small>
+                    </span>
+                    <span className="si-badges">
+                      {s.kind === "makeup" && (
+                        <span className="si-badge makeup">Học bù</span>
+                      )}
+                      <span className={`si-badge ${s.status}`}>
+                        {sessionStatusNames[s.status]}
+                      </span>
+                    </span>
+                  </button>
+                  {s.reason && <p className="si-reason">{s.reason}</p>}
+                </li>
+              ))}
+            </ul>
+            {!loading && !error && sessions.length === 0 && (
+              <p>Chưa có buổi trong khoảng ngày đã chọn.</p>
             )}
-            <AttendanceBoard
-              key={selected.id}
-              classId={classroom.id}
-              session={selected}
-              canWrite={access.canWrite}
-              onChanged={() => {
-                void load(appliedRange);
-                onChanged?.();
-              }}
-              onDenied={denied}
-            />
-          </section>
-        )}
+          </div>
+          <div className="sessions-pane sessions-detail">
+            {!selected && sessions.length > 0 && (
+              <p className="sessions-hint">
+                Chọn một buổi ở bên trái để đổi trạng thái và điểm danh.
+              </p>
+            )}
+            {selected && (
+              <section className="selected-session">
+                <h3>
+                  {sessionLabel(selected)}
+                  {selected.kind === "makeup" ? " · Học bù" : ""}
+                </h3>
+                <SessionStatusForm
+                  key={selected.id}
+                  classId={classroom.id}
+                  session={selected}
+                  canWrite={access.canWrite}
+                  onSaved={() => {
+                    void load(appliedRange);
+                    onChanged?.();
+                  }}
+                  onDenied={denied}
+                />
+                {selected.status === "cancelled" && (
+                  <button
+                    disabled={!access.canWrite || !!form}
+                    onClick={() =>
+                      setForm({ kind: "session", source: selected })
+                    }
+                  >
+                    Tạo học bù cho buổi này
+                  </button>
+                )}
+                <AttendanceBoard
+                  key={selected.id}
+                  classId={classroom.id}
+                  session={selected}
+                  canWrite={access.canWrite}
+                  onChanged={() => {
+                    void load(appliedRange);
+                    onChanged?.();
+                  }}
+                  onDenied={denied}
+                />
+              </section>
+            )}
+          </div>
+        </div>
       </div>
       {!access.canRead && !sessionExpired && (
         <p role="alert" className="error">
