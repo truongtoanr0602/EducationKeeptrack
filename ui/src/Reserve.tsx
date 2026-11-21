@@ -16,6 +16,7 @@ import {
   type ReserveRequest,
   type StudentReserve,
 } from "./reserve-api";
+import { formatDate } from "./format-date";
 
 const text = (e: unknown) =>
   e instanceof ApiError
@@ -146,7 +147,7 @@ function StudentReserveCard({
           <tbody>
             {student.sources.map((s) => (
               <tr key={s.receiptId}>
-                <td>{s.receivedOn}</td>
+                <td>{formatDate(s.receivedOn)}</td>
                 <td>{s.note ?? "—"}</td>
                 <td>{money(s.collectedVnd)}</td>
                 <td>{money(s.usedVnd)}</td>
@@ -436,7 +437,10 @@ function RequestCard({
         <p>
           Lấy từ:{" "}
           {request.sources
-            .map((s) => `khoản nhận ${s.receivedOn} (${money(s.amountVnd)})`)
+            .map(
+              (s) =>
+                `khoản nhận ${formatDate(s.receivedOn)} (${money(s.amountVnd)})`,
+            )
             .join("; ")}
         </p>
       )}

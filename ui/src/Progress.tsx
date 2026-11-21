@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { assessmentStates, type StudentProgress } from "./learning-api";
+import { formatDate } from "./format-date";
 
 const W = 640;
 const H = 240;
@@ -91,8 +92,18 @@ export function Progress({
     return runs;
   };
   const series = [
-    { key: "completion" as const, label: "Mức hoàn thành", color: "#2563eb", dash: undefined },
-    { key: "correctness" as const, label: "Mức làm đúng", color: "#c2410c", dash: "6 4" },
+    {
+      key: "completion" as const,
+      label: "Mức hoàn thành",
+      color: "#2563eb",
+      dash: undefined,
+    },
+    {
+      key: "correctness" as const,
+      label: "Mức làm đúng",
+      color: "#c2410c",
+      dash: "6 4",
+    },
   ];
 
   return (
@@ -255,7 +266,7 @@ export function Progress({
             <tbody>
               {points.map((p) => (
                 <tr key={p.assessmentId}>
-                  <td>{p.date}</td>
+                  <td>{formatDate(p.date)}</td>
                   <td>{p.title}</td>
                   <td>{methodText[p.method] ?? p.method}</td>
                   <td title={p.reason}>

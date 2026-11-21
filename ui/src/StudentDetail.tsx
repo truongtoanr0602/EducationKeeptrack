@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError, type Me } from "./api";
 import { statusNames, type EnrollmentStatus, type Student } from "./roster-api";
 import { classHref, href } from "./router";
+import { formatDate } from "./format-date";
 
 type StudentClass = {
   classId: string;
@@ -99,8 +100,9 @@ export function StudentDetail({
                   <span className="billing-who">
                     <strong>{c.className}</strong>
                     <span>
-                      {c.subject} · {statusNames[c.status]} · từ {c.startDate}
-                      {c.endDate ? ` đến ${c.endDate}` : ""}
+                      {c.subject} · {statusNames[c.status]} · từ{" "}
+                      {formatDate(c.startDate)}
+                      {c.endDate ? ` đến ${formatDate(c.endDate)}` : ""}
                     </span>
                   </span>
                 </div>

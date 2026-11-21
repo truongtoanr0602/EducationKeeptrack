@@ -16,6 +16,7 @@ import {
   type RatePlan,
   type TuitionReport,
 } from "./tuition-api";
+import { formatDate, formatMonth } from "./format-date";
 
 export function Tuition({
   classroom,
@@ -248,7 +249,7 @@ export function Tuition({
         <ul aria-label="Đơn giá đã lưu">
           {plan.rates.map((rate) => (
             <li key={rate.id}>
-              Từ {rate.effectiveFrom} · {money(rate.unitPriceVnd)}
+              Từ {formatDate(rate.effectiveFrom)} · {money(rate.unitPriceVnd)}
             </li>
           ))}
         </ul>
@@ -274,7 +275,8 @@ export function Tuition({
         {report && (
           <>
             <p>
-              Bảng phí tháng {report.month} · Phiên bản {report.version}
+              Bảng phí tháng {formatMonth(report.month)} · Phiên bản{" "}
+              {report.version}
             </p>
             <p className="notice" role="status">
               {loading
@@ -418,7 +420,8 @@ export function Tuition({
                             {student.lines.map((line) => (
                               <tr key={line.sessionId}>
                                 <td>
-                                  {line.date} · {line.startTime.slice(0, 5)}
+                                  {formatDate(line.date)} ·{" "}
+                                  {line.startTime.slice(0, 5)}
                                 </td>
                                 <td>{feeBasis(line)}</td>
                                 <td>
@@ -435,7 +438,7 @@ export function Tuition({
                         <ul aria-label="Lịch sử điều chỉnh">
                           {student.adjustments.map((adjustment) => (
                             <li key={adjustment.id}>
-                              {adjustment.month} ·{" "}
+                              {formatMonth(adjustment.month)} ·{" "}
                               {adjustment.direction === "increase"
                                 ? "Tăng"
                                 : "Giảm"}{" "}

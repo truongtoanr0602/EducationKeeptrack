@@ -56,7 +56,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await workspace.getByRole("button", { name: "Tạo buổi theo lịch" }).click();
   await workspace
     .getByRole("button", {
-      name: "2026-10-05 · 18:00–19:30 · Dự kiến",
+      name: "05/10/2026 · 18:00–19:30 · Dự kiến",
       exact: true,
     })
     .click();
@@ -113,7 +113,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await page.reload({ waitUntil: "domcontentloaded" });
   await workspace
     .getByRole("button", {
-      name: "2026-10-05 · 18:00–19:30 · Đã diễn ra",
+      name: "05/10/2026 · 18:00–19:30 · Đã diễn ra",
       exact: true,
     })
     .click();
@@ -219,7 +219,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await page.reload({ waitUntil: "domcontentloaded" });
   await workspace
     .getByRole("button", {
-      name: "2026-10-05 · 18:00–19:30 · Đã diễn ra",
+      name: "05/10/2026 · 18:00–19:30 · Đã diễn ra",
       exact: true,
     })
     .click();
@@ -235,7 +235,7 @@ test("teacher schedules sessions and sees saved present/absent rows with missing
   await page.getByRole("button", { name: "Lưu buổi học", exact: true }).click();
   await expect(
     workspace.getByRole("button", {
-      name: "2026-10-06 · 18:00–19:30 · Dự kiến",
+      name: "06/10/2026 · 18:00–19:30 · Dự kiến",
       exact: true,
     }),
   ).toBeVisible();

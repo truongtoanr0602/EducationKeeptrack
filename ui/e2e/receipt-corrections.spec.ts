@@ -112,7 +112,7 @@ test("receipt corrections preserve history and restore balances after reload", a
   await expect(
     card.getByText("Tổng cần thu: 300.000", { exact: false }),
   ).toBeVisible();
-  await expect(history).toContainText("2026-10-08");
+  await expect(history).toContainText("08/10/2026");
   await history
     .getByRole("button", { name: "Xem trước/sau", exact: true })
     .click();

@@ -9,6 +9,7 @@ import {
   useFieldErrors,
   type FieldErrors,
 } from "./ui/field-errors";
+import { formatDate, formatMonth } from "./format-date";
 
 type Command = {
   action: "cancel" | "replace";
@@ -25,7 +26,7 @@ const statuses = {
   replaced: "Đã thay thế",
 };
 function describe(state: ReceiptState) {
-  return `${statuses[state.status]} · ${state.receivedOn} · ${money(state.amountVnd)}${state.note ? ` · ${state.note}` : ""} · Phân bổ: ${state.allocations.map((a) => `${a.month}: ${money(a.amountVnd)}`).join("; ") || "Chưa phân bổ"} · Chưa phân bổ: ${money(state.unallocatedVnd)}`;
+  return `${statuses[state.status]} · ${formatDate(state.receivedOn)} · ${money(state.amountVnd)}${state.note ? ` · ${state.note}` : ""} · Phân bổ: ${state.allocations.map((a) => `${formatMonth(a.month)}: ${money(a.amountVnd)}`).join("; ") || "Chưa phân bổ"} · Chưa phân bổ: ${money(state.unallocatedVnd)}`;
 }
 
 export function ReceiptCorrection({

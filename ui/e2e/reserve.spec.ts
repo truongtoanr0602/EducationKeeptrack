@@ -56,7 +56,7 @@ test("teacher sees prepaid sources, records a sick-leave request and approves it
   await request.getByRole("button", { name: "Duyệt bảo lưu" }).click();
   const approved = panel.locator(".reserve-request[data-status='approved']");
   await expect(approved).toContainText("Đã duyệt bảo lưu");
-  await expect(approved).toContainText("Lấy từ: khoản nhận 2026-11-05");
+  await expect(approved).toContainText("Lấy từ: khoản nhận 05/11/2026");
   await expect(summary).toContainText("Đã nằm trong bảo lưu 450.000");
   await expect(summary).toContainText("Có thể xét bảo lưu tối đa 0");
   await expect(form).toHaveCount(0); // nothing left to reserve

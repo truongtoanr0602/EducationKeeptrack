@@ -6,6 +6,7 @@ import { SubmissionForm } from "./SubmissionForm";
 import { SkillResults } from "./SkillResults";
 import { Progress } from "./Progress";
 import type { Assessment, AssessmentSummary } from "./learning-api";
+import { formatDate } from "./format-date";
 
 export function Learning({
   classroom,
@@ -123,9 +124,13 @@ export function Learning({
     setError("");
     setRubricMessage("");
     try {
-      const updated = await api<Assessment>(`${path}/${assessment.id}/rubric`, "PUT", {
-        rubric: rubricEditing,
-      });
+      const updated = await api<Assessment>(
+        `${path}/${assessment.id}/rubric`,
+        "PUT",
+        {
+          rubric: rubricEditing,
+        },
+      );
       setAssessment(updated);
       setRubricEditing(updated.rubric ?? "");
       setRubricMessage("Đã lưu hướng dẫn chấm.");
@@ -140,11 +145,13 @@ export function Learning({
     <section aria-label="Đánh giá học tập" className="learning-panel">
       <h2>Đánh giá học tập</h2>
       <p>
-        Chọn hai mức độc lập cho từng học sinh. Hỗ trợ tải ảnh bài nộp, AI chấm bài đề xuất và giáo viên xác nhận kết quả.
+        Chọn hai mức độc lập cho từng học sinh. Hỗ trợ tải ảnh bài nộp, AI chấm
+        bài đề xuất và giáo viên xác nhận kết quả.
       </p>
       {!access.canWrite && (
         <p className="notice">
-          Chỉ xem đánh giá đã lưu; cần quyền sử dụng còn hạn để sửa hoặc xác nhận.
+          Chỉ xem đánh giá đã lưu; cần quyền sử dụng còn hạn để sửa hoặc xác
+          nhận.
         </p>
       )}
       {expired && (
@@ -227,7 +234,7 @@ export function Learning({
           {!items.length && <option value="">Chưa có bài đánh giá</option>}
           {items.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.date} · {item.title}
+              {formatDate(item.date)} · {item.title}
             </option>
           ))}
         </select>
@@ -254,7 +261,8 @@ export function Learning({
               📖 Hướng dẫn chấm bài (Phiên bản {assessment.rubricVersion ?? 1})
             </h4>
             <p style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#666" }}>
-              Cung cấp đáp án hoặc tiêu chí chấm để AI phân tích và đề xuất kết quả cho từng bài nộp.
+              Cung cấp đáp án hoặc tiêu chí chấm để AI phân tích và đề xuất kết
+              quả cho từng bài nộp.
             </p>
             <textarea
               rows={3}
@@ -265,16 +273,30 @@ export function Learning({
               onChange={(e) => setRubricEditing(e.target.value)}
               style={{ width: "100%", boxSizing: "border-box" }}
             />
-            <div style={{ marginTop: "6px", display: "flex", gap: "10px", alignItems: "center" }}>
+            <div
+              style={{
+                marginTop: "6px",
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+              }}
+            >
               <button
                 type="button"
-                disabled={busy || !access.canWrite || expired || rubricEditing === (assessment.rubric ?? "")}
+                disabled={
+                  busy ||
+                  !access.canWrite ||
+                  expired ||
+                  rubricEditing === (assessment.rubric ?? "")
+                }
                 onClick={() => void saveRubric()}
               >
                 Lưu hướng dẫn chấm
               </button>
               {rubricMessage && (
-                <span style={{ color: "green", fontSize: "13px" }}>{rubricMessage}</span>
+                <span style={{ color: "green", fontSize: "13px" }}>
+                  {rubricMessage}
+                </span>
               )}
             </div>
           </section>
