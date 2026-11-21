@@ -113,28 +113,6 @@ public sealed class PaymentQrService(BillingDatabase db, PaymentService payments
 
 public static class QrImages
 {
-    private const string PngDataUrl = "data:image/png;base64,";
-
-    /// <summary>
-    /// The VietQR service answers with either a PNG or an SVG wrapper that embeds the PNG as a data URL. The SVG itself is never
-    /// stored or rendered; only an embedded PNG that passes <see cref="IsPng"/> is returned.
-    /// </summary>
-    public static byte[]? FromResponse(byte[] body)
-    {
-        if (IsPng(body)) return body;
-        if (body.Length is 0 or > 1048576) return null;
-        var text = System.Text.Encoding.UTF8.GetString(body);
-        if (!text.TrimStart().StartsWith("<svg", StringComparison.OrdinalIgnoreCase)) return null;
-        var start = text.IndexOf(PngDataUrl, StringComparison.Ordinal);
-        if (start < 0) return null;
-        start += PngDataUrl.Length;
-        var end = text.IndexOf('"', start);
-        if (end < 0) return null;
-        var encoded = text.AsSpan(start, end - start);
-        var buffer = new byte[encoded.Length * 3 / 4 + 3];
-        return Convert.TryFromBase64Chars(encoded, buffer, out var written) && IsPng(buffer.AsSpan(0, written).ToArray()) ? buffer.AsSpan(0, written).ToArray() : null;
-    }
-
     public static bool IsPng(byte[]? data)
     {
         if (data is not { Length: >= 45 and <= 1048576 }
