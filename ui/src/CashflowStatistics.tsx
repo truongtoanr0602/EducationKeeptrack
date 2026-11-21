@@ -22,11 +22,14 @@ export function CashflowStatistics({
   month,
   refreshToken,
   onDenied,
+  onSelectStudent,
 }: {
   classId: string;
   month: string;
   refreshToken: string;
   onDenied: (error: ApiError) => void;
+  /** Lets the tuition screen show the student a receipt belongs to before scrolling to it. */
+  onSelectStudent?: (student: { id?: string; name?: string }) => void;
 }) {
   const [initial] = useState(() => {
     const query = new URLSearchParams(window.location.search);
@@ -105,6 +108,16 @@ export function CashflowStatistics({
     const timer = window.setTimeout(() => void load(), 1500);
     return () => window.clearTimeout(timer);
   }, [report, loading, error, load]);
+  function jump(receiptId: string, who: { id?: string; name?: string }) {
+    onSelectStudent?.(who);
+    window.setTimeout(
+      () =>
+        document
+          .getElementById(`receipt-${receiptId}`)
+          ?.scrollIntoView({ block: "center" }),
+      50,
+    );
+  }
   function submit(event: FormEvent) {
     event.preventDefault();
     setFilters({ view, from, to, month: period });
@@ -272,9 +285,7 @@ export function CashflowStatistics({
           <button
             type="button"
             onClick={() =>
-              document
-                .getElementById(`receipt-${receipt.receipt.id}`)
-                ?.scrollIntoView({ block: "center" })
+              jump(receipt.receipt.id, { name: receipt.studentName })
             }
           >
             Mở lịch sử khoản nhận tiền
@@ -360,11 +371,7 @@ export function CashflowStatistics({
                 {a.note && ` · ${a.note}`} ·{" "}
                 <button
                   type="button"
-                  onClick={() =>
-                    document
-                      .getElementById(`receipt-${a.receiptId}`)
-                      ?.scrollIntoView({ block: "center" })
-                  }
+                  onClick={() => jump(a.receiptId, { id: student.studentId })}
                 >
                   Khoản nhận {a.receiptId}
                 </button>
