@@ -125,3 +125,58 @@ table tbody tr:hover td {
     min-height: 44px;
   }
 }
+
+/* Scrollable tables are focusable so the keyboard can scroll them; show where the focus is. */
+.table-wrap:focus-visible,
+.tuition-table-wrap:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 8px;
+}
+.breadcrumb a {
+  display: inline-block;
+  padding: 0.2rem 0;
+}
+
+/* Phone: 44px touch targets and a one-row top bar (it was up to 128px: the breadcrumb wrapped to three lines). */
+@media (max-width: 960px) {
+  .topbar {
+    min-height: 56px;
+    gap: 0.5rem;
+  }
+  .breadcrumb {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    min-width: 0;
+  }
+  /* The section tabs underneath already show where you are: keep only the class name. */
+  .breadcrumb > a:first-child:not(:only-child),
+  .breadcrumb > span[aria-hidden="true"],
+  .breadcrumb > span[aria-current="page"]:not(:only-child) {
+    display: none;
+  }
+  .breadcrumb > a,
+  .breadcrumb > span[aria-current="page"] {
+    display: block;
+    line-height: 44px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-account button {
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .section-tabs .nav-link {
+    min-height: 44px;
+  }
+  button[aria-label="Ẩn thẻ thiết lập"] {
+    min-width: 44px;
+  }
+  .compact-cards .card-links :is(button, a),
+  .roster-list.compact .class-card > .roster-actions button {
+    min-height: 44px;
+  }
+}
