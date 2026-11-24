@@ -13,7 +13,7 @@ public sealed record ImportInfo(string? Subject, string? Grade, string? Term, st
 public sealed record SkillImportRow(int Row, string Code, string Name, string Strand, string? Criteria);
 public sealed record LessonImportRow(int Row, int No, string Topic, string Title, string Knowledge, string Outcomes, string SkillsText, string Competencies, string[] SkillCodes);
 public sealed record QuestionImportRow(int Row, string Code, string Type, string Level, string PrimarySkill, string[] SecondarySkills, int? LessonNo,
-    string Stem, string? StemImage, string[] Options, string[] Chips, string Answer);
+    string Stem, string? StemImage, string[] Options, string[] Chips, string Answer, string Points = "");
 
 /// <summary>What a workbook holds after reading, before it is checked against the class.</summary>
 public sealed record ImportBundle(ImportInfo Info, IReadOnlyList<SkillImportRow> Skills, IReadOnlyList<LessonImportRow> Lessons,

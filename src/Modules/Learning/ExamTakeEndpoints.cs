@@ -66,7 +66,10 @@ public static class ExamTakeEndpoints
                 var q = item.Snapshot;
                 return new
                 {
-                    item.Order, number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), q.Blanks,
+                    item.Order, number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), q.Blanks, q.Points, q.FillMode,
+                    stemHtml = RichStem.Resolve(q.StemHtml, n => url(n)), audioUrl = url(q.AudioFile),
+                    // A multiple-choice question says how many options to tick; the keys themselves stay on the server.
+                    choose = q.Type == QuestionType.MultiChoice && q.Answer.Length == 1 ? q.Answer[0].Length : (int?)null,
                     options = seat.PresentedOptions(item).Select(o => new { o.Key, o.Text, imageUrl = url(o.Image) })
                 };
             }).ToList() : null,
@@ -75,17 +78,24 @@ public static class ExamTakeEndpoints
             {
                 correct = seat.CorrectCount,
                 total = presented.Count,
+                score = seat.Score, maxScore = seat.MaxScore(exam), seat.PendingEssays,
                 items = presented.Select((item, index) =>
                 {
                     var q = item.Snapshot;
                     var given = answers.GetValueOrDefault(item.Order);
+                    var grade = seat.Grades.GetValueOrDefault(item.Order);
+                    var essay = q.Type == QuestionType.Essay;
                     return new
                     {
-                        number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), given, correct = q.IsCorrect(given),
-                        answer = q.Type == QuestionType.SingleChoice
+                        number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), stemHtml = RichStem.Resolve(q.StemHtml, n => url(n)), audioUrl = url(q.AudioFile),
+                        given, correct = essay ? grade is not null && grade.Points == q.Points : q.IsCorrect(given), points = q.Points,
+                        score = essay ? grade?.Points ?? 0 : q.Score(given), graded = !essay || grade is not null, comment = grade?.Comment,
+                        answer = q.Type is QuestionType.SingleChoice or QuestionType.MultiChoice
                             ? q.Options.Where(o => q.Answer.Length > 0 && q.Answer[0].Contains(o.Key, StringComparer.OrdinalIgnoreCase))
                                 .Select(o => o.Text.Length > 0 ? $"{o.Key}. {o.Text}" : o.Key).ToArray()
-                            : q.Answer.Select(x => x.FirstOrDefault() ?? "").ToArray(),
+                            : q.Type == QuestionType.Essay
+                                ? (q.SampleAnswer is { Length: > 0 } sample ? new[] { sample } : [])
+                                : q.Answer.Select(x => x.FirstOrDefault() ?? "").ToArray(),
                         options = q.Options.Select(o => new { o.Key, o.Text, imageUrl = url(o.Image) })
                     };
                 }).ToList()

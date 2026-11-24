@@ -165,6 +165,14 @@ public sealed class Exam
         return CurriculumOutcome.Ok;
     }
 
+    /// <summary>Scores one essay of one student. Allowed while the exam is open or closed; once the results are confirmed they are final.</summary>
+    public CurriculumOutcome GradeEssay(Guid studentId, int order, decimal? points, string? comment, DateTimeOffset now)
+    {
+        if (Status is not (ExamStatus.Open or ExamStatus.Closed)) return CurriculumOutcome.Invalid("exam", "Chỉ chấm được khi đề đang mở hoặc đã đóng, trước khi xác nhận kết quả.");
+        var seat = Seats.SingleOrDefault(x => x.StudentId == studentId);
+        return seat is null ? CurriculumOutcome.NotFound : seat.Grade(this, order, points, comment, now);
+    }
+
     /// <summary>Lets one student start again: clears the attempt and unlocks the code.</summary>
     public CurriculumOutcome ResetSeat(Guid studentId, int version)
     {
@@ -205,6 +213,15 @@ public sealed class ExamItem
 
 public enum JoinOutcome { Ok, WrongCode, Locked }
 
+/// <summary>What the teacher gave one essay: points, a short remark and when.</summary>
+public sealed record ManualGrade(decimal Points, string? Comment, DateTimeOffset GradedAt);
+
+/// <summary>A skill's share of one attempt. Its stored result keeps whole numbers, so the points are turned into a count of right questions.</summary>
+public sealed record SkillScore(int Tasks, decimal Earned, decimal Max, int Pending)
+{
+    public int CorrectEquivalent => Max <= 0 ? 0 : (int)Math.Clamp(Math.Round(Earned / Max * Tasks, 0, MidpointRounding.AwayFromZero), 0, Tasks);
+}
+
 /// <summary>One student's place in an exam: the entry code and the single attempt ("Lượt làm bài").</summary>
 public sealed class ExamSeat
 {
@@ -225,12 +242,20 @@ public sealed class ExamSeat
     public DateTimeOffset? SubmittedAt { get; private set; }
     public string AnswersJson { get; private set; } = "{}";
     public int AnsweredCount { get; private set; }
+    /// <summary>The teacher's points and remark for each essay she has scored, by item order.</summary>
+    public string ManualJson { get; private set; } = "{}";
+    /// <summary>Questions fully right.</summary>
     public int CorrectCount { get; private set; }
+    /// <summary>Points earned in all: what the computer scored plus what the teacher gave the essays so far. Set on submit and on every grade.</summary>
+    public decimal Score { get; private set; }
+    /// <summary>Essays the student answered that the teacher has not scored yet.</summary>
+    public int PendingEssays { get; private set; }
     public int Version { get; private set; } = 1;
     private ExamSeat() { }
     internal ExamSeat(Exam exam, Guid studentId, string name, string code) { ExamId = exam.Id; StudentId = studentId; StudentName = name; Code = code; }
 
     public Dictionary<int, string[]> Answers => JsonSerializer.Deserialize<Dictionary<int, string[]>>(AnswersJson, Question.Json) ?? [];
+    public Dictionary<int, ManualGrade> Grades => JsonSerializer.Deserialize<Dictionary<int, ManualGrade>>(ManualJson, Question.Json) ?? [];
 
     public JoinOutcome Join(Exam exam, string? code, DateTimeOffset now)
     {
@@ -270,13 +295,30 @@ public sealed class ExamSeat
         if (item is null) return CurriculumOutcome.NotFound;
         var snapshot = item.Snapshot;
         var clean = (values ?? []).Select(x => (x ?? "").Trim()).ToArray();
-        if (clean.Length != snapshot.Blanks || clean.Any(x => x.Length > 100)) return CurriculumOutcome.Invalid("value", "Câu trả lời không hợp lệ.");
+        if (!ValidResponse(snapshot, clean)) return CurriculumOutcome.Invalid("value", "Câu trả lời không hợp lệ.");
         var answers = Answers;
         if (clean.All(x => x.Length == 0)) answers.Remove(order); else answers[order] = clean;
         AnswersJson = JsonSerializer.Serialize(answers, Question.Json);
         AnsweredCount = answers.Count;
         Version++;
         return CurriculumOutcome.Ok;
+    }
+
+    /// <summary>One key per chosen option for multiple choice, one value for single choice and essay, one per blank for a fill-in.</summary>
+    private static bool ValidResponse(QuestionSnapshot question, string[] clean)
+    {
+        switch (question.Type)
+        {
+            case QuestionType.MultiChoice:
+            {
+                var keys = question.Options.Select(o => o.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                return clean.Length <= keys.Count && clean.All(keys.Contains) && clean.Distinct(StringComparer.OrdinalIgnoreCase).Count() == clean.Length;
+            }
+            case QuestionType.Essay:
+                return clean.Length == 1 && clean[0].Length <= Question.EssayLimit;
+            default:
+                return clean.Length == question.Blanks && clean.All(x => x.Length <= 100);
+        }
     }
 
     public CurriculumOutcome SubmitByStudent(Exam exam, DateTimeOffset now)
@@ -292,7 +334,7 @@ public sealed class ExamSeat
     {
         var answers = Answers;
         var items = exam.ItemsFor(this);
-        CorrectCount = items.Count(x => answers.TryGetValue(x.Order, out var given) && x.Snapshot.IsCorrect(given));
+        Recompute(exam);
         AnsweredCount = items.Count(x => answers.ContainsKey(x.Order));
         AttemptStatus = automatic ? Domain.AttemptStatus.AutoSubmitted : Domain.AttemptStatus.Submitted;
         SubmittedAt = now;
@@ -302,15 +344,68 @@ public sealed class ExamSeat
     internal void Reset()
     {
         AttemptStatus = Domain.AttemptStatus.None; StartedAt = null; Deadline = null; SubmittedAt = null;
-        AnswersJson = "{}"; AnsweredCount = 0; CorrectCount = 0; FailedTries = 0; Locked = false; Nonce = ""; Version++;
+        AnswersJson = "{}"; ManualJson = "{}"; AnsweredCount = 0; CorrectCount = 0; Score = 0; PendingEssays = 0; FailedTries = 0; Locked = false; Nonce = ""; Version++;
     }
 
-    /// <summary>Tasks and right answers per primary skill of a finished attempt.</summary>
-    public Dictionary<Guid, (int Tasks, int Correct)> SkillBreakdown(Exam exam)
+    /// <summary>Points an item earned: the computer's score, or for an essay what the teacher gave (0 until she has).</summary>
+    private decimal Earned(ExamItem item, Dictionary<int, string[]> answers, Dictionary<int, ManualGrade> grades)
+    {
+        var question = item.Snapshot;
+        if (question.Type == QuestionType.Essay) return grades.TryGetValue(item.Order, out var grade) ? grade.Points : 0;
+        return answers.TryGetValue(item.Order, out var given) ? question.Score(given) : 0;
+    }
+
+    /// <summary>Totals of a submitted attempt: points, questions fully right, and essays still waiting for the teacher.</summary>
+    internal void Recompute(Exam exam)
     {
         var answers = Answers;
-        return exam.ItemsFor(this).GroupBy(x => x.PrimarySkillId).ToDictionary(g => g.Key,
-            g => (g.Count(), g.Count(x => answers.TryGetValue(x.Order, out var given) && x.Snapshot.IsCorrect(given))));
+        var grades = Grades;
+        var items = exam.ItemsFor(this);
+        Score = items.Sum(x => Earned(x, answers, grades));
+        CorrectCount = items.Count(x => x.Snapshot.Points > 0 && Earned(x, answers, grades) == x.Snapshot.Points);
+        PendingEssays = items.Count(x => x.Snapshot.Type == QuestionType.Essay && answers.ContainsKey(x.Order) && !grades.ContainsKey(x.Order));
+    }
+
+    /// <summary>The teacher scores one essay of a submitted attempt, from 0 to the question's points in steps of 0.25, with a short remark. Scoring again replaces it.</summary>
+    public CurriculumOutcome Grade(Exam exam, int order, decimal? points, string? comment, DateTimeOffset now)
+    {
+        if (!Domain.AttemptStatus.IsDone(AttemptStatus)) return CurriculumOutcome.Invalid("order", "Học sinh chưa nộp bài.");
+        var item = exam.ItemsFor(this).SingleOrDefault(x => x.Order == order);
+        if (item is null) return CurriculumOutcome.NotFound;
+        var question = item.Snapshot;
+        if (question.Type != QuestionType.Essay) return CurriculumOutcome.Invalid("order", "Chỉ câu tự luận mới chấm tay.");
+        if (!Answers.ContainsKey(order)) return CurriculumOutcome.Invalid("order", "Học sinh chưa trả lời câu này.");
+        if (points is not { } given || given < 0 || given > question.Points || given % Question.PointStep != 0)
+            return CurriculumOutcome.Invalid("points", $"Điểm từ 0 đến {question.Points}, bước 0,25.");
+        var remark = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+        if (remark?.Length > 500) return CurriculumOutcome.Invalid("comment", "Nhận xét tối đa 500 ký tự.");
+        var grades = Grades;
+        grades[order] = new ManualGrade(given, remark, now);
+        ManualJson = JsonSerializer.Serialize(grades, Question.Json);
+        Recompute(exam);
+        Version++;
+        return CurriculumOutcome.Ok;
+    }
+
+    /// <summary>The attempt's score as a count of right questions: whole questions, rounded, because a stored skill result keeps whole numbers.</summary>
+    public int CorrectEquivalent(Exam exam)
+    {
+        var items = exam.ItemsFor(this);
+        var max = items.Sum(x => x.Snapshot.Points);
+        return max <= 0 ? 0 : (int)Math.Clamp(Math.Round(Score / max * items.Count, 0, MidpointRounding.AwayFromZero), 0, items.Count);
+    }
+
+    /// <summary>The most points the attempt can earn: the sum of the points of its items.</summary>
+    public decimal MaxScore(Exam exam) => exam.ItemsFor(this).Sum(x => x.Snapshot.Points);
+
+    /// <summary>Questions, points earned and points possible per primary skill of a finished attempt, and the essays still unscored.</summary>
+    public Dictionary<Guid, SkillScore> SkillBreakdown(Exam exam)
+    {
+        var answers = Answers;
+        var grades = Grades;
+        return exam.ItemsFor(this).GroupBy(x => x.PrimarySkillId).ToDictionary(g => g.Key, g => new SkillScore(
+            g.Count(), g.Sum(x => Earned(x, answers, grades)), g.Sum(x => x.Snapshot.Points),
+            g.Count(x => x.Snapshot.Type == QuestionType.Essay && answers.ContainsKey(x.Order) && !grades.ContainsKey(x.Order))));
     }
 
     /// <summary>The order the student sees the items in, fixed by the attempt's seed.</summary>

@@ -12,7 +12,10 @@ public static class WorkbookFormat
     public static readonly string[] SkillColumns = ["Mã kỹ năng", "Tên kỹ năng", "Mạch nội dung", "Tiêu chí đạt (chuẩn đầu ra)"];
     public static readonly string[] LessonColumns = ["Buổi", "Chủ đề", "Nội dung (SGK)", "Kiến thức", "Kỹ năng cần đạt", "Chuẩn đầu ra", "Năng lực – thái độ", "Mã kỹ năng"];
     public static readonly string[] QuestionColumns =
-        ["Mã câu", "Loại", "Mức độ", "Kỹ năng chính", "Kỹ năng phụ", "Buổi", "Đề bài", "Ảnh đề", "Phương án A", "Phương án B", "Phương án C", "Phương án D", "Các nút để điền", "Đáp án"];
+        ["Mã câu", "Dạng", "Mức độ", "Kỹ năng chính", "Kỹ năng phụ", "Buổi", "Đề bài", "Ảnh đề", "Phương án A", "Phương án B", "Phương án C", "Phương án D", "Các nút để điền", "Đáp án",
+         "Phương án E", "Phương án F", "Điểm"];
+    /// <summary>Headers of older workbooks that still read: the "Dạng" column used to be called "Loại".</summary>
+    private static readonly Dictionary<string, string> HeaderAliases = new() { ["Dạng"] = "Loại" };
     private const int MaxRows = 2000;
     private const string Lists = "Danh mục";
 
@@ -41,7 +44,8 @@ public static class WorkbookFormat
             "  • Buổi học thật thứ N của lớp (không tính buổi bị hủy) được tự gắn với Buổi N. Có thể đổi trên web.",
             "",
             "SHEET \"Câu hỏi\": mỗi dòng là một câu trong ngân hàng câu hỏi.",
-            "  • Mã câu (bắt buộc, không trùng). Loại: Trắc nghiệm hoặc Điền ô.",
+            "  • Mã câu (bắt buộc, không trùng). Dạng: Trắc nghiệm, Nhiều đáp án, Điền ô, Điền từ hoặc Tự luận (cột cũ tên \"Loại\" vẫn dùng được).",
+            "  • Điểm (không bắt buộc): từ 0,25 đến 10, bước 0,25. Để trống thì tính 1 điểm.",
             "  • Mức độ: Nhận biết, Thông hiểu, Vận dụng hoặc Vận dụng cao.",
             "  • Kỹ năng chính (bắt buộc, một mã, được dùng để tính kết quả). Kỹ năng phụ: tối đa 2 mã, chỉ để lọc câu.",
             "  • Buổi: số buổi của câu (không bắt buộc).",
@@ -49,6 +53,16 @@ public static class WorkbookFormat
             "",
             "  Câu TRẮC NGHIỆM: điền 2–4 phương án vào cột Phương án A–D. Phương án là ảnh thì ghi: ảnh: tên-file.png",
             "    Đáp án: một chữ cái A, B, C hoặc D.",
+            "",
+            "  Câu NHIỀU ĐÁP ÁN: điền 3–6 phương án vào cột Phương án A–F.",
+            "    Đáp án: từ hai chữ cái trở lên, cách nhau bằng dấu phẩy, ví dụ: A, C. Chỉ đúng khi chọn đúng và đủ.",
+            "",
+            "  Câu ĐIỀN TỪ (học sinh gõ chữ vào chỗ trống): viết đáp án ngay trong Đề bài, trong ngoặc vuông.",
+            "    Ví dụ: Thủ đô của Việt Nam là [Hà Nội|Ha Noi].   Một chỗ có nhiều đáp án đúng thì ngăn bằng dấu |",
+            "    Tối đa 10 chỗ trống. Không cần điền cột Các nút để điền và Đáp án. Không dùng lẫn [ ] và [đáp án] trong một câu.",
+            "    Chữ hoa/thường và khoảng trắng thừa không quan trọng; dấu tiếng Việt có quan trọng. 0,5 và 0.5 được coi là bằng nhau.",
+            "",
+            "  Câu TỰ LUẬN (giáo viên chấm tay): chỉ cần Đề bài. Cột Đáp án để trống hoặc ghi đáp án mẫu để đối chiếu khi chấm.",
             "",
             "  Câu ĐIỀN Ô: trong Đề bài, mỗi ô trống viết là [ ]  (ví dụ: 8 + 5 = [ ]).",
             "    Các nút để điền: các nút học sinh bấm để điền, cách nhau bằng dấu chấm phẩy, ví dụ: 12; 13; 14; 15",
@@ -85,16 +99,19 @@ public static class WorkbookFormat
         Header(questions, QuestionColumns);
         row = 2;
         foreach (var question in Toan2Hk1Sample.Questions) Fill(questions, row++, question);
-        Widths(questions, [10, 13, 14, 13, 12, 7, 55, 14, 16, 16, 16, 16, 22, 10]);
+        Widths(questions, [10, 13, 14, 13, 12, 7, 55, 14, 16, 16, 16, 16, 22, 10, 16, 16, 8]);
 
         var lists = book.AddWorksheet(Lists);
-        lists.Cell(1, 1).Value = "Loại";
+        lists.Cell(1, 1).Value = "Dạng";
         lists.Cell(2, 1).Value = QuestionType.Labels[QuestionType.SingleChoice];
-        lists.Cell(3, 1).Value = QuestionType.Labels[QuestionType.FillBlanks];
+        lists.Cell(3, 1).Value = QuestionType.Labels[QuestionType.MultiChoice];
+        lists.Cell(4, 1).Value = QuestionType.Labels[QuestionType.FillBlanks];
+        lists.Cell(5, 1).Value = QuestionType.TypedLabel;
+        lists.Cell(6, 1).Value = QuestionType.Labels[QuestionType.Essay];
         lists.Cell(1, 2).Value = "Mức độ";
         for (var i = 0; i < QuestionLevel.All.Length; i++) lists.Cell(i + 2, 2).Value = QuestionLevel.Labels[QuestionLevel.All[i]];
         lists.Visibility = XLWorksheetVisibility.Hidden;
-        questions.Range("B2:B1000").CreateDataValidation().List(lists.Range("A2:A3"), true);
+        questions.Range("B2:B1000").CreateDataValidation().List(lists.Range("A2:A6"), true);
         questions.Range("C2:C1000").CreateDataValidation().List(lists.Range("B2:B5"), true);
         questions.Range("D2:D1000").CreateDataValidation().List(skills.Range("A2:A300"), true);
         questions.Column(7).Style.Alignment.WrapText = true;
@@ -139,7 +156,7 @@ public static class WorkbookFormat
                     if (get(2).Length == 0) { issues.Add(new(ImportSheets.Lessons, r, LessonColumns[2], "Thiếu nội dung buổi.")); continue; }
                     lessons.Add(new(r, no, get(1), get(2), get(3), get(5), get(4), get(6), Split(get(7), ',', ';')));
                 }
-            if (Sheet(book, ImportSheets.Questions) is { } questionSheet && Columns(questionSheet, ImportSheets.Questions, QuestionColumns, [0, 1, 2, 3, 6, 13], issues) is { } qc)
+            if (Sheet(book, ImportSheets.Questions) is { } questionSheet && Columns(questionSheet, ImportSheets.Questions, QuestionColumns, [0, 1, 2, 3, 6, 13], issues, HeaderAliases) is { } qc)
                 foreach (var (r, get) in Rows(questionSheet, qc))
                 {
                     var code = get(0);
@@ -152,7 +169,7 @@ public static class WorkbookFormat
                         else { issues.Add(new(ImportSheets.Questions, r, QuestionColumns[5], "Buổi phải là số nguyên dương hoặc để trống.")); continue; }
                     }
                     questions.Add(new(r, code, get(1), get(2), get(3), Split(get(4), ',', ';'), lesson, get(6), Null(get(7)),
-                        [get(8), get(9), get(10), get(11)], Split(get(12), ';'), get(13)));
+                        [get(8), get(9), get(10), get(11), get(14), get(15)], Split(get(12), ';'), get(13), get(16)));
                 }
             return new(info, skills, lessons, questions, issues);
         }
@@ -174,11 +191,13 @@ public static class WorkbookFormat
     private static IXLWorksheet? Sheet(XLWorkbook book, string name) => book.Worksheets.FirstOrDefault(x => Same(x.Name, name));
 
     /// <summary>Column numbers by expected header; required headers missing become one issue and the sheet is skipped.</summary>
-    private static int[]? Columns(IXLWorksheet sheet, string sheetName, string[] expected, int[] required, List<ImportIssue> issues)
+    private static int[]? Columns(IXLWorksheet sheet, string sheetName, string[] expected, int[] required, List<ImportIssue> issues,
+        IReadOnlyDictionary<string, string>? aliases = null)
     {
         var header = sheet.Row(1);
         var last = Math.Max(header.LastCellUsed()?.Address.ColumnNumber ?? 0, 1);
-        var map = expected.Select(name => Enumerable.Range(1, last).FirstOrDefault(c => Same(header.Cell(c).GetString(), name))).ToArray();
+        var map = expected.Select(name => Enumerable.Range(1, last).FirstOrDefault(c =>
+            Same(header.Cell(c).GetString(), name) || aliases is not null && aliases.TryGetValue(name, out var old) && Same(header.Cell(c).GetString(), old))).ToArray();
         var missing = required.Where(i => map[i] == 0).Select(i => expected[i]).ToList();
         if (missing.Count == 0) return map;
         issues.Add(new(sheetName, 1, string.Join(", ", missing), "Thiếu cột tiêu đề bắt buộc. Hãy dùng đúng file mẫu."));

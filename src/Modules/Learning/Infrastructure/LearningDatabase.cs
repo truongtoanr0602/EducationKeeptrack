@@ -209,6 +209,12 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         question.Property(x => x.Level).HasMaxLength(20);
         question.Property(x => x.Stem).HasMaxLength(2000);
         question.Property(x => x.StemImage).HasMaxLength(200);
+        question.Property(x => x.Points).HasColumnType("numeric(5,2)").HasDefaultValue(1m);
+        question.Property(x => x.FillMode).HasMaxLength(10).HasDefaultValue("chips");
+        question.Property(x => x.IgnoreDiacritics).HasDefaultValue(false);
+        question.Property(x => x.SampleAnswer).HasMaxLength(2000);
+        question.Property(x => x.StemHtml).HasColumnType("text");
+        question.Property(x => x.AudioFile).HasMaxLength(200);
         question.Property(x => x.OptionsJson).HasColumnType("text");
         question.Property(x => x.AnswerJson).HasColumnType("text");
         question.Property(x => x.Status).HasMaxLength(20);
@@ -262,6 +268,10 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         seat.Property(x => x.AttemptStatus).HasMaxLength(20);
         seat.Property(x => x.Nonce).HasMaxLength(64);
         seat.Property(x => x.AnswersJson).HasColumnType("text");
+        seat.Property(x => x.Score).HasColumnType("numeric(7,2)").HasDefaultValue(0m);
+        seat.Property(x => x.ManualJson).HasColumnType("text").HasDefaultValue("{}");
+        seat.Ignore(x => x.Grades);
+        seat.Property(x => x.PendingEssays).HasDefaultValue(0);
         seat.Property(x => x.Version).IsConcurrencyToken();
         seat.Ignore(x => x.Answers);
         seat.HasIndex(x => new { x.ExamId, x.StudentId }).IsUnique();

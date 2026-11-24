@@ -1,0 +1,56 @@
+/* The look of a rich stem, in the editor, in the question list and on the student's exam page. The classes are the fixed set of
+   ui/src/rich-stem.ts and src/Modules/Learning/Domain/RichStem.cs. */
+.rich-stem { line-height: 1.6; overflow-wrap: anywhere; }
+.rich-stem p { margin: 0 0 0.5em; }
+.rich-stem h2 { font-size: 1.35em; margin: 0.4em 0; }
+.rich-stem h3 { font-size: 1.15em; margin: 0.4em 0; }
+.rich-stem h4 { font-size: 1em; margin: 0.4em 0; }
+.rich-stem ul, .rich-stem ol { margin: 0 0 0.5em; padding-left: 1.4em; }
+.rich-stem img { max-width: 100%; height: auto; display: block; margin: 0.4em 0; border-radius: 6px; }
+.rich-stem .ff-sans { font-family: system-ui, sans-serif; }
+.rich-stem .ff-serif { font-family: Georgia, "Times New Roman", serif; }
+.rich-stem .ff-hand { font-family: "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive; }
+.rich-stem .ff-mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.rich-stem .fs-s { font-size: 0.85em; }
+.rich-stem .fs-m { font-size: 1em; }
+.rich-stem .fs-l { font-size: 1.3em; }
+.rich-stem .fs-xl { font-size: 1.7em; }
+.rich-stem .fc-1 { color: #111827; }
+.rich-stem .fc-2 { color: #b91c1c; }
+.rich-stem .fc-3 { color: #1d4ed8; }
+.rich-stem .fc-4 { color: #15803d; }
+.rich-stem .fc-5 { color: #7e22ce; }
+.rich-stem .fc-6 { color: #c2410c; }
+.rich-stem .ta-left { text-align: left; }
+.rich-stem .ta-center { text-align: center; }
+.rich-stem .ta-right { text-align: right; }
+.rich-stem .blank {
+  display: inline-block; min-width: 3.2em; padding: 0 0.4em; border-bottom: 2px solid #475569; background: #eef2ff;
+  border-radius: 4px 4px 0 0; font-size: 0.9em; text-align: center; color: #3730a3;
+}
+.rich-stem input.blank-input {
+  min-width: 5em; width: 7em; max-width: 100%; padding: 0.15em 0.4em; font: inherit; border: 0; border-bottom: 2px solid #1d4ed8;
+  background: #eff6ff; border-radius: 4px 4px 0 0; text-align: center;
+}
+.rich-stem input.blank-input:focus { outline: 2px solid #1d4ed8; outline-offset: 1px; }
+
+/* The editor. */
+.rich-editor { border: 1px solid #b9c3da; border-radius: 8px; background: #fff; }
+.rich-editor-bar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border-bottom: 1px solid #d6dcea; background: #f4f6fc; border-radius: 8px 8px 0 0; }
+.rich-editor-bar button, .rich-editor-bar select { min-height: 36px; min-width: 36px; padding: 0 8px; font-size: 0.85rem; }
+.rich-editor-bar button[aria-pressed="true"] { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+.rich-editor-bar .sep { width: 1px; background: #cbd5e1; margin: 2px 2px; }
+.rich-editor-body { padding: 10px 12px; min-height: 9rem; }
+.rich-editor-body .ProseMirror { outline: none; min-height: 8rem; }
+.rich-editor-body .ProseMirror-focused { outline: 2px solid #1d4ed8; outline-offset: 4px; border-radius: 4px; }
+.rich-editor-pop { padding: 8px; border-bottom: 1px solid #d6dcea; background: #fffbeb; display: grid; gap: 6px; }
+.rich-editor-pop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.rich-editor-pop li button { display: flex; gap: 6px; align-items: center; }
+.rich-editor-pop img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+.audio-card { display: grid; gap: 6px; padding: 8px; border: 1px solid #d6dcea; border-radius: 8px; background: #f8fafc; }
+.audio-card audio { width: 100%; }
+
+
+@media (max-width: 960px) {
+  .rich-editor-bar button, .rich-editor-bar select { min-height: 44px; min-width: 44px; }
+}

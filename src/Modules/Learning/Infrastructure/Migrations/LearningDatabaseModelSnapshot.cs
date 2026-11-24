@@ -456,10 +456,26 @@ namespace Learning.Infrastructure.Migrations
                     b.Property<bool>("Locked")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ManualJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}");
+
                     b.Property<string>("Nonce")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<int>("PendingEssays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("Score")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(7,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int>("Seed")
                         .HasColumnType("integer");
@@ -689,6 +705,10 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("AudioFile")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<Guid>("ClassId")
                         .HasColumnType("uuid");
 
@@ -699,6 +719,18 @@ namespace Learning.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FillMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("chips");
+
+                    b.Property<bool>("IgnoreDiacritics")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int?>("LessonNo")
                         .HasColumnType("integer");
@@ -717,8 +749,17 @@ namespace Learning.Infrastructure.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<decimal>("Points")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(1m);
+
                     b.Property<Guid>("PrimarySkillId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SampleAnswer")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.PrimitiveCollection<List<Guid>>("SecondarySkillIds")
                         .IsRequired()
@@ -733,6 +774,9 @@ namespace Learning.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("StemHtml")
+                        .HasColumnType("text");
 
                     b.Property<string>("StemImage")
                         .HasMaxLength(200)

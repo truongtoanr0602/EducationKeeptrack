@@ -16,6 +16,7 @@ Theo luật trên #34, một kết quả theo kỹ năng chỉ hợp lệ khi c�
   - chưa đủ `MinTasks` câu thì là **chưa đủ dữ liệu**.
 - Một kỹ năng có kết luận ở cả hai nguồn thì lấy kết luận của nguồn có bằng chứng mới hơn. Bằng chứng luôn liệt kê đủ cả hai nguồn và ghi rõ dòng nào được tính.
 - Kỹ năng được tính "đã dạy" khi giáo viên đánh dấu, hoặc khi buổi chương trình chứa kỹ năng đó đã gắn với một buổi học đã diễn ra.
+- **Sửa 24/11/2026 (ADR 0008, #111):** với câu có điểm lẻ và câu tự luận chấm tay, `MinTasks` vẫn đếm theo **số câu**, nhưng tỉ lệ của kỹ năng = **tổng điểm đạt / tổng điểm tối đa** của các câu thuộc kỹ năng đó (không còn đếm câu đúng nguyên). Câu tự luận chỉ được tính sau khi giáo viên chấm; chưa chấm thì kỹ năng đó ở trạng thái chờ chấm. Đề cũ coi mỗi câu 1 điểm nên kết quả không đổi. **Làm tròn:** kết quả kỹ năng đã lưu giữ số nguyên "số câu đúng" (và `MinTasks`, `Threshold`, suy luận kiến thức đều dùng số nguyên), nên điểm được quy về số câu tương đương: `Correct = làm tròn(điểm đạt / điểm tối đa × số câu)`, không vượt số câu. Với đề cũ (mỗi câu 1 điểm) kết quả giống hệt trước; với điểm lẻ, kết quả lưu có thể lệch tối đa nửa câu so với tỉ lệ điểm chính xác, còn điểm chính xác vẫn thấy ở kết quả của đề.
 - Migration `LessonsQuestionBankExams` tăng `RuleVersion` của mọi chương trình thêm 1, để hồ sơ và kế hoạch ghi được là chúng dùng luật mới.
 
 ## Hệ quả

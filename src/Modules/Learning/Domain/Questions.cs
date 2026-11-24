@@ -38,16 +38,27 @@ public static class QuestionLevel
 
 public static class QuestionType
 {
-    public const string SingleChoice = "single_choice", FillBlanks = "fill_blanks";
-    public static readonly string[] All = [SingleChoice, FillBlanks];
-    public static readonly Dictionary<string, string> Labels = new() { [SingleChoice] = "Trắc nghiệm", [FillBlanks] = "Điền ô" };
+    public const string SingleChoice = "single_choice", MultiChoice = "multi_choice", FillBlanks = "fill_blanks", Essay = "essay";
+    public static readonly string[] All = [SingleChoice, MultiChoice, FillBlanks, Essay];
+    public static readonly Dictionary<string, string> Labels = new()
+    {
+        [SingleChoice] = "Trắc nghiệm", [MultiChoice] = "Nhiều đáp án", [FillBlanks] = "Điền ô", [Essay] = "Tự luận"
+    };
+    /// <summary>The two ways to fill a blank: tap a button (the original way, blanks written [ ]) or type into the text (blanks {{1}}, {{2}}…).</summary>
+    public const string FillChips = "chips", FillType = "type";
+    /// <summary>The workbook calls a fill-in whose blanks are written [answer] "Điền từ" (typed), and one written [ ] "Điền ô" (tap a button).</summary>
+    public const string TypedLabel = "Điền từ";
+    /// <summary>Every kind but the essay is scored by the computer; an essay is scored by the teacher.</summary>
+    public static bool AutoGraded(string type) => type != Essay;
 
     public static string? Parse(string? value)
     {
         var text = QuestionLevel.Normalize(value);
         if (text.Length == 0) return null;
-        if (text is "single choice" or "trac nghiem") return SingleChoice;
-        if (text is "fill blanks" or "dien o" or "dien" or "dien vao cho trong") return FillBlanks;
+        if (text is "single choice" or "trac nghiem" or "mot dap an" or "trac nghiem mot dap an") return SingleChoice;
+        if (text is "multi choice" or "nhieu dap an" or "trac nghiem nhieu dap an") return MultiChoice;
+        if (text is "fill blanks" or "dien o" or "dien" or "dien vao cho trong" or "dien tu") return FillBlanks;
+        if (text is "essay" or "tu luan" or "dien o loi giai" or "loi giai") return Essay;
         return null;
     }
 }
@@ -64,25 +75,76 @@ public static class QuestionStatus
 public sealed record QuestionOption(string Key, string Text, string? Image);
 
 public record QuestionInput(string? Code, string? Type, string? Level, Guid PrimarySkillId, Guid[]? SecondarySkillIds, int? LessonNo,
-    string? Stem, string? StemImage, QuestionOption[]? Options, string[][]? Answer, bool Archived, int Version);
+    string? Stem, string? StemImage, QuestionOption[]? Options, string[][]? Answer, bool Archived, int Version,
+    decimal? Points = null, string? FillMode = null, bool IgnoreDiacritics = false, string? SampleAnswer = null,
+    string? StemHtml = null, string? AudioFile = null);
 
-/// <summary>Everything an exam keeps of a question at the time it was drawn, answer included.</summary>
+/// <summary>Everything an exam keeps of a question at the time it was drawn, answer included. Members after PrimarySkillId have
+/// defaults so exams drawn before they existed still read: one point, tap a button, accents matter.</summary>
 public sealed record QuestionSnapshot(Guid QuestionId, string Code, string Type, string Level, string Stem, string? StemImage,
-    QuestionOption[] Options, string[][] Answer, Guid PrimarySkillId)
+    QuestionOption[] Options, string[][] Answer, Guid PrimarySkillId,
+    decimal Points = 1m, string FillMode = QuestionType.FillChips, bool IgnoreDiacritics = false, string? StemHtml = null, string? AudioFile = null, string? SampleAnswer = null)
 {
-    public int Blanks => Type == QuestionType.FillBlanks ? Question.CountBlanks(Stem) : 1;
+    /// <summary>How many values a response holds: one per blank of a fill-in, one for every other kind (a multi-choice response is a list of keys).</summary>
+    public int Blanks => Type == QuestionType.FillBlanks ? (FillMode == QuestionType.FillType ? Question.CountTokens(Stem) : Question.CountBlanks(Stem)) : 1;
 
-    /// <summary>Single choice: the chosen key matches. Fill blanks: every blank holds one of its accepted values.</summary>
-    public bool IsCorrect(string[]? response)
+    /// <summary>Points earned for a response, 0 to Points. An essay scores 0 here: only the teacher scores it.</summary>
+    public decimal Score(string[]? response)
     {
-        if (response is null || response.Length != Answer.Length) return false;
-        for (var i = 0; i < Answer.Length; i++)
+        if (response is null || Points <= 0) return 0;
+        switch (Type)
         {
-            var given = Clean(response[i]);
-            if (given.Length == 0 || !Answer[i].Any(x => string.Equals(Clean(x), given, StringComparison.OrdinalIgnoreCase))) return false;
+            case QuestionType.SingleChoice:
+                return response.Length == 1 && Answer.Length == 1 && Answer[0].Length == 1 && Same(response[0], Answer[0][0]) ? Points : 0;
+            case QuestionType.MultiChoice:
+            {
+                if (Answer.Length != 1) return 0;
+                var given = response.Select(Clean).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                var right = Answer[0].Select(Clean).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                return given.Length == right.Length && right.All(x => given.Contains(x, StringComparer.OrdinalIgnoreCase)) ? Points : 0;
+            }
+            case QuestionType.FillBlanks:
+            {
+                if (response.Length != Answer.Length || Answer.Length == 0) return 0;
+                var right = 0;
+                for (var i = 0; i < Answer.Length; i++)
+                    if (Clean(response[i]).Length > 0 && Answer[i].Any(x => Matches(response[i], x))) right++;
+                return Math.Round(Points * right / Answer.Length, 2, MidpointRounding.AwayFromZero);
+            }
+            default:
+                return 0;
         }
-        return true;
     }
+
+    /// <summary>Every point earned: the question is fully right. Never true for an essay.</summary>
+    public bool IsCorrect(string[]? response) => QuestionType.AutoGraded(Type) && Points > 0 && Score(response) == Points;
+
+    private bool Matches(string given, string accepted) => FillMode == QuestionType.FillType ? Typed(given, accepted, IgnoreDiacritics) : Same(given, accepted);
+
+    private static bool Same(string? a, string? b) => string.Equals(Clean(a), Clean(b), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Typed answer: case and spare spaces never matter, accents matter unless the question says otherwise, and 0,5 equals 0.5.</summary>
+    internal static bool Typed(string? given, string? accepted, bool ignoreDiacritics)
+    {
+        var a = Fold(given, ignoreDiacritics);
+        var b = Fold(accepted, ignoreDiacritics);
+        if (a.Length == 0 || b.Length == 0) return false;
+        if (a == b) return true;
+        return TryNumber(a, out var x) && TryNumber(b, out var y) && x == y;
+    }
+
+    private static string Fold(string? value, bool ignoreDiacritics)
+    {
+        var text = Clean(value).Normalize(System.Text.NormalizationForm.FormC).ToLowerInvariant();
+        if (!ignoreDiacritics) return text;
+        var chars = text.Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray();
+        return new string(chars).Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd');
+    }
+
+    private static bool TryNumber(string text, out decimal value) =>
+        decimal.TryParse(text.Replace(',', '.'), System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint,
+            System.Globalization.CultureInfo.InvariantCulture, out value);
 
     private static string Clean(string? value) => Regex.Replace(value ?? "", @"\s+", " ").Trim();
 }
@@ -93,7 +155,9 @@ public sealed record QuestionSnapshot(Guid QuestionId, string Code, string Type,
 /// </summary>
 public sealed class Question
 {
-    public const int MaxSecondary = 2, MaxBlanks = 6, MaxChips = 12;
+    public const int MaxSecondary = 2, MaxBlanks = 6, MaxChips = 12, MaxTypedBlanks = 10, MaxChoices = 6, EssayLimit = 2000;
+    public const decimal MinPoints = 0.25m, MaxPoints = 10m, PointStep = 0.25m;
+    private static readonly Regex TokenPattern = new(@"\{\{(\d+)\}\}", RegexOptions.Compiled);
     private static readonly Regex BlankPattern = new(@"\[\s*\]", RegexOptions.Compiled);
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Guid Id { get; private set; } = Guid.NewGuid();
@@ -107,6 +171,15 @@ public sealed class Question
     public int? LessonNo { get; private set; }
     public string Stem { get; private set; } = "";
     public string? StemImage { get; private set; }
+    /// <summary>Points a full answer earns (0.25 to 10, in steps of 0.25).</summary>
+    public decimal Points { get; private set; } = 1m;
+    public string FillMode { get; private set; } = QuestionType.FillChips;
+    public bool IgnoreDiacritics { get; private set; }
+    /// <summary>The teacher's model answer of an essay, shown while grading; a student only sees it once the results are released.</summary>
+    public string? SampleAnswer { get; private set; }
+    /// <summary>Sanitized rich stem and an uploaded audio file of a typed fill-in. The plain Stem is always the text of StemHtml.</summary>
+    public string? StemHtml { get; private set; }
+    public string? AudioFile { get; private set; }
     public string OptionsJson { get; private set; } = "[]";
     public string AnswerJson { get; private set; } = "[]";
     public string Status { get; private set; } = QuestionStatus.Active;
@@ -124,13 +197,41 @@ public sealed class Question
 
     public static int CountBlanks(string? stem) => BlankPattern.Matches(stem ?? "").Count;
 
+    /// <summary>Blanks of a typed fill-in: the distinct {{n}} tokens.</summary>
+    public static int CountTokens(string? stem) => TokenPattern.Matches(stem ?? "").Select(m => m.Groups[1].Value).Distinct().Count();
+
+    /// <summary>True when the tokens are exactly {{1}}..{{n}}, each once.</summary>
+    public static bool TokensInOrder(string? stem)
+    {
+        var found = TokenPattern.Matches(stem ?? "").Select(m => int.Parse(m.Groups[1].Value)).ToArray();
+        return found.Length > 0 && found.SequenceEqual(Enumerable.Range(1, found.Length));
+    }
+
     /// <summary>Checks the request against the class's live skills and question images; keys are request field names.</summary>
-    public static Dictionary<string, string[]> Validate(QuestionInput input, IReadOnlySet<Guid> liveSkills, IReadOnlySet<string> images)
+    public static Dictionary<string, string[]> Validate(QuestionInput input, IReadOnlySet<Guid> liveSkills, IReadOnlySet<string> images, IReadOnlySet<string>? audio = null)
     {
         var errors = new Dictionary<string, string[]>();
         void Add(string key, string message) => errors[key] = errors.TryGetValue(key, out var list) ? [.. list, message] : [message];
         if (string.IsNullOrWhiteSpace(input.Code) || input.Code.Trim().Length > 40) Add("code", "Nhập mã câu (tối đa 40 ký tự).");
-        if (input.Type is null || !QuestionType.All.Contains(input.Type)) Add("type", "Loại câu là Trắc nghiệm hoặc Điền ô.");
+        if (input.Type is null || !QuestionType.All.Contains(input.Type)) Add("type", "Dạng câu là Trắc nghiệm, Nhiều đáp án, Điền ô hoặc Tự luận.");
+        if (input.Points is { } points && (points < MinPoints || points > MaxPoints || points % PointStep != 0)) Add("points", "Điểm từ 0,25 đến 10, bước 0,25.");
+        if (input.FillMode is not null && (input.Type != QuestionType.FillBlanks || input.FillMode is not (QuestionType.FillChips or QuestionType.FillType)))
+            Add("fillMode", "Cách điền chỉ có ở câu điền ô: chọn nút hoặc gõ chữ.");
+        if (input.IgnoreDiacritics && !(input.Type == QuestionType.FillBlanks && input.FillMode == QuestionType.FillType)) Add("ignoreDiacritics", "Chỉ câu điền ô gõ chữ mới bỏ qua dấu được.");
+        if (input.SampleAnswer?.Length > EssayLimit) Add("sampleAnswer", $"Đáp án mẫu tối đa {EssayLimit} ký tự.");
+        var typedFill = input.Type == QuestionType.FillBlanks && input.FillMode == QuestionType.FillType;
+        if (!string.IsNullOrWhiteSpace(input.StemHtml))
+        {
+            if (!typedFill) Add("stemHtml", "Chỉ câu điền ô gõ chữ mới có đề bài định dạng.");
+            else if (input.StemHtml.Length > RichStem.MaxLength) Add("stemHtml", $"Đề bài định dạng tối đa {RichStem.MaxLength} ký tự.");
+            else foreach (var file in RichStem.Files(input.StemHtml))
+                if (!images.Contains(QuestionImage.NormalizeName(file))) Add("stemHtml", $"Chưa có ảnh \"{file}\". Tải ảnh lên trước.");
+        }
+        if (!string.IsNullOrWhiteSpace(input.AudioFile))
+        {
+            if (!typedFill) Add("audioFile", "Chỉ câu điền ô gõ chữ mới có âm thanh.");
+            else if (audio is null || !audio.Contains(QuestionImage.NormalizeName(input.AudioFile))) Add("audioFile", $"Chưa có âm thanh \"{input.AudioFile.Trim()}\". Tải tệp mp3 hoặc m4a lên trước.");
+        }
         if (input.Level is null || !QuestionLevel.All.Contains(input.Level)) Add("level", "Mức độ là Nhận biết, Thông hiểu, Vận dụng hoặc Vận dụng cao.");
         if (!liveSkills.Contains(input.PrimarySkillId)) Add("primarySkillId", "Chọn kỹ năng chính đang dùng của lớp.");
         var secondary = (input.SecondarySkillIds ?? []).Distinct().Where(x => x != input.PrimarySkillId).ToList();
@@ -154,6 +255,26 @@ public sealed class Question
             if (options.Length is < 2 or > 4) Add("options", "Câu trắc nghiệm có từ 2 đến 4 phương án.");
             if (answer.Length != 1 || answer[0] is not { Length: 1 } || options.All(x => !string.Equals(x?.Key, answer[0][0]?.Trim(), StringComparison.OrdinalIgnoreCase)))
                 Add("answer", "Đáp án là ký hiệu của một phương án (A, B, C hoặc D).");
+        }
+        else if (input.Type == QuestionType.MultiChoice)
+        {
+            if (options.Length is < 3 or > MaxChoices) Add("options", $"Câu nhiều đáp án có từ 3 đến {MaxChoices} phương án.");
+            var keys = (answer.Length == 1 ? answer[0] : []).Select(x => x?.Trim() ?? "").ToArray();
+            if (answer.Length != 1 || keys.Length < 2 || keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != keys.Length
+                || keys.Any(k => options.All(x => !string.Equals(x?.Key?.Trim(), k, StringComparison.OrdinalIgnoreCase))))
+                Add("answer", "Đáp án là từ hai ký hiệu phương án trở lên, không trùng nhau (ví dụ A, C).");
+        }
+        else if (input.Type == QuestionType.Essay)
+        {
+            if (options.Length > 0) Add("options", "Câu tự luận không có phương án.");
+        }
+        else if (input.Type == QuestionType.FillBlanks && input.FillMode == QuestionType.FillType)
+        {
+            var blanks = CountTokens(input.Stem);
+            if (blanks is < 1 or > MaxTypedBlanks || !TokensInOrder(input.Stem)) Add("stem", $"Câu điền ô gõ chữ cần từ 1 đến {MaxTypedBlanks} ô trống viết {{{{1}}}}, {{{{2}}}}… theo thứ tự, mỗi số một lần.");
+            if (options.Length > 0) Add("options", "Câu điền ô gõ chữ không có nút để bấm.");
+            if (answer.Length != blanks) Add("answer", $"Đề bài có {blanks} ô trống nhưng đáp án có {answer.Length} ô.");
+            else if (answer.Any(x => x is null || x.Length == 0 || x.Any(v => string.IsNullOrWhiteSpace(v) || v.Trim().Length > 100))) Add("answer", "Mỗi ô cần ít nhất một đáp án, tối đa 100 ký tự.");
         }
         else if (input.Type == QuestionType.FillBlanks)
         {
@@ -179,15 +300,15 @@ public sealed class Question
     /// <summary>Applies the request; returns true when something changed. The caller validates first.</summary>
     public bool Apply(QuestionInput input, DateTimeOffset now)
     {
-        var before = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status);
+        var before = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer, StemHtml, AudioFile);
         Assign(input);
-        var after = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status);
+        var after = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer, StemHtml, AudioFile);
         if (before == after) return false;
         Version++; UpdatedAt = now;
         return true;
     }
 
-    public QuestionSnapshot Snapshot() => new(Id, Code, Type, Level, Stem, StemImage, Options, Answer, PrimarySkillId);
+    public QuestionSnapshot Snapshot() => new(Id, Code, Type, Level, Stem, StemImage, Options, Answer, PrimarySkillId, Points, FillMode, IgnoreDiacritics, StemHtml, AudioFile, SampleAnswer);
 
     private void Assign(QuestionInput input)
     {
@@ -195,7 +316,14 @@ public sealed class Question
         SecondarySkillIds = (input.SecondarySkillIds ?? []).Distinct().Where(x => x != input.PrimarySkillId).ToList();
         LessonNo = input.LessonNo; Stem = input.Stem!.Trim(); StemImage = Clean(input.StemImage);
         OptionsJson = JsonSerializer.Serialize((input.Options ?? []).Select(x => new QuestionOption(x.Key.Trim().ToUpperInvariant(), x.Text?.Trim() ?? "", Clean(x.Image))).ToArray(), Json);
-        AnswerJson = JsonSerializer.Serialize((input.Answer ?? []).Select(x => x.Select(v => v.Trim()).Where(v => v.Length > 0).Select(v => Type == QuestionType.SingleChoice ? v.ToUpperInvariant() : v).ToArray()).ToArray(), Json);
+        AnswerJson = JsonSerializer.Serialize((input.Answer ?? []).Select(x => x.Select(v => v.Trim()).Where(v => v.Length > 0).Select(v => Type is QuestionType.SingleChoice or QuestionType.MultiChoice ? v.ToUpperInvariant() : v).ToArray()).ToArray(), Json);
+        Points = input.Points ?? 1m;
+        FillMode = Type == QuestionType.FillBlanks ? input.FillMode ?? QuestionType.FillChips : QuestionType.FillChips;
+        IgnoreDiacritics = Type == QuestionType.FillBlanks && FillMode == QuestionType.FillType && input.IgnoreDiacritics;
+        SampleAnswer = Type == QuestionType.Essay && !string.IsNullOrWhiteSpace(input.SampleAnswer) ? input.SampleAnswer.Trim() : null;
+        var typedFill = Type == QuestionType.FillBlanks && FillMode == QuestionType.FillType;
+        StemHtml = typedFill && !string.IsNullOrWhiteSpace(input.StemHtml) ? input.StemHtml : null;
+        AudioFile = typedFill ? Clean(input.AudioFile) : null;
         Status = input.Archived ? QuestionStatus.Archived : QuestionStatus.Active;
     }
 
