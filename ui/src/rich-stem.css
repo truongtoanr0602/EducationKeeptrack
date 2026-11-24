@@ -49,3 +49,8 @@
 .rich-editor-pop img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 .audio-card { display: grid; gap: 6px; padding: 8px; border: 1px solid #d6dcea; border-radius: 8px; background: #f8fafc; }
 .audio-card audio { width: 100%; }
+
+
+@media (max-width: 960px) {
+  .rich-editor-bar button, .rich-editor-bar select { min-height: 44px; min-width: 44px; }
+}

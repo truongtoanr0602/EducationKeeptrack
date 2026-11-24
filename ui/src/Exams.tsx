@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type TeacherClass } from "./api";
 import {
-  attemptStates, examLink, examStates, levelLabel, levels, skillBand,
+  attemptStates, examLink, examStates, levelLabel, levels, pointsText, skillBand,
   type Blueprint, type Exam, type ExamPreview, type ExamSummary, type Question,
 } from "./bank-api";
+import { EssayGrading } from "./EssayGrading";
 import { QuestionPreview } from "./QuestionBank";
 import { errorText, learningPath, viDate, type Curriculum } from "./personalization-api";
 import "./bank.css";
@@ -265,6 +266,8 @@ function ExamDetail({ classroom, examId, canWrite, denied, onBack }: { classroom
   if (!exam) return <div className="stack"><button onClick={onBack}>← Danh sách đề</button>{error ? <p className="error" role="alert">{error}</p> : <p role="status">Đang tải…</p>}</div>;
   const link = examLink(exam.publicToken);
   const done = exam.seats.filter((s) => s.attemptStatus === "submitted" || s.attemptStatus === "auto_submitted").length;
+  const waiting = exam.seats.reduce((sum, s) => sum + s.pendingEssays, 0);
+  const hasEssay = exam.items.some((x) => x.type === "essay");
   return (
     <div className="stack exam-detail">
       <div className="form-actions no-print">
@@ -309,15 +312,22 @@ function ExamDetail({ classroom, examId, canWrite, denied, onBack }: { classroom
               Cho học sinh xem kết quả và đáp án
             </label>
             {exam.status === "closed" && (
-              <button className="primary" disabled={!canWrite || busy}
+              <button className="primary" disabled={!canWrite || busy || waiting > 0} aria-describedby={waiting > 0 ? "confirm-waits" : undefined}
                 onClick={() => { if (window.confirm("Xác nhận kết quả? Kết quả sẽ vào bài đánh giá, kết quả theo kỹ năng và hồ sơ năng lực.")) void act("confirm", {}); }}>
                 Xác nhận kết quả
               </button>
             )}
+            {exam.status === "closed" && waiting > 0 && <span id="confirm-waits" className="hint">Chấm xong {waiting} bài tự luận rồi mới xác nhận được.</span>}
             {exam.status === "confirmed" && <span className="success-text">Kết quả đã vào bài đánh giá và hồ sơ năng lực.</span>}
           </div>
         )}
       </section>
+      {hasEssay && (exam.status === "open" || exam.status === "closed") && done > 0 && (
+        <section className="card no-print" aria-label="Chấm tự luận">
+          <h2>Chấm tự luận{waiting > 0 ? ` (còn ${waiting} bài chờ chấm)` : ""}</h2>
+          <EssayGrading path={path} onGraded={() => void load()} />
+        </section>
+      )}
       {exam.status !== "draft" && <SeatsBoard exam={exam} canWrite={canWrite} busy={busy} onReset={(studentId) => void act(`seats/${studentId}/reset`, {})} />}
       <section className="card no-print" aria-label="Câu hỏi của đề">
         <h2>Câu hỏi</h2>
@@ -347,7 +357,7 @@ function SeatsBoard({ exam, canWrite, busy, onReset }: { exam: Exam; canWrite: b
       <h2>{finished ? "Kết quả theo kỹ năng" : "Bảng mã vào bài"}</h2>
       {finished && (
         <p className="hint">
-          Mỗi ô là số câu đúng / số câu của kỹ năng chính. <span className="band strong">xanh</span> ≥ 80%, <span className="band weak">đỏ</span> dưới 50%.
+          Mỗi ô là số câu đúng tương đương / số câu của kỹ năng chính (điểm đạt / điểm tối đa, làm tròn theo số câu). <span className="band strong">xanh</span> ≥ 80%, <span className="band weak">đỏ</span> dưới 50%.
         </p>
       )}
       <div className="table-wrap">
@@ -358,6 +368,7 @@ function SeatsBoard({ exam, canWrite, busy, onReset }: { exam: Exam; canWrite: b
               {!finished && <th scope="col">Mã</th>}
               <th scope="col">Trạng thái</th>
               <th scope="col">Đúng</th>
+              {finished && <th scope="col">Điểm</th>}
               {finished && exam.skills.map((s) => <th key={s.id} scope="col">{s.code} <span className="muted">({s.tasks})</span></th>)}
               {!finished && <th scope="col" className="no-print">Thao tác</th>}
             </tr>
@@ -369,6 +380,12 @@ function SeatsBoard({ exam, canWrite, busy, onReset }: { exam: Exam; canWrite: b
                 {!finished && <td className="seat-code">{seat.code}</td>}
                 <td>{seat.locked ? "Khoá mã" : attemptStates[seat.attemptStatus]}{seat.attemptStatus === "in_progress" && ` · ${seat.answered}/${seat.total}`}</td>
                 <td>{seat.attemptStatus === "submitted" || seat.attemptStatus === "auto_submitted" ? `${seat.correct}/${seat.total}` : "—"}</td>
+                {finished && (
+                  <td>
+                    {seat.attemptStatus === "submitted" || seat.attemptStatus === "auto_submitted" ? `${pointsText(seat.score)}/${pointsText(seat.maxScore)}` : "—"}
+                    {seat.pendingEssays > 0 && <span className="badge"> chờ chấm {seat.pendingEssays}</span>}
+                  </td>
+                )}
                 {finished && exam.skills.map((s) => {
                   const cell = seat.skills?.find((x) => x.skillId === s.id);
                   return <td key={s.id} className={cell ? `band ${skillBand(cell.correct, cell.tasks)}` : undefined}>{cell ? `${cell.correct}/${cell.tasks}` : "—"}</td>;

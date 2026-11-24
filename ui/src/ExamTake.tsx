@@ -47,6 +47,9 @@ type ResultItem = {
   answer: string[];
   points: number;
   score: number;
+  /** An essay is graded once the teacher has given it points. */
+  graded: boolean;
+  comment: string | null;
 };
 type Attempt = {
   title: string;
@@ -793,7 +796,8 @@ function ResultList({ result }: { result: NonNullable<Attempt["result"]> }) {
       )}
       <ol>
         {result.items.map((x) => {
-          const essay = x.type === "essay";
+          // An essay the teacher has not scored yet is "waiting"; once scored it reads like any other question.
+          const essay = x.type === "essay" && !x.graded;
           const partial = !x.correct && x.score > 0;
           return (
             <li
@@ -819,10 +823,16 @@ function ResultList({ result }: { result: NonNullable<Attempt["result"]> }) {
                   ? "Chờ thầy cô chấm"
                   : `${points(x.score)}/${points(x.points)} điểm`}
               </span>
-              {!x.correct && !essay && (
+              {!x.correct && x.type !== "essay" && (
                 <span className="take-key">
                   {" "}
                   · Đáp án: {x.answer.join(" ; ")}
+                </span>
+              )}
+              {x.comment && (
+                <span className="take-key take-remark">
+                  {" "}
+                  · Nhận xét của thầy cô: {x.comment}
                 </span>
               )}
             </li>

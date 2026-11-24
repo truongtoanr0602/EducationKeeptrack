@@ -167,6 +167,12 @@ export type ExamItem = {
   answer: string[][];
   primarySkillId: string;
   skillCode: string | null;
+  points: number;
+  fillMode: FillMode;
+  ignoreDiacritics: boolean;
+  sampleAnswer: string | null;
+  stemHtml: string;
+  audioUrl: string | null;
 };
 export type ExamSeat = {
   studentId: string;
@@ -176,13 +182,25 @@ export type ExamSeat = {
   answered: number;
   correct: number;
   total: number;
+  score: number;
+  maxScore: number;
+  /** Essays the student answered that nobody has scored yet. */
+  pendingEssays: number;
   startedAt: string | null;
   submittedAt: string | null;
   deadline: string | null;
   locked: boolean;
   failedTries: number;
   skills:
-    | { skillId: string; code: string | null; tasks: number; correct: number }[]
+    | {
+        skillId: string;
+        code: string | null;
+        tasks: number;
+        correct: number;
+        earned: number;
+        max: number;
+        pending: number;
+      }[]
     | null;
 };
 export type Exam = {

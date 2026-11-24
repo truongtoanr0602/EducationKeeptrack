@@ -568,3 +568,19 @@ span.band {
 .take-options button[role="checkbox"][aria-checked="true"]::before { background: currentColor; box-shadow: inset 0 0 0 2px #fff; }
 .take-result li.partial .take-key, .take-result li.pending .take-key { color: #475569; }
 .take-stem.rich-stem .blank-slot { padding: 0; min-width: 0; border: 0; background: none; }
+
+
+/* Scoring essays (teacher). */
+.grading { display: grid; gap: 0.75rem; }
+.grading-question { padding: 0.6rem 0.75rem; border: 1px solid #d6dcea; border-radius: 8px; background: #f8fafc; }
+.grade-form { display: grid; gap: 0.6rem; padding: 0.75rem; border: 1px solid #b9c3da; border-radius: 8px; background: #fff; }
+.grade-student { margin: 0; font-weight: 700; }
+.grade-answer { margin: 0; padding: 0.6rem 0.8rem; border-left: 4px solid #1d4ed8; background: #eff6ff; white-space: pre-wrap; overflow-wrap: anywhere; }
+.grade-quick { display: inline-flex; gap: 0.4rem; }
+.grade-quick button { min-width: 44px; min-height: 44px; }
+.grade-form select, .grade-form textarea { min-height: 44px; }
+
+
+/* Touch targets of the student page are 44 px (WCAG 2.5.8 asks 24, phones are happier with 44). */
+.take-dots button { min-width: 44px; min-height: 44px; }
+.rich-stem input.blank-input { min-height: 44px; }

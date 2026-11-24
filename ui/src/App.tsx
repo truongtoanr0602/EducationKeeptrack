@@ -819,13 +819,12 @@ function ClassScreen({
       </div>
       {route.section === "learning" && (
         <nav aria-label="Mục học tập">
-          <ul className="section-nav">
+          <ul className="learning-nav">
             {learningAreas
               .filter((x) => aiVisible(me.access) || x.id !== "personalization")
               .map((x) => (
                 <li key={x.id}>
                   <a
-                    className="nav-link"
                     href={classHref(classroom.id, x.id)}
                     aria-current={area === x.id ? "page" : undefined}
                   >

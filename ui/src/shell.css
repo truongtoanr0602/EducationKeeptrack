@@ -871,3 +871,13 @@ label.inline input {
 .service-steps .row-actions button {
   min-height: 44px;
 }
+
+
+/* The areas of "Học tập" (Đánh giá, Chương trình & kiểm tra, Cá nhân hoá): tabs on the page, not the dark sidebar's links. */
+.learning-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.learning-nav a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line-strong, #b9c3da);
+  border-radius: 999px; background: #fff; color: var(--brand, #00236f); font-weight: 600; text-decoration: none;
+}
+.learning-nav a:hover { background: var(--surface-soft, #f4f6fc); }
+.learning-nav a[aria-current="page"] { background: var(--brand, #00236f); border-color: var(--brand, #00236f); color: #fff; }

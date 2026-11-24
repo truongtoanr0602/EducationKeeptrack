@@ -157,6 +157,8 @@ test("a typed fill-in is written in the rich editor with formatting, a blank and
   await editor.click();
   await page.keyboard.type("Thủ đô của Việt Nam là ");
   await form.getByRole("button", { name: "Chèn chỗ trống" }).click();
+  // The editor takes the focus back a frame later; typing before that would land on the button.
+  await expect(editor).toBeFocused();
   await page.keyboard.type(" và đây là chữ đậm");
   await page.keyboard.press("Control+A");
   await form.getByRole("button", { name: "In đậm" }).click();
