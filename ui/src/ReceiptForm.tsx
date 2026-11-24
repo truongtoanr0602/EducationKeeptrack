@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import type { Receipt, ReceiptDraft } from "./payments-api";
@@ -10,6 +10,7 @@ export function ReceiptForm({
   canWrite,
   canReplay,
   suggested,
+  onLockChange,
   onSaved,
   onDenied,
 }: {
@@ -19,6 +20,8 @@ export function ReceiptForm({
   canWrite: boolean;
   canReplay: boolean;
   suggested?: string;
+  // Tells a popup around the form when it must not be closed (a request may already have committed).
+  onLockChange?: (locked: boolean) => void;
   onSaved: () => void;
   onDenied: (error: ApiError) => void;
 }) {
@@ -88,6 +91,10 @@ export function ReceiptForm({
     }
   }
   const locked = busy || uncertain;
+  useEffect(() => {
+    onLockChange?.(busy || uncertain);
+    return () => onLockChange?.(false);
+  }, [busy, uncertain, onLockChange]);
   return (
     <form
       className="roster-form"

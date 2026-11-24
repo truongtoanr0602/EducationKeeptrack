@@ -3,6 +3,8 @@ import { api, ApiError } from "./api";
 import { money } from "./tuition-api";
 import { paymentStatus, type PaymentsReport } from "./payments-api";
 import { ReceiptForm } from "./ReceiptForm";
+import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { ReceiptCorrection } from "./ReceiptCorrection";
 import { PaymentQr, RecipientSettings, type Recipient } from "./PaymentQr";
 
@@ -25,6 +27,9 @@ export function Payments({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
+  const [receiptFor, setReceiptFor] = useState<string | null>(null);
+  const [recipientOpen, setRecipientOpen] = useState(false);
+  const [receiptLocked, setReceiptLocked] = useState(false);
   const request = useRef(0);
   const load = useCallback(async () => {
     const current = ++request.current;
@@ -56,10 +61,22 @@ export function Payments({
     };
   }, [load, refreshToken]);
   useEffect(() => {
+    let active = true;
+    api<Recipient>("/billing/recipient")
+      .then((r) => active && setRecipient(r))
+      .catch(() => active && setRecipient(null));
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
     if (report?.status !== "pending" || loading || error) return;
     const timer = window.setTimeout(() => void load(), 1500);
     return () => window.clearTimeout(timer);
   }, [report, loading, error, load]);
+  const receiptTarget = report?.students.find(
+    (student) => student.studentId === receiptFor,
+  );
   return (
     <section aria-label="Thanh toán và công nợ" className="payments-workspace">
       <div className="card-heading">
@@ -68,11 +85,31 @@ export function Payments({
           Tải lại công nợ
         </button>
       </div>
-      <RecipientSettings
-        canWrite={canWrite}
-        onDenied={onDenied}
-        onChanged={setRecipient}
-      />
+      <div className="recipient-summary">
+        <p>
+          {recipient
+            ? `Tài khoản nhận tiền: ${recipient.bankName} · ${recipient.accountNo} · ${recipient.accountName}`
+            : "Chưa có tài khoản nhận tiền."}
+        </p>
+        <button type="button" onClick={() => setRecipientOpen(true)}>
+          Thiết lập tài khoản nhận tiền
+        </button>
+      </div>
+      {recipientOpen && (
+        <Popup
+          open
+          title="Tài khoản nhận tiền"
+          onOpenChange={(next) => {
+            if (!next) setRecipientOpen(false);
+          }}
+        >
+          <RecipientSettings
+            canWrite={canWrite}
+            onDenied={onDenied}
+            onChanged={setRecipient}
+          />
+        </Popup>
+      )}
       <p>
         Trả kỳ nợ cũ nhất trước. Tiền dư được giữ riêng, chưa tự dùng cho kỳ sau
         hoặc hoàn tiền. Quét QR hay ảnh chuyển khoản chưa xác nhận đã nhận tiền.
@@ -101,111 +138,152 @@ export function Payments({
             {report.students.map((student) => (
               <article
                 key={student.studentId}
-                className="class-card"
+                className="class-card pay-card"
                 aria-label={`Công nợ ${student.name}`}
               >
-                <h4>Công nợ: {student.name}</h4>
-                <p>
-                  Nợ trước tháng {report.month}: {money(student.oldDebtVnd)}
-                </p>
-                <p>
-                  Nợ tháng {report.month}: {money(student.currentDebtVnd)}
-                </p>
-                <p>Tổng cần thu: {money(student.totalDebtVnd)}</p>
-                <p>Tiền chưa phân bổ: {money(student.unallocatedVnd)}</p>
-                {student.allocationExcessVnd !== "0" && (
-                  <p className="notice">
-                    Tiền giữ để đối chiếu: {money(student.allocationExcessVnd)}
-                  </p>
-                )}
-                <ul aria-label="Công nợ từng kỳ">
-                  {student.periods.map((period) => (
-                    <li key={period.month}>
-                      {period.month} · {paymentStatus[period.status]} · Phí:{" "}
-                      {money(period.feesVnd)} · Đã phân bổ:{" "}
-                      {money(period.paidVnd)} · Còn nợ: {money(period.debtVnd)}
-                      {period.allocationExcessVnd !== "0" &&
-                        ` · Giữ để đối chiếu: ${money(period.allocationExcessVnd)}`}
-                    </li>
-                  ))}
-                </ul>
-                <PaymentQr
-                  classId={classId}
-                  studentId={student.studentId}
-                  month={month}
-                  version={report.version}
-                  recipient={recipient}
-                  enabled={
-                    canWrite &&
-                    !loading &&
-                    !error &&
-                    report.status === "ready" &&
-                    report.month === month &&
-                    student.totalDebtVnd !== "0"
-                  }
-                  onDenied={onDenied}
-                />
-                <ReceiptForm
-                  classId={classId}
-                  studentId={student.studentId}
-                  version={report.version}
-                  canWrite={
-                    canWrite &&
-                    !loading &&
-                    !error &&
-                    report.status === "ready" &&
-                    report.month === month
-                  }
-                  onDenied={onDenied}
-                  canReplay={canWrite}
-                  onSaved={() => {
-                    void load();
-                    onChanged();
-                  }}
-                />
-                <h4>Lịch sử nhận tiền</h4>
-                {student.receipts.length === 0 && <p>Chưa ghi nhận tiền.</p>}
-                <ul aria-label="Lịch sử nhận tiền">
-                  {student.receipts.map((receipt) => (
-                    <li key={receipt.id} id={`receipt-${receipt.id}`}>
-                      <p>
-                        {receipt.receivedOn} · Nhận {money(receipt.amountVnd)}
-                        {receipt.note && ` · ${receipt.note}`}
-                      </p>
-                      <p>
-                        Phân bổ:{" "}
-                        {receipt.allocations.length === 0
-                          ? "Chưa phân bổ"
-                          : receipt.allocations
-                              .map((a) => `${a.month}: ${money(a.amountVnd)}`)
-                              .join("; ")}
-                      </p>
-                      <p>Chưa phân bổ: {money(receipt.unallocatedVnd)}</p>
-                      <ReceiptCorrection
-                        receipt={receipt}
-                        classId={classId}
-                        version={report.version}
-                        canWrite={
-                          canWrite &&
-                          !loading &&
-                          !error &&
-                          report.month === month &&
-                          (report.status === "ready" ||
-                            report.status === "needs-review")
-                        }
-                        canReplay={canWrite}
-                        onDenied={onDenied}
-                        onSaved={() => {
-                          void load();
-                          onChanged();
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <div className="pay-summary">
+                  <h4>Công nợ: {student.name}</h4>
+                  <div className="pay-figures">
+                    <p>
+                      Nợ trước tháng {report.month}: {money(student.oldDebtVnd)}
+                    </p>
+                    <p>
+                      Nợ tháng {report.month}: {money(student.currentDebtVnd)}
+                    </p>
+                    <p>Tổng cần thu: {money(student.totalDebtVnd)}</p>
+                    <p>Tiền chưa phân bổ: {money(student.unallocatedVnd)}</p>
+                  </div>
+                  {student.allocationExcessVnd !== "0" && (
+                    <p className="notice">
+                      Tiền giữ để đối chiếu:{" "}
+                      {money(student.allocationExcessVnd)}
+                    </p>
+                  )}
+                  <ul aria-label="Công nợ từng kỳ">
+                    {student.periods.map((period) => (
+                      <li key={period.month}>
+                        {period.month} · {paymentStatus[period.status]} · Phí:{" "}
+                        {money(period.feesVnd)} · Đã phân bổ:{" "}
+                        {money(period.paidVnd)} · Còn nợ:{" "}
+                        {money(period.debtVnd)}
+                        {period.allocationExcessVnd !== "0" &&
+                          ` · Giữ để đối chiếu: ${money(period.allocationExcessVnd)}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="pay-actions">
+                  <PaymentQr
+                    classId={classId}
+                    studentId={student.studentId}
+                    month={month}
+                    version={report.version}
+                    recipient={recipient}
+                    enabled={
+                      canWrite &&
+                      !loading &&
+                      !error &&
+                      report.status === "ready" &&
+                      report.month === month &&
+                      student.totalDebtVnd !== "0"
+                    }
+                    onDenied={onDenied}
+                  />
+                  <button
+                    type="button"
+                    className="receipt-toggle"
+                    onClick={() => setReceiptFor(student.studentId)}
+                  >
+                    Nhập khoản nhận tiền
+                  </button>
+                </div>
+                <div className="pay-history">
+                  <h4>Lịch sử nhận tiền</h4>
+                  {student.receipts.length === 0 && <p>Chưa ghi nhận tiền.</p>}
+                  <ul aria-label="Lịch sử nhận tiền">
+                    {student.receipts.map((receipt) => (
+                      <li key={receipt.id} id={`receipt-${receipt.id}`}>
+                        <p>
+                          {receipt.receivedOn} · Nhận {money(receipt.amountVnd)}
+                          {receipt.note && ` · ${receipt.note}`}
+                        </p>
+                        <p>
+                          Phân bổ:{" "}
+                          {receipt.allocations.length === 0
+                            ? "Chưa phân bổ"
+                            : receipt.allocations
+                                .map((a) => `${a.month}: ${money(a.amountVnd)}`)
+                                .join("; ")}
+                        </p>
+                        <p>Chưa phân bổ: {money(receipt.unallocatedVnd)}</p>
+                        <ReceiptCorrection
+                          receipt={receipt}
+                          classId={classId}
+                          version={report.version}
+                          canWrite={
+                            canWrite &&
+                            !loading &&
+                            !error &&
+                            report.month === month &&
+                            (report.status === "ready" ||
+                              report.status === "needs-review")
+                          }
+                          canReplay={canWrite}
+                          onDenied={onDenied}
+                          onSaved={() => {
+                            void load();
+                            onChanged();
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </article>
             ))}
           </div>
+          {receiptTarget && (
+            <Popup
+              open
+              onOpenChange={(next) => {
+                if (!next) setReceiptFor(null);
+              }}
+              title={`Nhận tiền học phí: ${receiptTarget.name}`}
+              locked={receiptLocked}
+              footer={
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  disabled={loading}
+                >
+                  Tải lại công nợ
+                </button>
+              }
+            >
+              <ReceiptForm
+                key={receiptTarget.studentId}
+                classId={classId}
+                studentId={receiptTarget.studentId}
+                version={report.version}
+                canWrite={
+                  canWrite &&
+                  !loading &&
+                  !error &&
+                  report.status === "ready" &&
+                  report.month === month
+                }
+                onDenied={onDenied}
+                canReplay={canWrite}
+                onLockChange={setReceiptLocked}
+                onSaved={() => {
+                  toast.success("Khoản thu đã được ghi nhận.");
+                  setReceiptFor(null);
+                  void load();
+                  onChanged();
+                }}
+              />
+            </Popup>
+          )}
         </>
       )}
     </section>

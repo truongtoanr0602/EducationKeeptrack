@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { api, ApiError, type Me, type TeacherClass } from "./api";
+import { NavIcon } from "./ui/icons";
 import type { CreateClassDraft } from "./CreateClass";
 import { Login } from "./Login";
 import { Today } from "./Today";
@@ -71,6 +72,7 @@ import {
   href,
   navigate,
   sections,
+  learningAreas,
   useRoute,
   type Route,
 } from "./router";
@@ -188,6 +190,7 @@ export function App() {
     route.name,
     route.name === "class" ? route.classId : "",
     route.name === "class" ? route.section : "",
+    route.name === "class" ? route.area : "",
     route.name === "class" ? route.tab : "",
   ]);
   // A class created in another tab (or via a link) is not in the list loaded at login:
@@ -415,7 +418,7 @@ export function App() {
               href={href({ name: tab.name })}
               aria-current={activeTab === tab.name ? "page" : undefined}
             >
-              <span aria-hidden="true">{tab.icon}</span> {tab.label}
+              <NavIcon name={tab.name} /> {tab.label}
             </a>
           ))}
         </nav>
@@ -430,6 +433,7 @@ export function App() {
                     name: "class",
                     classId: e.target.value,
                     section: route.section,
+                    area: route.area,
                     tab: route.tab,
                   })
                 }
@@ -441,11 +445,7 @@ export function App() {
                 ))}
               </select>
             </label>
-            <SectionNav
-              route={route}
-              label="Màn hình của lớp"
-              showAi={aiVisible(me.access)}
-            />
+            <SectionNav route={route} label="Màn hình của lớp" />
           </div>
         )}
         <div className="sidebar-account">
@@ -490,11 +490,7 @@ export function App() {
         </header>
         {route.name === "class" && current && (
           <div className="section-tabs">
-            <SectionNav
-              route={route}
-              label="Chuyển màn hình lớp"
-              showAi={aiVisible(me.access)}
-            />
+            <SectionNav route={route} label="Chuyển màn hình lớp" />
           </div>
         )}
         <main className="workspace" id="screen" tabIndex={-1}>
@@ -591,7 +587,7 @@ export function App() {
             href={href({ name: tab.name })}
             aria-current={activeTab === tab.name ? "page" : undefined}
           >
-            <span aria-hidden="true">{tab.icon}</span>
+            <NavIcon name={tab.name} />
             <span>{tab.short}</span>
           </a>
         ))}
@@ -642,28 +638,24 @@ export function App() {
 function SectionNav({
   route,
   label,
-  showAi,
 }: {
   route: Extract<Route, { name: "class" }>;
   label: string;
-  showAi: boolean;
 }) {
   return (
     <nav aria-label={label}>
       <ul className="section-nav">
-        {sections
-          .filter((section) => showAi || section.id !== "personalization")
-          .map((section) => (
-            <li key={section.id}>
-              <a
-                className="nav-link"
-                href={classHref(route.classId, section.id)}
-                aria-current={route.section === section.id ? "page" : undefined}
-              >
-                <span aria-hidden="true">{section.icon}</span> {section.label}
-              </a>
-            </li>
-          ))}
+        {sections.map((section) => (
+          <li key={section.id}>
+            <a
+              className="nav-link"
+              href={classHref(route.classId, section.id)}
+              aria-current={route.section === section.id ? "page" : undefined}
+            >
+              <NavIcon name={section.id} /> {section.label}
+            </a>
+          </li>
+        ))}
       </ul>
     </nav>
   );
@@ -678,25 +670,63 @@ function ClassesScreen({
   classes: TeacherClass[];
   onCreate: () => void;
 }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLocaleLowerCase("vi");
+  const shown = classes.filter(
+    (item) =>
+      !q ||
+      item.name.toLocaleLowerCase("vi").includes(q) ||
+      item.subject.toLocaleLowerCase("vi").includes(q),
+  );
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading sticky-heading">
         <div>
           <span className="eyebrow">KHÔNG GIAN GIẢNG DẠY</span>
           <h1>Lớp học của tôi</h1>
           <p>Quản lý những lớp học của bạn.</p>
         </div>
-        <button
-          className="primary"
-          disabled={!me.access.canWrite}
-          onClick={onCreate}
-        >
-          <span aria-hidden="true">＋ </span>Tạo lớp mới
-        </button>
+        <div className="roster-actions">
+          {me.access.canRead && classes.length > 0 && (
+            <button
+              onClick={() =>
+                document
+                  .getElementById("all-students")
+                  ?.scrollIntoView({ block: "start" })
+              }
+            >
+              Tất cả học sinh
+            </button>
+          )}
+          <button
+            className="primary"
+            disabled={!me.access.canWrite}
+            onClick={onCreate}
+          >
+            <span aria-hidden="true">＋ </span>Tạo lớp mới
+          </button>
+        </div>
       </div>
+      {classes.length > 6 && (
+        <div className="list-search">
+          <input
+            type="search"
+            aria-label="Tìm lớp"
+            value={query}
+            placeholder="Tìm theo tên lớp hoặc môn"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <span className="muted">
+            {shown.length}/{classes.length} lớp
+          </span>
+        </div>
+      )}
       {classes.length ? (
-        <section className="class-grid" aria-label="Danh sách lớp">
-          {classes.map((item) => (
+        <section
+          className="class-grid compact-cards"
+          aria-label="Danh sách lớp"
+        >
+          {shown.map((item) => (
             <article key={item.id} className="class-card">
               <span className="subject">{item.subject}</span>
               <h2>{item.name}</h2>
@@ -722,12 +752,17 @@ function ClassesScreen({
                 <a className="button-link" href={classHref(item.id, "tuition")}>
                   Học phí
                 </a>
-                <a
-                  className="button-link"
-                  href={classHref(item.id, "personalization")}
-                >
-                  Cá nhân hoá
+                <a className="button-link" href={classHref(item.id, "program")}>
+                  Đề kiểm tra
                 </a>
+                {aiVisible(me.access) && (
+                  <a
+                    className="button-link"
+                    href={classHref(item.id, "personalization")}
+                  >
+                    Cá nhân hoá
+                  </a>
+                )}
               </div>
             </article>
           ))}
@@ -763,8 +798,10 @@ function ClassScreen({
   me: Me;
 }) {
   const section = sections.find((x) => x.id === route.section)!;
+  const area = route.section === "learning" ? route.area : undefined;
+  const areaLabel = learningAreas.find((x) => x.id === area)?.label;
   // A deep link to a hidden AI screen falls back to the roster instead of showing a locked page.
-  const aiHidden = route.section === "personalization" && !aiVisible(me.access);
+  const aiHidden = area === "personalization" && !aiVisible(me.access);
   useEffect(() => {
     if (aiHidden)
       navigate({ name: "class", classId: classroom.id, section: "students" });
@@ -777,9 +814,28 @@ function ClassScreen({
           <span className="eyebrow">
             {classroom.subject.toUpperCase()} · {classroom.name.toUpperCase()}
           </span>
-          <h1>{section.label}</h1>
+          <h1>{areaLabel ?? section.label}</h1>
         </div>
       </div>
+      {route.section === "learning" && (
+        <nav aria-label="Mục học tập">
+          <ul className="section-nav">
+            {learningAreas
+              .filter((x) => aiVisible(me.access) || x.id !== "personalization")
+              .map((x) => (
+                <li key={x.id}>
+                  <a
+                    className="nav-link"
+                    href={classHref(classroom.id, x.id)}
+                    aria-current={area === x.id ? "page" : undefined}
+                  >
+                    {x.label}
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </nav>
+      )}
       {route.section === "students" && <Roster classroom={classroom} me={me} />}
       {route.section === "sessions" && (
         <Sessions classroom={classroom} me={me} />
@@ -787,15 +843,22 @@ function ClassScreen({
       {route.section === "tuition" && (
         <Tuition classroom={classroom} me={me} refreshToken={0} />
       )}
-      {route.section === "assessments" && (
-        <Learning classroom={classroom} me={me} />
-      )}
+      {area === "assessments" && <Learning classroom={classroom} me={me} />}
       <Suspense fallback={<p role="status">Đang tải…</p>}>
-        {route.section === "personalization" && (
+        {area === "personalization" && (
           <Personalization
             classroom={classroom}
             me={me}
-            tab={route.tab ?? "curriculum"}
+            area="personalization"
+            tab={route.tab}
+          />
+        )}
+        {area === "program" && (
+          <Personalization
+            classroom={classroom}
+            me={me}
+            area="program"
+            tab={route.tab}
           />
         )}
         {route.section === "reports" && (

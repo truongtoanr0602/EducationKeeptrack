@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mẫu widget lịch Hôm nay</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2230;--mute:#667;--line:#dde1ea;--ac:#2f5bd8;--warn:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b1f2a;--ink:#e8ebf2;--mute:#9aa3b5;--line:#2c3242;--ac:#7b9cff;--warn:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:12px 16px}
+h1{font-size:18px;margin:4px 0 10px}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:0 12px;cursor:pointer}
+button[aria-pressed=true],button.primary{background:var(--ac);color:#fff;border-color:var(--ac)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.bar .title{flex:1;font-weight:600;text-align:center;min-width:140px}
+.layout{display:block}
+@media(min-width:1100px){.layout{display:grid;grid-template-columns:1fr 380px;gap:16px}}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{text-align:center;font-size:12px;color:var(--mute)}
+.day{min-height:56px;padding:4px;text-align:left;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.day .n{font-weight:600}.day.out{opacity:.45}.day.today .n{color:var(--ac);text-decoration:underline}
+.day[aria-selected=true]{outline:2px solid var(--ac)}
+.week.desk .day{min-height:210px}
+.dots{display:flex;gap:3px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.un{background:transparent!important;border:2px dashed currentColor}
+.dot.miss{border-radius:2px}
+.chip{font-size:12px;border-radius:6px;padding:2px 5px;border-left:4px solid;background:color-mix(in srgb,currentColor 10%,transparent);width:100%}
+.alert{background:color-mix(in srgb,var(--warn) 12%,transparent);border:1px solid var(--warn);border-radius:8px;padding:8px 10px;margin:8px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+.card.un{border-style:dashed}.card .row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.badge{font-size:12px;border:1px solid currentColor;border-radius:99px;padding:0 8px}
+.warn{color:var(--warn)}.legend{font-size:12px;color:var(--mute);margin-top:8px}
+.handle{width:100%;min-height:24px;border:0;background:transparent}
+.handle::after{content:"";display:block;width:44px;height:4px;border-radius:2px;background:var(--line);margin:auto}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:420px}
+.note{font-size:12px;color:var(--mute)}
+</style></head><body><div class="wrap">
+<h1>Hôm nay · mẫu widget lịch <span class="note">(dữ liệu giả, chỉ để dùng thử)</span></h1>
+<div class="bar" role="group" aria-label="Chọn ngày">
+ <button id="prev" aria-label="Hôm trước">‹</button>
+ <div class="title" id="title" aria-live="polite"></div>
+ <button id="next" aria-label="Hôm sau">›</button>
+ <button id="todayBtn">Hôm nay</button>
+ <button id="monthBtn" aria-pressed="false">Tháng ▾</button>
+</div>
+<div id="alert"></div>
+<div class="layout"><div><div class="grid" id="dows"></div><div class="grid" id="grid" role="grid" aria-label="Lịch"></div>
+<button class="handle" id="handle" aria-label="Mở hoặc đóng lưới tháng"></button>
+<div class="legend">● đã điểm danh · ◌ chưa tạo buổi · ■ thiếu điểm danh/quá hạn · <s>hủy</s> · "bù" học bù. Màu = lớp; trạng thái luôn có chữ/ký hiệu.</div>
+<div class="legend" id="classes"></div></div>
+<aside><h2 id="dayTitle" style="font-size:16px"></h2><div id="list"></div><button class="primary" id="gen">Tạo buổi cho <span id="genScope">tuần này</span></button></aside></div>
+<dialog id="dlg"><h3>Xem trước: tạo buổi</h3><div id="pv"></div><div id="res" class="note"></div>
+<div class="bar"><button id="ok" class="primary">Xác nhận</button><button id="cancel">Hủy</button></div></dialog>
+</div>
+<script>
+const DOW=["CN","T2","T3","T4","T5","T6","T7"],FULL=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
+const CL=[{id:1,n:"Toán 7A",c:"#2f5bd8",slots:[[2,"18:00","19:30"],[4,"18:00","19:30"],[6,"19:45","21:15"]]},
+{id:2,n:"Lý 8B",c:"#c2410c",slots:[[3,"18:30","20:00"],[0,"08:00","09:30"]]},
+{id:3,n:"Hóa 9C",c:"#15803d",slots:[[5,"18:00","19:30"],[6,"08:30","10:00"],[6,"18:00","19:30"],[0,"19:00","20:30"]]}];
+const iso=d=>d.toISOString().slice(0,10),add=(d,n)=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+n);return x};
+const parse=s=>new Date(s+"T00:00:00Z"),fmt=s=>s.slice(8)+"/"+s.slice(5,7)+"/"+s.slice(0,4);
+const T=iso(new Date(Date.now()+7*3600e3));
+// giả lập buổi đã tạo: các ngày trước hôm nay + 1 tuần tới đã tạo, phần còn lại chưa tạo
+const created=new Set(),state={};
+function seed(){for(let i=-40;i<=6;i++){const d=add(parse(T),i),w=d.getUTCDay();CL.forEach(c=>c.slots.forEach(([dw,s,e],k)=>{if(dw!==w)return;
+ const key=c.id+iso(d)+s;if(i%7===3&&i<0&&c.id===2)return; // vài buổi thiếu để thấy "chưa tạo"
+ created.add(key);const past=iso(d)<T;state[key]={c,date:iso(d),s,e,st:past?(i%5===0&&i>-12?"planned":"held"):"planned",mk:past&&i%5!==0?"ok":"none",bu:c.id===3&&k===0&&i===-9,huy:c.id===1&&i===-17}}))}}
+seed();
+let sel=T,month=false;
+const sessionsOn=d=>{const w=parse(d).getUTCDay(),o=[];CL.forEach(c=>c.slots.forEach(([dw,s,e])=>{if(dw!==w)return;const k=c.id+d+s;
+ o.push(state[k]?{...state[k],key:k,un:false}:{c,date:d,s,e,un:true,key:k})}));return o.sort((a,b)=>a.s.localeCompare(b.s))};
+const overdue=x=>!x.un&&x.date<T&&x.st==="planned"&&x.date>=iso(add(parse(T),-30));
+const miss=x=>!x.un&&x.date<=T&&x.st==="held"&&x.mk!=="ok";
+function range(){const d=parse(sel);if(month){const f=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1));const st=add(f,-((f.getUTCDay()+6)%7));return Array.from({length:42},(_,i)=>iso(add(st,i)))}
+ const st=add(d,-((d.getUTCDay()+6)%7));return Array.from({length:7},(_,i)=>iso(add(st,i)))}
+const desk=()=>matchMedia("(min-width:1100px)").matches;
+function label(d,l){const s=l.filter(x=>!x.un),u=l.filter(x=>x.un).length,m=s.filter(x=>overdue(x)||miss(x)).length;
+ return FULL[parse(d).getUTCDay()]+" "+fmt(d).slice(0,5)+", "+s.length+" buổi"+(m?", "+m+" chưa điểm danh":"")+(u?", "+u+" chưa tạo buổi":"")}
+function render(){
+ const r=range(),g=document.getElementById("grid");
+ document.getElementById("dows").innerHTML=["T2","T3","T4","T5","T6","T7","CN"].map(x=>`<div class="dow">${x}</div>`).join("");
+ g.className="grid"+(!month&&desk()?" week desk":"");
+ g.innerHTML=r.map(d=>{const l=sessionsOn(d),out=month&&d.slice(0,7)!==sel.slice(0,7);
+  const body=(!month&&desk())?l.map(x=>`<span class="chip" style="color:${x.c.c}">${x.s} ${x.c.n}${x.un?" ◌":""}${x.huy?" <s>hủy</s>":""}${x.bu?" bù":""}${overdue(x)||miss(x)?" !":""}</span>`).join("")
+   :`<span class="dots">${l.map(x=>`<span class="dot ${x.un?"un":""} ${overdue(x)||miss(x)?"miss":""}" style="background:${x.c.c};color:${x.c.c}"></span>`).join("")}</span>`;
+  return `<button role="gridcell" class="day ${out?"out":""} ${d===T?"today":""}" data-d="${d}" aria-selected="${d===sel}" aria-label="${label(d,l)}"><span class="n">${+d.slice(8)}</span>${body}</button>`}).join("");
+ g.querySelectorAll("button").forEach(b=>b.onclick=()=>{sel=b.dataset.d;render()});
+ g.onkeydown=e=>{const m={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];if(m){sel=iso(add(parse(sel),m));render();g.querySelector('[aria-selected=true]').focus();e.preventDefault()}
+  if(e.key==="PageDown"||e.key==="PageUp"){const d=parse(sel);d.setUTCMonth(d.getUTCMonth()+(e.key==="PageDown"?1:-1));sel=iso(d);render();g.querySelector('[aria-selected=true]').focus()}};
+ document.getElementById("title").textContent=month?`Tháng ${sel.slice(5,7)}/${sel.slice(0,4)}`:`Tuần ${fmt(r[0]).slice(0,5)}–${fmt(r[6])}`;
+ document.getElementById("monthBtn").setAttribute("aria-pressed",month);
+ document.getElementById("genScope").textContent=month?"tháng này":"tuần này";
+ document.getElementById("classes").innerHTML=CL.map(c=>`<span style="color:${c.c}">■ ${c.n}</span>`).join(" · ");
+ const all=r.flatMap(sessionsOn);const od=Object.values(state).filter(overdue),ms=Object.values(state).filter(miss);
+ const oldest=[...od,...ms].map(x=>x.date).sort()[0];
+ document.getElementById("alert").innerHTML=oldest?`<div class="alert" role="status">⚠ ${ms.length} buổi chưa điểm danh · ${od.length} buổi quá hạn (30 ngày gần nhất) <button id="jump">Tới ngày cũ nhất</button></div>`:"";
+ if(oldest)document.getElementById("jump").onclick=()=>{sel=oldest;render()};
+ const l=sessionsOn(sel);document.getElementById("dayTitle").textContent=FULL[parse(sel).getUTCDay()]+" "+fmt(sel);
+ document.getElementById("list").innerHTML=l.length?l.map(x=>`<div class="card ${x.un?"un":""}" style="border-left:5px solid ${x.c.c}"><div class="row"><b>${x.s}–${x.e} · ${x.c.n}</b>
+  <span>${x.un?'<span class="badge">Chưa tạo buổi</span>':x.huy?'<span class="badge"><s>Đã hủy</s></span>':overdue(x)?'<span class="badge warn">Quá hạn</span>':miss(x)?'<span class="badge warn">Chưa điểm danh</span>':x.st==="held"?'<span class="badge">Đã điểm danh</span>':'<span class="badge">Dự kiến</span>'}${x.bu?' <span class="badge">bù</span>':""}</span></div>
+  ${x.un?'<div class="note">Suy ra từ lịch tuần, chưa có bản ghi buổi học.</div>':'<div class="note">Bấm để điểm danh (luồng hiện có)</div>'}</div>`).join(""):'<p class="note">Không có buổi nào ngày này.</p>';
+ const need=all.filter(x=>x.un&&x.date>=T);document.getElementById("gen").disabled=!need.length;
+}
+const step=n=>{sel=iso(month?(()=>{const d=parse(sel);d.setUTCMonth(d.getUTCMonth()+n);return d})():add(parse(sel),7*n));render()};
+prev.onclick=()=>step(-1);next.onclick=()=>step(1);todayBtn.onclick=()=>{sel=T;render()};
+monthBtn.onclick=handle.onclick=()=>{month=!month;render()};
+// vuốt ngang
+let x0=null;const gr=document.getElementById("grid");gr.ontouchstart=e=>x0=e.touches[0].clientX;gr.ontouchend=e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)step(dx<0?1:-1);x0=null};
+// tạo hàng loạt
+gen.onclick=()=>{const need=range().flatMap(sessionsOn).filter(x=>x.un&&x.date>=T),by={};need.forEach(x=>by[x.c.n]=(by[x.c.n]||0)+1);
+ document.getElementById("pv").innerHTML="<ul>"+Object.entries(by).map(([k,v])=>`<li>${k}: ${v} buổi</li>`).join("")+"</ul>";res.textContent="";dlg.showModal();gen._need=need};
+cancel.onclick=()=>dlg.close();
+ok.onclick=()=>{const by={};gen._need.forEach(x=>{if(x.c.id===2&&!by.fail){by.fail=1;return}created.add(x.key);state[x.key]={c:x.c,date:x.date,s:x.s,e:x.e,st:"planned",mk:"none"}});
+ res.textContent=by.fail?"Kết quả: Toán 7A và Hóa 9C đã tạo; Lý 8B lỗi: trùng giờ (mô phỏng).":"Đã tạo xong.";render()};
+render();matchMedia("(min-width:1100px)").onchange=render;
+</script></body></html>

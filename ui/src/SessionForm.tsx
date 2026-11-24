@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { today } from "./roster-api";
 import { sessionLabel, type ClassSession } from "./session-api";
@@ -10,6 +10,7 @@ export function SessionForm({
   canWrite,
   onSaved,
   onCancel,
+  onLockChange,
   onDenied,
 }: {
   classId: string;
@@ -18,6 +19,7 @@ export function SessionForm({
   canWrite: boolean;
   onSaved: () => void;
   onCancel: () => void;
+  onLockChange?: (locked: boolean) => void;
   onDenied: (error: ApiError) => void;
 }) {
   const [date, setDate] = useState(today);
@@ -30,6 +32,10 @@ export function SessionForm({
   const [kind, setKind] = useState(source ? "makeup" : "regular");
   const [replacesSessionId, setSource] = useState(source?.id ?? "");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    onLockChange?.(busy);
+    return () => onLockChange?.(false);
+  }, [busy, onLockChange]);
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();

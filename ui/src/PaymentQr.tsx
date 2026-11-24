@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  base64Bytes,
+  ImageRejected,
+  QR_ACCEPT,
+  toPngBase64,
+} from "./png-image";
 import { api, ApiError } from "./api";
+import { Popup } from "./ui/popup";
 import { money } from "./tuition-api";
 import { BankPicker } from "./BankPicker";
 import { SampleQr } from "./SampleQr";
@@ -257,32 +264,34 @@ export function RecipientSettings({
         </small>
         {fieldError("accountName")}
         <label>
-          QR ngân hàng tĩnh (PNG, tối đa 1 MB)
+          QR ngân hàng tĩnh (PNG hoặc JPG, tối đa 1 MB)
           <input
             type="file"
-            accept="image/png"
+            accept={QR_ACCEPT}
             disabled={!canWrite || busy}
             onChange={async (e) => {
-              const file = e.target.files?.[0];
+              const input = e.target;
+              const file = input.files?.[0];
               if (!file) return;
-              if (file.size > 1048576 || file.type !== "image/png") {
-                setError("Chọn ảnh PNG tối đa 1 MB.");
-                e.target.value = "";
-                return;
-              }
               setBusy(true);
               try {
-                const data = await new Promise<string>((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.onload = () =>
-                    resolve(String(reader.result).split(",")[1]);
-                  reader.onerror = reject;
-                  reader.readAsDataURL(file);
-                });
+                const data = await toPngBase64(file);
+                if (base64Bytes(data) > 1048576) {
+                  setError(
+                    "Ảnh sau khi đổi sang PNG vượt 1 MB. Chọn ảnh QR nhỏ hơn.",
+                  );
+                  input.value = "";
+                  return;
+                }
                 setImage(data);
                 setError("");
-              } catch {
-                setError("Không thể đọc ảnh.");
+              } catch (error) {
+                setError(
+                  error instanceof ImageRejected
+                    ? error.message
+                    : "Không thể đọc ảnh.",
+                );
+                input.value = "";
               } finally {
                 setBusy(false);
               }
@@ -443,55 +452,75 @@ export function PaymentQr({
           <a href="#/setup/2">Thiết lập tài khoản nhận tiền</a> để tạo QR.
         </p>
       )}
-      {busy && <p role="status">Đang tạo mã…</p>}
-      {error && <p role="alert">{error}</p>}
-      {transfer && (
-        <>
-          <p>
-            {transfer.qrKind === "vietqr" && !imageFailed && !useStatic
-              ? "VietQR có số tiền và nội dung"
-              : (transfer.qrKind === "static" || useStatic) && !imageFailed
-                ? "QR tĩnh — tự nhập số tiền và nội dung"
-                : "Chuyển khoản thủ công — tự nhập đầy đủ thông tin"}
-          </p>
-          {transfer.qrKind !== "vietqr" || imageFailed || useStatic ? (
-            <p role="alert">
-              Không có VietQR dùng được. Kiểm tra người nhận, tự nhập đúng số
-              tiền và nội dung bên dưới.
-            </p>
-          ) : null}
-          {transfer.qrDataUrl && !imageFailed && (
-            <img
-              className="payment-qr"
-              src={useStatic ? transfer.staticQrDataUrl! : transfer.qrDataUrl}
-              alt={
-                transfer.qrKind === "vietqr" && !useStatic
-                  ? "VietQR chuyển khoản"
-                  : "QR ngân hàng tĩnh"
-              }
-              onError={() => {
-                if (
-                  transfer.qrKind === "vietqr" &&
-                  !useStatic &&
-                  transfer.staticQrDataUrl
-                )
-                  setUseStatic(true);
-                else setImageFailed(true);
-              }}
-            />
-          )}
-          <p>
-            Ngân hàng: {transfer.bankName} ({transfer.bankBin})
-          </p>
-          <p>Tài khoản: {transfer.accountNo}</p>
-          <p>Người nhận: {transfer.accountName}</p>
-          <p>Số tiền chuyển: {money(transfer.amountVnd)}</p>
-          <p>Nội dung: {transfer.content}</p>
-          <p>
-            Quét QR không xác nhận đã nhận tiền. Chỉ ghi nhận sau khi kiểm tra
-            tài khoản ngân hàng.
-          </p>
-        </>
+      {(busy || error || transfer) && (
+        <Popup
+          open
+          title="Yêu cầu chuyển khoản"
+          onOpenChange={(next) => {
+            if (next) return;
+            // Closing drops the code: a QR must never stay on screen after it may have gone stale.
+            generation.current++;
+            setTransfer(null);
+            setError("");
+            setBusy(false);
+          }}
+        >
+          <section aria-label="Mã chuyển khoản" className="grid gap-2">
+            {busy && <p role="status">Đang tạo mã…</p>}
+            {error && <p role="alert">{error}</p>}
+            {transfer && (
+              <>
+                <p>
+                  {transfer.qrKind === "vietqr" && !imageFailed && !useStatic
+                    ? "VietQR có số tiền và nội dung"
+                    : (transfer.qrKind === "static" || useStatic) &&
+                        !imageFailed
+                      ? "QR tĩnh — tự nhập số tiền và nội dung"
+                      : "Chuyển khoản thủ công — tự nhập đầy đủ thông tin"}
+                </p>
+                {transfer.qrKind !== "vietqr" || imageFailed || useStatic ? (
+                  <p role="alert">
+                    Không có VietQR dùng được. Kiểm tra người nhận, tự nhập đúng
+                    số tiền và nội dung bên dưới.
+                  </p>
+                ) : null}
+                {transfer.qrDataUrl && !imageFailed && (
+                  <img
+                    className="payment-qr"
+                    src={
+                      useStatic ? transfer.staticQrDataUrl! : transfer.qrDataUrl
+                    }
+                    alt={
+                      transfer.qrKind === "vietqr" && !useStatic
+                        ? "VietQR chuyển khoản"
+                        : "QR ngân hàng tĩnh"
+                    }
+                    onError={() => {
+                      if (
+                        transfer.qrKind === "vietqr" &&
+                        !useStatic &&
+                        transfer.staticQrDataUrl
+                      )
+                        setUseStatic(true);
+                      else setImageFailed(true);
+                    }}
+                  />
+                )}
+                <p>
+                  Ngân hàng: {transfer.bankName} ({transfer.bankBin})
+                </p>
+                <p>Tài khoản: {transfer.accountNo}</p>
+                <p>Người nhận: {transfer.accountName}</p>
+                <p>Số tiền chuyển: {money(transfer.amountVnd)}</p>
+                <p>Nội dung: {transfer.content}</p>
+                <p>
+                  Quét QR không xác nhận đã nhận tiền. Chỉ ghi nhận sau khi kiểm
+                  tra tài khoản ngân hàng.
+                </p>
+              </>
+            )}
+          </section>
+        </Popup>
       )}
     </section>
   );

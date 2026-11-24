@@ -1,0 +1,555 @@
+/* Lessons, question bank, exams (teacher) and the student's exam page. Colours follow style.css. */
+.steps {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+}
+.steps li {
+  margin: 0.35rem 0;
+}
+.import-pickers,
+.bank-filters,
+.form-row,
+.exam-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+.import-pickers label,
+.bank-filters label,
+.form-row label,
+.exam-link label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+.form-row .grow,
+.bank-filters .grow,
+.exam-link .grow {
+  flex: 1 1 14rem;
+}
+.copy-from {
+  margin-top: 1rem;
+}
+.copy-from summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #4059aa;
+}
+.import-report {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #eef7f0;
+  border: 1px solid #bfe0c7;
+}
+.import-report.has-issues {
+  background: #fff4f2;
+  border-color: #f2c4bb;
+}
+.import-report ul {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.lesson-list > li {
+  border: 1px solid #dfe3f0;
+  border-radius: 8px;
+  background: white;
+}
+.lesson-list > li.taught {
+  border-left: 4px solid #2f8a4c;
+}
+.lesson-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: 0.25rem 0.75rem;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  font-weight: 500;
+  color: inherit;
+}
+.lesson-no {
+  font-weight: 700;
+  color: #00236f;
+}
+.lesson-codes {
+  font-size: 0.85rem;
+  color: #4059aa;
+}
+.lesson-date {
+  grid-column: 2 / -1;
+  font-size: 0.85rem;
+  color: #5b5d6b;
+}
+.lesson-body {
+  padding: 0 1rem 1rem;
+}
+.lesson-body dl {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+}
+.lesson-body dt {
+  font-weight: 600;
+}
+.lesson-body dd {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .lesson-head {
+    grid-template-columns: 1fr;
+  }
+  .lesson-date {
+    grid-column: auto;
+  }
+  .lesson-body dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bank-levels,
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.level-chip,
+.chip,
+.status-chip {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #eff4ff;
+  color: #00236f;
+}
+.level-nhan_biet {
+  background: #e7f5ec;
+  color: #1d6b37;
+}
+.level-thong_hieu {
+  background: #e8f0ff;
+  color: #1f3f99;
+}
+.level-van_dung {
+  background: #fff3df;
+  color: #8a5300;
+}
+.level-van_dung_cao {
+  background: #fde8ec;
+  color: #9b1c38;
+}
+.chip.muted {
+  opacity: 0.55;
+}
+.status-open {
+  background: #e7f5ec;
+  color: #1d6b37;
+}
+.status-closed {
+  background: #fff3df;
+  color: #8a5300;
+}
+.status-confirmed {
+  background: #e8f0ff;
+  color: #1f3f99;
+}
+.question-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.question-list > li {
+  border: 1px solid #dfe3f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: white;
+}
+.question-list > li.archived {
+  opacity: 0.6;
+}
+.question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.question-meta button {
+  min-height: 36px;
+  padding: 0.3rem 0.8rem;
+  margin-left: auto;
+}
+.question-preview p {
+  margin: 0.4rem 0;
+  color: #0d1c2f;
+}
+.question-stem {
+  white-space: pre-wrap;
+}
+.blank-box {
+  display: inline-block;
+  min-width: 2.2rem;
+  margin: 0 0.25rem;
+  border: 2px dashed #8b92b5;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #8b92b5;
+}
+.question-image {
+  max-width: min(100%, 320px);
+  max-height: 220px;
+  border-radius: 6px;
+}
+.option-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.option-list li.is-answer {
+  font-weight: 700;
+  color: #1d6b37;
+}
+.option-list img {
+  max-height: 90px;
+  vertical-align: middle;
+}
+.option-key {
+  font-weight: 700;
+}
+.answer-line {
+  font-size: 0.9rem;
+}
+.question-form {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #c5c5d3;
+  border-radius: 8px;
+  background: #f8f9ff;
+  display: grid;
+  gap: 0.75rem;
+}
+.question-form > label,
+.question-form fieldset > label {
+  display: grid;
+  gap: 0.25rem;
+}
+.question-form textarea {
+  width: 100%;
+}
+.secondary-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+.field-error {
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+.image-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+}
+.image-grid li {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+.image-grid img {
+  width: 100%;
+  height: 90px;
+  object-fit: contain;
+  background: white;
+  border: 1px solid #dfe3f0;
+  border-radius: 6px;
+}
+
+.exam-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.exam-row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: center;
+  text-align: left;
+  font-weight: 500;
+}
+.level-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.level-counts label {
+  display: grid;
+  gap: 0.25rem;
+}
+.level-counts input {
+  width: 5.5rem;
+}
+.skill-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0.25rem 1rem;
+}
+.exam-preview {
+  margin-top: 1rem;
+}
+.seat-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+.band.strong {
+  background: #e7f5ec;
+  color: #1d6b37;
+  font-weight: 700;
+}
+.band.weak {
+  background: #fde8ec;
+  color: #9b1c38;
+  font-weight: 700;
+}
+span.band {
+  padding: 0 0.3rem;
+  border-radius: 4px;
+}
+@media print {
+  .no-print,
+  .app-sidebar,
+  .bottom-tabs,
+  .tabs,
+  header {
+    display: none !important;
+  }
+  .seats-board {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/* ---- Student page: one question per screen, big targets for small hands ---- */
+.take {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem 16px 3rem;
+  font-size: 1.15rem;
+}
+.take-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.take-header h1 {
+  font-size: 1.6rem;
+  margin: 0.4rem 0;
+}
+.take-brand {
+  font-size: 1.6rem;
+}
+.take-card {
+  background: white;
+  border: 1px solid #dfe3f0;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(13, 28, 47, 0.06);
+}
+.take-lead {
+  color: #0d1c2f;
+}
+.take-names {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+.take-names button {
+  width: 100%;
+  min-height: 64px;
+  font-size: 1.2rem;
+}
+.take-code {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.take-code input {
+  font-size: 2rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+  padding: 0.4rem;
+  border: 2px solid #c5c5d3;
+  border-radius: 10px;
+  max-width: 12rem;
+}
+.take-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.take-actions button {
+  min-height: 56px;
+  flex: 1;
+  font-size: 1.1rem;
+}
+.take-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #444651;
+}
+.take-timer {
+  font-weight: 700;
+  color: #00236f;
+}
+.take-timer.warn {
+  color: #b3261e;
+}
+.take-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+.take-dots button {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 50%;
+}
+.take-dots button.done {
+  background: #e7f5ec;
+  border-color: #2f8a4c;
+}
+.take-dots button[aria-current="step"] {
+  outline: 3px solid #4059aa;
+}
+.take-number {
+  font-weight: 700;
+  color: #4059aa;
+  margin: 0.25rem 0;
+}
+.take-stem {
+  font-size: 1.35rem;
+  color: #0d1c2f;
+  line-height: 2.2;
+  white-space: pre-wrap;
+}
+.take-image {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  margin: 0.5rem auto;
+}
+.take-options {
+  display: grid;
+  gap: 0.6rem;
+}
+.take-options button {
+  min-height: 64px;
+  font-size: 1.25rem;
+  text-align: left;
+}
+.take-options button img {
+  max-height: 120px;
+  max-width: 100%;
+}
+.take-options button.chosen {
+  background: #00236f;
+  color: white;
+  border-color: #00236f;
+}
+.take-blank {
+  min-width: 3.4rem;
+  min-height: 48px;
+  margin: 0 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border: 2px dashed #8b92b5;
+  font-size: 1.35rem;
+  color: #8b92b5;
+}
+.take-blank.filled {
+  border-style: solid;
+  color: #00236f;
+}
+.take-blank.selected {
+  outline: 3px solid #f0a020;
+}
+.take-hint {
+  font-size: 0.95rem;
+}
+.take-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.6rem;
+}
+.take-chips button {
+  min-height: 64px;
+  font-size: 1.5rem;
+}
+.take-saving {
+  min-height: 1.5rem;
+  font-size: 0.95rem;
+}
+.take-confirm {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: #fff8e6;
+  border: 1px solid #f0d08a;
+}
+.take-done {
+  text-align: center;
+}
+.take-big {
+  font-size: 3rem;
+  margin: 0;
+}
+.take-result {
+  text-align: left;
+}
+.take-score {
+  font-size: 1.3rem;
+  text-align: center;
+}
+.take-result li.right {
+  color: #1d6b37;
+}
+.take-result li.wrong {
+  color: #9b1c38;
+}
+.take-key {
+  color: #444651;
+}

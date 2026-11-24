@@ -5,7 +5,9 @@ using EducationKeeptrack.Learning.Domain;
 using EducationKeeptrack.Learning.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +39,21 @@ public static class LearningModule
         services.AddScoped<ReviewPlanService>();
         services.AddScoped<ILearningReportSource, LearningReportSource>();
         services.AddHostedService<LearningResultDispatcher>();
+        services.AddSingleton<BankTokens>();
+        services.AddScoped<IQuestionBankRepository, QuestionBankRepository>();
+        services.AddScoped<LessonService>();
+        services.AddScoped<ImportService>();
+        services.AddScoped<QuestionBankService>();
+        services.AddScoped<ExamService>();
+        services.AddScoped<ExamTakeService>();
+        // Students reach exams without an account; each address gets a fixed budget of requests (ADR-0006).
+        services.AddRateLimiter(o =>
+        {
+            o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            o.AddPolicy(ExamTakeEndpoints.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        });
         return services;
     }
 
@@ -47,6 +64,8 @@ public static class LearningModule
         endpoints.MapSkillResults();
         endpoints.MapCompetency();
         endpoints.MapReviewPlans();
+        endpoints.MapBank();
+        endpoints.MapExamTake();
 
         var group = endpoints.MapGroup("/api/learning/classes/{classId:guid}/assessments").RequireAuthorization(p => p.RequireRole("Teacher"));
         group.AddEndpointFilter(async (context, next) =>

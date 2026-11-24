@@ -5,6 +5,8 @@ import { Login } from "./Login";
 import { RateForm } from "./RateForm";
 import { AdjustmentForm } from "./AdjustmentForm";
 import { Payments } from "./Payments";
+import { Popup } from "./ui/popup";
+import { toast } from "sonner";
 import { Reserve } from "./Reserve";
 import { CashflowStatistics } from "./CashflowStatistics";
 import {
@@ -37,6 +39,9 @@ export function Tuition({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [adjustFor, setAdjustFor] = useState<string | null>(null);
+  const [formLocked, setFormLocked] = useState(false);
   const request = useRef(0);
   const path = `/billing/classes/${classroom.id}`;
   const denied = useCallback((e: ApiError) => {
@@ -117,6 +122,9 @@ export function Tuition({
     setSessionExpired(false);
     await load(appliedMonth);
   }
+  const adjustTarget = report?.students.find(
+    (student) => student.studentId === adjustFor,
+  );
   return (
     <section
       className="tuition-workspace roster"
@@ -148,17 +156,49 @@ export function Tuition({
             liệu nhập chưa lưu vẫn được giữ.
           </p>
         )}
-        <RateForm
-          classId={classroom.id}
-          plan={plan}
-          canWrite={access.canWrite && !loading}
-          onDenied={denied}
-          onSaved={(rates) => {
-            setPlan(rates);
-            setMessage("Đã lưu đơn giá.");
-            void load(appliedMonth);
-          }}
-        />
+        <div className="roster-actions">
+          <button
+            type="button"
+            disabled={!access.canWrite || loading}
+            onClick={() => setRateOpen(true)}
+          >
+            Thêm đơn giá
+          </button>
+        </div>
+        {rateOpen && (
+          <Popup
+            open
+            title="Đơn giá theo ngày hiệu lực"
+            locked={formLocked}
+            suspended={sessionExpired}
+            onOpenChange={(next) => {
+              if (!next) setRateOpen(false);
+            }}
+            footer={
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void load(appliedMonth)}
+              >
+                Tải lại bảng phí
+              </button>
+            }
+          >
+            <RateForm
+              classId={classroom.id}
+              plan={plan}
+              canWrite={access.canWrite && !loading}
+              onDenied={denied}
+              onLockChange={setFormLocked}
+              onSaved={(rates) => {
+                setPlan(rates);
+                setMessage("Đã lưu đơn giá.");
+                setRateOpen(false);
+                void load(appliedMonth);
+              }}
+            />
+          </Popup>
+        )}
         {message && (
           <p role="status" className="notice success">
             {message}
@@ -286,23 +326,13 @@ export function Tuition({
                     {student.adjustments.length === 0 && (
                       <p>Chưa có điều chỉnh.</p>
                     )}
-                    <AdjustmentForm
-                      classId={classroom.id}
-                      studentId={student.studentId}
-                      month={report.month}
-                      version={report.version}
-                      canWrite={
-                        access.canWrite &&
-                        !sessionExpired &&
-                        !loading &&
-                        !error &&
-                        report.status === "ready" &&
-                        report.month === appliedMonth
-                      }
-                      canReplay={access.canWrite && !sessionExpired}
-                      onDenied={denied}
-                      onSaved={() => void load(appliedMonth)}
-                    />
+                    <button
+                      type="button"
+                      disabled={!access.canWrite}
+                      onClick={() => setAdjustFor(student.studentId)}
+                    >
+                      Điều chỉnh học phí
+                    </button>
                     {student.lines.length === 0 && (
                       <p>Không có buổi học trong tháng.</p>
                     )}
@@ -310,6 +340,50 @@ export function Tuition({
                 </article>
               ))}
             </div>
+            {adjustTarget && (
+              <Popup
+                open
+                title={`Điều chỉnh học phí: ${adjustTarget.name}`}
+                locked={formLocked}
+                suspended={sessionExpired}
+                onOpenChange={(next) => {
+                  if (!next) setAdjustFor(null);
+                }}
+                footer={
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void load(appliedMonth)}
+                  >
+                    Tải lại bảng phí
+                  </button>
+                }
+              >
+                <AdjustmentForm
+                  key={adjustTarget.studentId}
+                  classId={classroom.id}
+                  studentId={adjustTarget.studentId}
+                  month={report.month}
+                  version={report.version}
+                  canWrite={
+                    access.canWrite &&
+                    !sessionExpired &&
+                    !loading &&
+                    !error &&
+                    report.status === "ready" &&
+                    report.month === appliedMonth
+                  }
+                  canReplay={access.canWrite && !sessionExpired}
+                  onDenied={denied}
+                  onLockChange={setFormLocked}
+                  onSaved={() => {
+                    toast.success("Điều chỉnh học phí đã được lưu.");
+                    setAdjustFor(null);
+                    void load(appliedMonth);
+                  }}
+                />
+              </Popup>
+            )}
           </>
         )}
         <CashflowStatistics

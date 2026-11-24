@@ -1,29 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 // PDF storage (R2) is not needed here: the reporting API and the file download are stubbed so the
-// test checks what the screen does with them, namely which export is chosen and how it is shared.
-test("Hóa đơn shares the up-to-date monthly report PDF of the student", async ({
+// test checks what the screen does with them: which export is chosen, that it is downloaded, and that Zalo opens
+// on the parent's chat. Nothing goes through the Web Share sheet (no nearby sharing).
+test("Hóa đơn downloads or sends via Zalo the up-to-date monthly report PDF of the student", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const w = window as unknown as { __shared: unknown[] };
-    w.__shared = [];
-    Object.defineProperty(navigator, "canShare", {
-      value: () => true,
-      configurable: true,
-    });
-    Object.defineProperty(navigator, "share", {
-      value: async (data: { files: File[]; title: string }) => {
-        w.__shared.push({
-          name: data.files[0].name,
-          type: data.files[0].type,
-          size: data.files[0].size,
-          title: data.title,
-        });
-      },
-      configurable: true,
-    });
-  });
   await page.goto("/");
   await page.getByLabel("Email", { exact: true }).fill(process.env.DEMO_EMAIL!);
   await page
@@ -48,7 +30,10 @@ test("Hóa đơn shares the up-to-date monthly report PDF of the student", async
     name: `Chia sẻ ${stamp}`,
     subject: "Toán",
   });
-  const student = await write("/students", { name: studentName });
+  const student = await write("/students", {
+    name: studentName,
+    phone: "0901 234 567",
+  });
   await write(`/classes/${classroom.id}/enrollments`, {
     studentId: student.id,
     startDate: "2026-10-01",
@@ -129,21 +114,36 @@ test("Hóa đơn shares the up-to-date monthly report PDF of the student", async
   await page.getByRole("combobox", { name: /^Lớp/ }).selectOption(classroom.id);
   await page.getByLabel("Tháng").fill("2026-10");
   const card = page.getByRole("listitem").filter({ hasText: studentName });
-  await card.getByRole("button", { name: "Gửi báo cáo PDF" }).click();
-  await expect(card.getByRole("status")).toContainText("Đã mở bảng chia sẻ");
-
-  // The outdated export is skipped; the current one is the one that gets shared.
+  // Download: the current export is chosen, the outdated one is skipped.
+  const download = page.waitForEvent("download");
+  await card.getByRole("button", { name: "Tải báo cáo PDF" }).click();
+  expect((await download).suggestedFilename()).toBe(
+    `bao-cao-2026-10-${studentName.replace(/\s+/g, "-")}.pdf`,
+  );
+  await expect(card.getByRole("status")).toContainText("Đã tải PDF về máy");
   expect(calls).toContain("link fresh/download-link");
   expect(calls.some((c) => c.includes("old"))).toBe(false);
-  const shared = await page.evaluate(
-    () => (window as unknown as { __shared: unknown[] }).__shared,
+
+  // Zalo: the PDF is downloaded and the chat of the parent's phone number opens in a new tab.
+  // Routed on the context: the new tab is not the page.
+  await page
+    .context()
+    .route("https://zalo.me/**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "zalo" }),
+    );
+  const zaloTab = page.waitForEvent("popup");
+  const zaloDownload = page.waitForEvent("download");
+  await card.getByRole("button", { name: "Gửi qua Zalo" }).click();
+  await zaloDownload;
+  const tab = await zaloTab;
+  await expect.poll(() => tab.url()).toBe("https://zalo.me/0901234567");
+  await expect(card.getByRole("status")).toContainText("Đính kèm file này");
+
+  // The preview lives on the monthly report screen, reached from the row.
+  await expect(
+    card.getByRole("link", { name: "Xem trước PDF" }),
+  ).toHaveAttribute(
+    "href",
+    new RegExp(`reportStudent=${student.id}&reportMonth=2026-10`),
   );
-  expect(shared).toEqual([
-    {
-      name: `bao-cao-2026-10-${studentName.replace(/\s+/g, "-")}.pdf`,
-      type: "application/pdf",
-      size: 13,
-      title: `Báo cáo tháng 2026-10 · ${studentName}`,
-    },
-  ]);
 });

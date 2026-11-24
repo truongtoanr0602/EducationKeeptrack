@@ -19,6 +19,14 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
     public DbSet<PlanRevision> PlanRevisions => Set<PlanRevision>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<MaterialRevision> MaterialRevisions => Set<MaterialRevision>();
+    public DbSet<CurriculumLesson> CurriculumLessons => Set<CurriculumLesson>();
+    public DbSet<LessonSessionLink> LessonSessionLinks => Set<LessonSessionLink>();
+    public DbSet<Question> Questions => Set<Question>();
+    public DbSet<QuestionImage> QuestionImages => Set<QuestionImage>();
+    public DbSet<ExamBlueprint> ExamBlueprints => Set<ExamBlueprint>();
+    public DbSet<Exam> Exams => Set<Exam>();
+    public DbSet<ExamItem> ExamItems => Set<ExamItem>();
+    public DbSet<ExamSeat> ExamSeats => Set<ExamSeat>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasDefaultSchema("learning");
@@ -33,6 +41,7 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         curriculum.Property(x => x.Version).IsConcurrencyToken();
         curriculum.HasIndex(x => new { x.OwnerId, x.ClassId }).IsUnique();
         curriculum.HasMany(x => x.Skills).WithOne().HasForeignKey(x => x.CurriculumId).OnDelete(DeleteBehavior.Restrict);
+        curriculum.HasMany(x => x.Lessons).WithOne().HasForeignKey(x => x.CurriculumId).OnDelete(DeleteBehavior.Restrict);
         var skill = model.Entity<Skill>();
         skill.HasKey(x => x.Id);
         skill.Property(x => x.Id).ValueGeneratedNever();
@@ -129,6 +138,7 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         materialRevision.Property(x => x.Difficulty).HasMaxLength(20);
         materialRevision.Property(x => x.Status).HasMaxLength(20);
         materialRevision.HasIndex(x => new { x.MaterialId, x.Version }).IsUnique();
+        ConfigureBank(model);
         var assessment = model.Entity<Assessment>();
         assessment.HasKey(x => x.Id);
         assessment.Property(x => x.Id).ValueGeneratedNever();
@@ -168,5 +178,92 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         revision.HasIndex(x => new { x.SubmissionId, x.Version }).IsUnique();
         revision.HasIndex(x => x.DispatchedAt);
         revision.Ignore(x => x.IncludedInStatistics);
+    }
+    private static void ConfigureBank(ModelBuilder model)
+    {
+        var lesson = model.Entity<CurriculumLesson>();
+        lesson.HasKey(x => x.Id);
+        lesson.Property(x => x.Id).ValueGeneratedNever();
+        lesson.Property(x => x.OwnerId).HasMaxLength(450);
+        lesson.Property(x => x.Topic).HasMaxLength(200);
+        lesson.Property(x => x.Title).HasMaxLength(300);
+        lesson.Property(x => x.Knowledge).HasMaxLength(1000);
+        lesson.Property(x => x.Outcomes).HasMaxLength(1000);
+        lesson.Property(x => x.SkillsText).HasMaxLength(1000);
+        lesson.Property(x => x.Competencies).HasMaxLength(300);
+        lesson.HasIndex(x => new { x.OwnerId, x.ClassId });
+        // Archived lessons free their number; two live lessons of one curriculum never share it.
+        lesson.HasIndex(x => new { x.CurriculumId, x.No }).IsUnique().HasFilter("\"Archived\" = false");
+        var link = model.Entity<LessonSessionLink>();
+        link.HasKey(x => x.Id);
+        link.Property(x => x.Id).ValueGeneratedNever();
+        link.Property(x => x.OwnerId).HasMaxLength(450);
+        link.HasIndex(x => new { x.OwnerId, x.ClassId });
+        link.HasIndex(x => x.LessonId).IsUnique();
+        var question = model.Entity<Question>();
+        question.HasKey(x => x.Id);
+        question.Property(x => x.Id).ValueGeneratedNever();
+        question.Property(x => x.OwnerId).HasMaxLength(450);
+        question.Property(x => x.Code).HasMaxLength(40);
+        question.Property(x => x.Type).HasMaxLength(20);
+        question.Property(x => x.Level).HasMaxLength(20);
+        question.Property(x => x.Stem).HasMaxLength(2000);
+        question.Property(x => x.StemImage).HasMaxLength(200);
+        question.Property(x => x.OptionsJson).HasColumnType("text");
+        question.Property(x => x.AnswerJson).HasColumnType("text");
+        question.Property(x => x.Status).HasMaxLength(20);
+        question.Property(x => x.Version).IsConcurrencyToken();
+        question.Ignore(x => x.Options);
+        question.Ignore(x => x.Answer);
+        question.HasIndex(x => new { x.OwnerId, x.ClassId, x.Code }).IsUnique();
+        var image = model.Entity<QuestionImage>();
+        image.HasKey(x => x.Id);
+        image.Property(x => x.Id).ValueGeneratedNever();
+        image.Property(x => x.OwnerId).HasMaxLength(450);
+        image.Property(x => x.FileName).HasMaxLength(200);
+        image.Property(x => x.NormalizedName).HasMaxLength(200);
+        image.Property(x => x.StorageKey).HasMaxLength(300);
+        image.Property(x => x.ContentType).HasMaxLength(100);
+        image.Property(x => x.Sha256).HasMaxLength(64);
+        image.HasIndex(x => new { x.OwnerId, x.ClassId, x.NormalizedName }).IsUnique();
+        var blueprint = model.Entity<ExamBlueprint>();
+        blueprint.HasKey(x => x.Id);
+        blueprint.Property(x => x.Id).ValueGeneratedNever();
+        blueprint.Property(x => x.OwnerId).HasMaxLength(450);
+        blueprint.Property(x => x.Name).HasMaxLength(120);
+        blueprint.HasIndex(x => new { x.OwnerId, x.ClassId, x.Name }).IsUnique();
+        var exam = model.Entity<Exam>();
+        exam.HasKey(x => x.Id);
+        exam.Property(x => x.Id).ValueGeneratedNever();
+        exam.Property(x => x.OwnerId).HasMaxLength(450);
+        exam.Property(x => x.Title).HasMaxLength(160);
+        exam.Property(x => x.Kind).HasMaxLength(20);
+        exam.Property(x => x.Status).HasMaxLength(20);
+        exam.Property(x => x.PublicToken).HasMaxLength(64);
+        exam.Property(x => x.Version).IsConcurrencyToken();
+        exam.Ignore(x => x.Scope);
+        exam.HasIndex(x => new { x.OwnerId, x.ClassId });
+        exam.HasIndex(x => x.PublicToken).IsUnique();
+        exam.HasIndex(x => x.AssessmentId);
+        exam.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.ExamId).OnDelete(DeleteBehavior.Restrict);
+        exam.HasMany(x => x.Seats).WithOne().HasForeignKey(x => x.ExamId).OnDelete(DeleteBehavior.Restrict);
+        var item = model.Entity<ExamItem>();
+        item.HasKey(x => x.Id);
+        item.Property(x => x.Id).ValueGeneratedNever();
+        item.Property(x => x.Level).HasMaxLength(20);
+        item.Property(x => x.SnapshotJson).HasColumnType("text");
+        item.Ignore(x => x.Snapshot);
+        item.HasIndex(x => new { x.ExamId, x.SeatId, x.Order });
+        var seat = model.Entity<ExamSeat>();
+        seat.HasKey(x => x.Id);
+        seat.Property(x => x.Id).ValueGeneratedNever();
+        seat.Property(x => x.StudentName).HasMaxLength(120);
+        seat.Property(x => x.Code).HasMaxLength(10);
+        seat.Property(x => x.AttemptStatus).HasMaxLength(20);
+        seat.Property(x => x.Nonce).HasMaxLength(64);
+        seat.Property(x => x.AnswersJson).HasColumnType("text");
+        seat.Property(x => x.Version).IsConcurrencyToken();
+        seat.Ignore(x => x.Answers);
+        seat.HasIndex(x => new { x.ExamId, x.StudentId }).IsUnique();
     }
 }

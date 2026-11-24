@@ -59,7 +59,36 @@ Hai mức đánh giá do giáo viên xác nhận, dùng chính thức trong hồ
 _Avoid_: Chủ đề, mạch nội dung
 
 **Chuẩn đầu ra**:
-Tiêu chí đạt của một kỹ năng, có nguồn và phiên bản, do giáo viên duyệt cho từng lớp; AI không tự tạo chuẩn chính thức.
+Tiêu chí đạt của một kỹ năng, có nguồn và phiên bản, do giáo viên duyệt cho từng lớp; AI không tự tạo chuẩn chính thức. Mỗi buổi chương trình cũng có chuẩn đầu ra mô tả điều học sinh cần đạt sau buổi đó; phần đánh giá vẫn tính theo kỹ năng.
+
+**Buổi chương trình**:
+Buổi thứ N trong chương trình của lớp, không có ngày: nội dung SGK, kiến thức, kỹ năng cần đạt, chuẩn đầu ra, năng lực và các kỹ năng (mã) của buổi. Buổi học thứ N chưa bị hủy của lớp tự gắn với buổi chương trình thứ N, giáo viên sửa được; khi buổi học đã diễn ra, các kỹ năng của buổi chương trình được tính là đã dạy.
+_Avoid_: Buổi học (buổi có ngày), tiết, bài
+
+**Ngân hàng câu hỏi**:
+Kho câu hỏi của một lớp, giáo viên tải lên bằng file Excel mẫu hoặc soạn trên web; tải lại cùng mã câu thì cập nhật, không tạo mới. Có thể sao chép từ lớp khác của cùng giáo viên.
+
+**Câu hỏi**:
+Một câu trong ngân hàng, có mã, loại (trắc nghiệm một đáp án hoặc điền ô bằng nút bấm), mức độ, đáp án, một kỹ năng chính và tối đa hai kỹ năng phụ. Câu điền ô chỉ đúng khi mọi ô đều đúng. Câu không bị xóa, chỉ ngừng dùng.
+
+**Mức độ câu hỏi**:
+Bốn mức cố định: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao. Khác với độ khó của học liệu.
+_Avoid_: Độ khó (của câu hỏi)
+
+**Kỹ năng chính / kỹ năng phụ**:
+Kỹ năng chính là kỹ năng duy nhất được tính đúng/sai khi học sinh trả lời câu hỏi; kỹ năng phụ chỉ dùng để tìm và lọc câu.
+
+**Cấu trúc đề**:
+Số câu theo từng mức độ câu hỏi (ví dụ 4-3-2-1) và phạm vi (từ buổi chương trình đến buổi, hoặc danh sách kỹ năng). Hệ thống bốc câu phủ đều các kỹ năng trong phạm vi; thiếu câu ở mức nào thì báo thiếu, không lấy câu mức khác bù vào.
+
+**Đề kiểm tra**:
+Bộ câu hỏi bốc từ ngân hàng theo cấu trúc đề, giữ bản chụp từng câu nên sửa ngân hàng không làm đổi đề đã phát. Đề chung là một đề cho cả lớp; khi mở đề, hệ thống tạo một bài đánh giá tương ứng. Kết quả chỉ thành kết quả cuối và kết quả theo kỹ năng khi giáo viên bấm xác nhận.
+
+**Mã vào bài**:
+Mã bốn số riêng của từng học sinh trong một đề kiểm tra, dùng cùng đường link của đề để vào làm bài mà không cần tài khoản. Nhập sai năm lần thì mã bị khóa đến khi giáo viên mở lại.
+
+**Lượt làm bài**:
+Lần làm bài online duy nhất của một học sinh trong một đề kiểm tra: tự lưu sau mỗi câu, tự nộp khi hết giờ hoặc khi giáo viên đóng đề; giáo viên có thể cho em làm lại.
 
 **Học liệu**:
 Nội dung luyện tập trong kho của giáo viên, gắn kỹ năng, độ khó và thời lượng; chỉ học liệu đã duyệt được đưa vào kế hoạch.
@@ -72,7 +101,7 @@ Hai chuỗi độc lập theo thời gian, mức hoàn thành và mức làm đ�
 _Avoid_: Điểm học lực
 
 **Hồ sơ năng lực**:
-Mức đạt, chưa đạt hoặc chưa đủ dữ liệu của một học sinh theo từng kỹ năng đã dạy, tính bằng quy tắc có phiên bản từ các kết quả theo kỹ năng đã xác nhận; AI không tự tính hay đổi.
+Mức đạt, chưa đạt hoặc chưa đủ dữ liệu của một học sinh theo từng kỹ năng đã dạy, tính bằng quy tắc có phiên bản từ các kết quả theo kỹ năng đã xác nhận; AI không tự tính hay đổi. Kết quả từ đề kiểm tra online được cộng dồn giữa các đề vì mỗi đề chỉ có vài câu cho một kỹ năng (ADR 0007).
 _Avoid_: Điểm học lực
 
 **Kế hoạch ôn tập**:
@@ -90,6 +119,14 @@ Các ngày và khung giờ học lặp lại trong tuần của một lớp, áp
 
 **Buổi học**:
 Một lần học của lớp vào ngày và khung giờ cụ thể; có thể dự kiến, đã diễn ra hoặc đã hủy.
+
+**Chưa tạo buổi**:
+Ngày và khung giờ lịch tuần của lớp đáng lẽ có học nhưng chưa có bản ghi Buổi học; chỉ hiển thị trong lịch ở Hôm nay, tính từ phiên bản lịch tuần có hiệu lực ngày đó.
+_Avoid_: Buổi học (buổi học là bản ghi có ngày), buổi bóng
+
+**Quá hạn**:
+Buổi học đã qua nhưng vẫn ở trạng thái dự kiến, trong 30 ngày gần nhất; chỉ là cảnh báo hiển thị, không đổi trạng thái hay học phí.
+
 
 **Học bù**:
 Buổi học bổ sung do giáo viên tạo để bù việc học; có thể gắn với buổi đã hủy.

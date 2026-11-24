@@ -8,7 +8,7 @@ public sealed class CurriculumRepository(LearningDatabase db) : ICurriculumRepos
 {
     public Task<ClassCurriculum?> FindAsync(string owner, Guid classId, bool track, CancellationToken ct)
     {
-        var query = db.Curricula.Include(x => x.Skills).ThenInclude(x => x.Events).AsSplitQuery();
+        var query = db.Curricula.Include(x => x.Skills).ThenInclude(x => x.Events).Include(x => x.Lessons).AsSplitQuery();
         if (!track) query = query.AsNoTracking();
         return query.SingleOrDefaultAsync(x => x.OwnerId == owner && x.ClassId == classId, ct);
     }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type Me } from "./api";
-import { aiVisible } from "./access";
 import { statusNames, type EnrollmentStatus, type Student } from "./roster-api";
 import { classHref, href } from "./router";
 
@@ -50,7 +49,6 @@ export function StudentDetail({
       live = false;
     };
   }, [studentId]);
-  const ai = aiVisible(me.access);
   return (
     <>
       <p className="breadcrumb">
@@ -125,18 +123,12 @@ export function StudentDetail({
                   >
                     Đánh giá
                   </a>
-                  {ai && (
-                    <a
-                      className="button-link"
-                      href={classHref(
-                        c.classId,
-                        "personalization",
-                        "competency",
-                      )}
-                    >
-                      Hồ sơ năng lực
-                    </a>
-                  )}
+                  <a
+                    className="button-link"
+                    href={classHref(c.classId, "program", "competency")}
+                  >
+                    Hồ sơ năng lực
+                  </a>
                 </div>
               </li>
             ))}
