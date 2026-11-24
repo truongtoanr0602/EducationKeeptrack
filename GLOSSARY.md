@@ -69,7 +69,23 @@ _Avoid_: Buổi học (buổi có ngày), tiết, bài
 Kho câu hỏi của một lớp, giáo viên tải lên bằng file Excel mẫu hoặc soạn trên web; tải lại cùng mã câu thì cập nhật, không tạo mới. Có thể sao chép từ lớp khác của cùng giáo viên.
 
 **Câu hỏi**:
-Một câu trong ngân hàng, có mã, loại (trắc nghiệm một đáp án hoặc điền ô bằng nút bấm), mức độ, đáp án, một kỹ năng chính và tối đa hai kỹ năng phụ. Câu điền ô chỉ đúng khi mọi ô đều đúng. Câu không bị xóa, chỉ ngừng dùng.
+Một câu trong ngân hàng, có mã, dạng (trắc nghiệm một đáp án, nhiều đáp án, điền từ hoặc tự luận), mức độ, đáp án, điểm, một kỹ năng chính và tối đa hai kỹ năng phụ. Câu điền từ có hai cách điền (chọn nút hoặc gõ chữ). Câu không bị xóa, chỉ ngừng dùng.
+
+**Câu nhiều đáp án**:
+Câu trắc nghiệm có từ hai phương án đúng trở lên (A–F); chỉ đúng khi học sinh chọn đúng đủ các phương án đúng, không có điểm thành phần.
+
+**Câu điền từ**:
+Câu có chỗ trống trong đề bài; học sinh chọn nút hoặc gõ chữ vào từng chỗ. Điểm chia đều cho các chỗ trống và mỗi chỗ đúng được phần của nó.
+
+**Câu tự luận**:
+Câu học sinh trả lời bằng văn bản; không tự chấm, giáo viên cho điểm và nhận xét.
+_Avoid_: Điền ô lời giải
+
+**Điểm câu**:
+Điểm tối đa của một câu (0,25 đến 10, bước 0,25, mặc định 1); điểm bài là tổng điểm các câu.
+
+**Chờ chấm**:
+Trạng thái của bài đã nộp còn câu tự luận chưa được giáo viên cho điểm; điểm tổng và kết quả theo kỹ năng chưa chốt.
 
 **Mức độ câu hỏi**:
 Bốn mức cố định: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao. Khác với độ khó của học liệu.
