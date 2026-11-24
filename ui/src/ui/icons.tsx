@@ -22,6 +22,7 @@ const icons: Record<string, LucideIcon> = {
   students: Users,
   sessions: CalendarCheck,
   tuition: Wallet,
+  learning: BookOpen,
   assessments: ClipboardCheck,
   program: BookOpen,
   personalization: Sparkles,

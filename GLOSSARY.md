@@ -120,6 +120,14 @@ Các ngày và khung giờ học lặp lại trong tuần của một lớp, áp
 **Buổi học**:
 Một lần học của lớp vào ngày và khung giờ cụ thể; có thể dự kiến, đã diễn ra hoặc đã hủy.
 
+**Chưa tạo buổi**:
+Ngày và khung giờ lịch tuần của lớp đáng lẽ có học nhưng chưa có bản ghi Buổi học; chỉ hiển thị trong lịch ở Hôm nay, tính từ phiên bản lịch tuần có hiệu lực ngày đó.
+_Avoid_: Buổi học (buổi học là bản ghi có ngày), buổi bóng
+
+**Quá hạn**:
+Buổi học đã qua nhưng vẫn ở trạng thái dự kiến, trong 30 ngày gần nhất; chỉ là cảnh báo hiển thị, không đổi trạng thái hay học phí.
+
+
 **Học bù**:
 Buổi học bổ sung do giáo viên tạo để bù việc học; có thể gắn với buổi đã hủy.
 

@@ -36,6 +36,21 @@ public sealed class SessionRepository(ClassroomDatabase db) : ISessionRepository
                where session.OwnerId == owner && classroom.OwnerId == owner && session.Date == date
                orderby session.StartTime, classroom.Name, session.Id
                select new SessionWithClass(session, classroom.Name, classroom.Subject)).ToListAsync(ct);
+    public async Task<IReadOnlyList<SessionWithClass>> SessionsBetweenAsync(string owner, DateOnly first, DateOnly last, CancellationToken ct) =>
+        await (from session in db.Sessions.AsNoTracking()
+               join classroom in db.Classes.AsNoTracking() on session.ClassId equals classroom.Id
+               where session.OwnerId == owner && classroom.OwnerId == owner && session.Date >= first && session.Date <= last
+               orderby session.Date, session.StartTime, classroom.Name, session.Id
+               select new SessionWithClass(session, classroom.Name, classroom.Subject)).ToListAsync(ct);
+    public async Task<IReadOnlyList<ScheduleRevision>> ScheduleRevisionsAsync(string owner, DateOnly upTo, CancellationToken ct)
+    {
+        var classes = await db.Classes.AsNoTracking().Where(x => x.OwnerId == owner).Select(x => new { x.Id, x.Name, x.Subject }).ToDictionaryAsync(x => x.Id, ct);
+        var schedules = await db.WeeklySchedules.AsNoTracking().Include(x => x.Slots).Where(x => x.OwnerId == owner && x.EffectiveFrom <= upTo).ToListAsync(ct);
+        return schedules.Where(x => classes.ContainsKey(x.ClassId)).Select(x => new ScheduleRevision(x.ClassId, classes[x.ClassId].Name, classes[x.ClassId].Subject, x)).ToArray();
+    }
+    public async Task<IReadOnlyList<EnrollmentSpan>> EnrollmentSpansAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly first, DateOnly last, CancellationToken ct) =>
+        await db.Enrollments.AsNoTracking().Where(e => e.OwnerId == owner && classIds.Contains(e.ClassId) && e.StartDate <= last && (e.EndDate == null || e.EndDate >= first))
+            .Select(e => new EnrollmentSpan(e.ClassId, e.StudentId, e.StartDate, e.EndDate)).ToListAsync(ct);
     public async Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct) =>
         await db.Sessions.AsNoTracking().Where(x => x.OwnerId == owner && x.Date >= from && x.Date <= to).Select(x => new SessionStatusRow(x.Id, x.Status)).ToListAsync(ct);
     public async Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct) =>

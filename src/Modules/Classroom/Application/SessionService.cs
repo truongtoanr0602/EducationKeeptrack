@@ -17,6 +17,11 @@ public record TodaySession(Guid ClassId, string ClassName, string Subject, Sessi
 /// <summary>One class's weekly schedule in effect, for the cross-class week view.</summary>
 public record ClassScheduleView(Guid ClassId, string ClassName, DateOnly EffectiveFrom, IReadOnlyList<ScheduleSlotInput> Slots);
 public record TodayView(DateOnly Date, IReadOnlyList<TodaySession> Sessions);
+/// <summary>A weekly-schedule slot with no session yet ("Chưa tạo buổi"); not a Buổi học.</summary>
+public record UnplannedSlot(Guid ClassId, string ClassName, string Subject, DateOnly Date, TimeOnly StartTime, TimeOnly EndTime);
+public record RangeView(DateOnly From, DateOnly To, IReadOnlyList<TodaySession> Sessions, IReadOnlyList<UnplannedSlot> Unplanned);
+public record ScheduleRevision(Guid ClassId, string ClassName, string Subject, WeeklySchedule Schedule);
+public record EnrollmentSpan(Guid ClassId, Guid StudentId, DateOnly StartDate, DateOnly? EndDate);
 public record SessionWithClass(ClassSession Session, string ClassName, string Subject);
 public record MarkRow(Guid SessionId, Guid StudentId, string Status);
 public record MonthSummary(string Month, int Held, int Planned, int Cancelled, int Present, int Absent, double? AttendanceRate);
@@ -35,6 +40,9 @@ public interface ISessionRepository
     /// <summary>For each of the owner's classes, its latest schedule revision already in effect on <paramref name="date"/>.</summary>
     Task<IReadOnlyList<(string ClassName, WeeklySchedule Schedule)>> ActiveSchedulesAsync(string owner, DateOnly date, CancellationToken ct);
     Task<IReadOnlyList<SessionWithClass>> SessionsOnAsync(string owner, DateOnly date, CancellationToken ct);
+    Task<IReadOnlyList<SessionWithClass>> SessionsBetweenAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct);
+    Task<IReadOnlyList<ScheduleRevision>> ScheduleRevisionsAsync(string owner, DateOnly upTo, CancellationToken ct);
+    Task<IReadOnlyList<EnrollmentSpan>> EnrollmentSpansAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly from, DateOnly to, CancellationToken ct);
     Task<IReadOnlyList<SessionStatusRow>> StatusesAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct);
     Task<IReadOnlyList<MarkRow>> MarksAsync(string owner, IReadOnlyCollection<Guid> sessionIds, CancellationToken ct);
     Task<IReadOnlyList<(Guid ClassId, Guid StudentId)>> EligibleAsync(string owner, IReadOnlyCollection<Guid> classIds, DateOnly date, CancellationToken ct);
@@ -218,6 +226,37 @@ public sealed class SessionService(ISessionRepository repository, TimeProvider c
             return new TodaySession(x.Session.ClassId, x.ClassName, x.Subject, SessionView.From(x.Session), students,
                 saved.Count(m => m.Status == "present"), saved.Count(m => m.Status == "absent"));
         }).ToArray()));
+    }
+    public const int MaxRangeDays = 42;
+    // Read-only calendar data for the Today widget. Unplanned slots follow the schedule revision in effect on each day
+    // (highest version among those effective by then), the same rule the generator uses, and skip any slot that already has a session.
+    public async Task<ClassroomResult<RangeView>> RangeAsync(string owner, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        if (to < from || to.DayNumber - from.DayNumber + 1 > MaxRangeDays)
+            return new(null, ClassroomFailure.Invalid, Errors: new() { ["range"] = [$"Khoảng ngày không hợp lệ (tối đa {MaxRangeDays} ngày)."] });
+        var sessions = await repository.SessionsBetweenAsync(owner, from, to, ct);
+        var marks = (await repository.MarksAsync(owner, sessions.Select(x => x.Session.Id).ToArray(), ct)).ToLookup(x => x.SessionId);
+        var spans = (await repository.EnrollmentSpansAsync(owner, sessions.Select(x => x.Session.ClassId).Distinct().ToArray(), from, to, ct)).ToLookup(x => x.ClassId);
+        var rows = sessions.Select(x =>
+        {
+            var saved = marks[x.Session.Id].ToArray();
+            var eligible = spans[x.Session.ClassId].Where(e => e.StartDate <= x.Session.Date && (e.EndDate == null || e.EndDate >= x.Session.Date)).Select(e => e.StudentId);
+            var students = eligible.Concat(saved.Select(m => m.StudentId)).Distinct().Count();
+            return new TodaySession(x.Session.ClassId, x.ClassName, x.Subject, SessionView.From(x.Session), students,
+                saved.Count(m => m.Status == "present"), saved.Count(m => m.Status == "absent"));
+        }).ToArray();
+        var taken = sessions.Select(x => (x.Session.ClassId, x.Session.Date, x.Session.StartTime)).ToHashSet();
+        var revisions = (await repository.ScheduleRevisionsAsync(owner, to, ct)).GroupBy(x => x.ClassId).ToArray();
+        var unplanned = new List<UnplannedSlot>();
+        for (var day = from; day <= to; day = day.AddDays(1))
+            foreach (var group in revisions)
+            {
+                var revision = group.Where(x => x.Schedule.EffectiveFrom <= day).OrderByDescending(x => x.Schedule.Version).FirstOrDefault();
+                if (revision is null) continue;
+                foreach (var slot in revision.Schedule.Slots.Where(s => s.DayOfWeek == (int)day.DayOfWeek && !taken.Contains((revision.ClassId, day, s.StartTime))))
+                    unplanned.Add(new(revision.ClassId, revision.ClassName, revision.Subject, day, slot.StartTime, slot.EndTime));
+            }
+        return new(new RangeView(from, to, rows, unplanned.OrderBy(x => x.Date).ThenBy(x => x.StartTime).ThenBy(x => x.ClassName).ToArray()));
     }
     // Counts only: attendance rate is present / (present + absent); unmarked students are not guessed.
     public async Task<ClassroomResult<MonthSummary>> MonthAsync(string owner, string month, CancellationToken ct)

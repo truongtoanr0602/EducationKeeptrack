@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { answerText, levelLabel, skillBand, stemParts } from "../src/bank-api";
-import { href, parse } from "../src/router";
+import { classHref, href, parse, sections } from "../src/router";
 
 test.describe("question bank helpers (no browser, no server)", () => {
   test("a fill-in stem splits at every [ ] blank, spaces inside the brackets allowed", () => {
@@ -10,9 +10,20 @@ test.describe("question bank helpers (no browser, no server)", () => {
   });
 
   test("the answer key reads as the option text or the blanks in order", () => {
-    const options = [{ key: "A", text: "46" }, { key: "B", text: "64" }];
-    expect(answerText({ type: "single_choice", answer: [["B"]], options })).toBe("B. 64");
-    expect(answerText({ type: "fill_blanks", answer: [["6"], ["4", "bốn"]], options: [] })).toBe("6 | 4 / bốn");
+    const options = [
+      { key: "A", text: "46" },
+      { key: "B", text: "64" },
+    ];
+    expect(
+      answerText({ type: "single_choice", answer: [["B"]], options }),
+    ).toBe("B. 64");
+    expect(
+      answerText({
+        type: "fill_blanks",
+        answer: [["6"], ["4", "bốn"]],
+        options: [],
+      }),
+    ).toBe("6 | 4 / bốn");
   });
 
   test("skill bands: strong from 80%, weak below 50%", () => {
@@ -23,14 +34,65 @@ test.describe("question bank helpers (no browser, no server)", () => {
     expect(levelLabel("van_dung_cao")).toBe("Vận dụng cao");
   });
 
-  test("program screens have their own always-shown section and old personalisation links follow them", () => {
+  test("class sections are five, and every old link opens the same screen under Học tập", () => {
     const id = "0b6c0a3e-2f5d-4c1e-9a77-3f2d1c0b9e11";
-    expect(parse(`#/classes/${id}/program/exams`)).toEqual({ name: "class", classId: id, section: "program", tab: "exams" });
-    expect(parse(`#/classes/${id}/program`)).toEqual({ name: "class", classId: id, section: "program", tab: undefined });
-    expect(parse(`#/classes/${id}/personalization/curriculum`)).toEqual({ name: "class", classId: id, section: "program", tab: "curriculum" });
-    expect(parse(`#/classes/${id}/personalization/competency`).section).toBe("program");
-    expect(parse(`#/classes/${id}/personalization/plans`)).toEqual({ name: "class", classId: id, section: "personalization", tab: "plans" });
+    const learning = (area: string, tab?: string) => ({
+      name: "class",
+      classId: id,
+      section: "learning",
+      area,
+      tab,
+    });
+    expect(parse(`#/classes/${id}/learning/program/exams`)).toEqual(
+      learning("program", "exams"),
+    );
+    expect(parse(`#/classes/${id}/learning`)).toEqual(
+      learning("assessments", undefined),
+    );
+    expect(parse(`#/classes/${id}/learning/personalization`)).toEqual(
+      learning("personalization", "materials"),
+    );
+    // Old links.
+    expect(parse(`#/classes/${id}/assessments`)).toEqual(
+      learning("assessments", undefined),
+    );
+    expect(parse(`#/classes/${id}/program/exams`)).toEqual(
+      learning("program", "exams"),
+    );
+    expect(parse(`#/classes/${id}/program`)).toEqual(
+      learning("program", undefined),
+    );
+    expect(parse(`#/classes/${id}/personalization/curriculum`)).toEqual(
+      learning("program", "curriculum"),
+    );
+    expect(parse(`#/classes/${id}/personalization/competency`).area).toBe(
+      "program",
+    );
+    expect(parse(`#/classes/${id}/personalization/plans`)).toEqual(
+      learning("personalization", "plans"),
+    );
     expect(parse(`#/classes/${id}/personalization`).tab).toBe("materials");
-    expect(href({ name: "class", classId: id, section: "program", tab: "questions" })).toBe(`#/classes/${id}/program/questions`);
+    expect(parse(`#/classes/${id}/tuition`)).toEqual({
+      name: "class",
+      classId: id,
+      section: "tuition",
+    });
+    expect(href(learning("program", "questions") as never)).toBe(
+      `#/classes/${id}/learning/program/questions`,
+    );
+    expect(classHref(id, "assessments")).toBe(
+      `#/classes/${id}/learning/assessments`,
+    );
+    expect(classHref(id, "program", "lessons")).toBe(
+      `#/classes/${id}/learning/program/lessons`,
+    );
+    expect(classHref(id, "tuition")).toBe(`#/classes/${id}/tuition`);
+    expect(sections.map((x) => x.label)).toEqual([
+      "Học sinh",
+      "Lịch",
+      "Học phí",
+      "Học tập",
+      "Báo cáo",
+    ]);
   });
 });
