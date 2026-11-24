@@ -67,6 +67,7 @@ public static class ExamTakeEndpoints
                 return new
                 {
                     item.Order, number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), q.Blanks, q.Points, q.FillMode,
+                    stemHtml = RichStem.Resolve(q.StemHtml, n => url(n)), audioUrl = url(q.AudioFile),
                     // A multiple-choice question says how many options to tick; the keys themselves stay on the server.
                     choose = q.Type == QuestionType.MultiChoice && q.Answer.Length == 1 ? q.Answer[0].Length : (int?)null,
                     options = seat.PresentedOptions(item).Select(o => new { o.Key, o.Text, imageUrl = url(o.Image) })
@@ -84,7 +85,8 @@ public static class ExamTakeEndpoints
                     var given = answers.GetValueOrDefault(item.Order);
                     return new
                     {
-                        number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), given, correct = q.IsCorrect(given), points = q.Points, score = q.Score(given),
+                        number = index + 1, q.Type, q.Stem, stemImageUrl = url(q.StemImage), stemHtml = RichStem.Resolve(q.StemHtml, n => url(n)), audioUrl = url(q.AudioFile),
+                        given, correct = q.IsCorrect(given), points = q.Points, score = q.Score(given),
                         answer = q.Type is QuestionType.SingleChoice or QuestionType.MultiChoice
                             ? q.Options.Where(o => q.Answer.Length > 0 && q.Answer[0].Contains(o.Key, StringComparer.OrdinalIgnoreCase))
                                 .Select(o => o.Text.Length > 0 ? $"{o.Key}. {o.Text}" : o.Key).ToArray()

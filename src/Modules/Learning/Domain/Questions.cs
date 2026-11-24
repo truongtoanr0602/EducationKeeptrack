@@ -76,7 +76,8 @@ public sealed record QuestionOption(string Key, string Text, string? Image);
 
 public record QuestionInput(string? Code, string? Type, string? Level, Guid PrimarySkillId, Guid[]? SecondarySkillIds, int? LessonNo,
     string? Stem, string? StemImage, QuestionOption[]? Options, string[][]? Answer, bool Archived, int Version,
-    decimal? Points = null, string? FillMode = null, bool IgnoreDiacritics = false, string? SampleAnswer = null);
+    decimal? Points = null, string? FillMode = null, bool IgnoreDiacritics = false, string? SampleAnswer = null,
+    string? StemHtml = null, string? AudioFile = null);
 
 /// <summary>Everything an exam keeps of a question at the time it was drawn, answer included. Members after PrimarySkillId have
 /// defaults so exams drawn before they existed still read: one point, tap a button, accents matter.</summary>
@@ -176,7 +177,7 @@ public sealed class Question
     public bool IgnoreDiacritics { get; private set; }
     /// <summary>The teacher's model answer of an essay, shown while grading; a student only sees it once the results are released.</summary>
     public string? SampleAnswer { get; private set; }
-    /// <summary>Sanitized rich stem and an uploaded audio file of a typed fill-in; set by the editor, not by this input yet.</summary>
+    /// <summary>Sanitized rich stem and an uploaded audio file of a typed fill-in. The plain Stem is always the text of StemHtml.</summary>
     public string? StemHtml { get; private set; }
     public string? AudioFile { get; private set; }
     public string OptionsJson { get; private set; } = "[]";
@@ -207,7 +208,7 @@ public sealed class Question
     }
 
     /// <summary>Checks the request against the class's live skills and question images; keys are request field names.</summary>
-    public static Dictionary<string, string[]> Validate(QuestionInput input, IReadOnlySet<Guid> liveSkills, IReadOnlySet<string> images)
+    public static Dictionary<string, string[]> Validate(QuestionInput input, IReadOnlySet<Guid> liveSkills, IReadOnlySet<string> images, IReadOnlySet<string>? audio = null)
     {
         var errors = new Dictionary<string, string[]>();
         void Add(string key, string message) => errors[key] = errors.TryGetValue(key, out var list) ? [.. list, message] : [message];
@@ -218,6 +219,19 @@ public sealed class Question
             Add("fillMode", "Cách điền chỉ có ở câu điền ô: chọn nút hoặc gõ chữ.");
         if (input.IgnoreDiacritics && !(input.Type == QuestionType.FillBlanks && input.FillMode == QuestionType.FillType)) Add("ignoreDiacritics", "Chỉ câu điền ô gõ chữ mới bỏ qua dấu được.");
         if (input.SampleAnswer?.Length > EssayLimit) Add("sampleAnswer", $"Đáp án mẫu tối đa {EssayLimit} ký tự.");
+        var typedFill = input.Type == QuestionType.FillBlanks && input.FillMode == QuestionType.FillType;
+        if (!string.IsNullOrWhiteSpace(input.StemHtml))
+        {
+            if (!typedFill) Add("stemHtml", "Chỉ câu điền ô gõ chữ mới có đề bài định dạng.");
+            else if (input.StemHtml.Length > RichStem.MaxLength) Add("stemHtml", $"Đề bài định dạng tối đa {RichStem.MaxLength} ký tự.");
+            else foreach (var file in RichStem.Files(input.StemHtml))
+                if (!images.Contains(QuestionImage.NormalizeName(file))) Add("stemHtml", $"Chưa có ảnh \"{file}\". Tải ảnh lên trước.");
+        }
+        if (!string.IsNullOrWhiteSpace(input.AudioFile))
+        {
+            if (!typedFill) Add("audioFile", "Chỉ câu điền ô gõ chữ mới có âm thanh.");
+            else if (audio is null || !audio.Contains(QuestionImage.NormalizeName(input.AudioFile))) Add("audioFile", $"Chưa có âm thanh \"{input.AudioFile.Trim()}\". Tải tệp mp3 hoặc m4a lên trước.");
+        }
         if (input.Level is null || !QuestionLevel.All.Contains(input.Level)) Add("level", "Mức độ là Nhận biết, Thông hiểu, Vận dụng hoặc Vận dụng cao.");
         if (!liveSkills.Contains(input.PrimarySkillId)) Add("primarySkillId", "Chọn kỹ năng chính đang dùng của lớp.");
         var secondary = (input.SecondarySkillIds ?? []).Distinct().Where(x => x != input.PrimarySkillId).ToList();
@@ -286,9 +300,9 @@ public sealed class Question
     /// <summary>Applies the request; returns true when something changed. The caller validates first.</summary>
     public bool Apply(QuestionInput input, DateTimeOffset now)
     {
-        var before = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer);
+        var before = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer, StemHtml, AudioFile);
         Assign(input);
-        var after = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer);
+        var after = (Code, Type, Level, PrimarySkillId, string.Join(",", SecondarySkillIds), LessonNo, Stem, StemImage, OptionsJson, AnswerJson, Status, Points, FillMode, IgnoreDiacritics, SampleAnswer, StemHtml, AudioFile);
         if (before == after) return false;
         Version++; UpdatedAt = now;
         return true;
@@ -307,6 +321,9 @@ public sealed class Question
         FillMode = Type == QuestionType.FillBlanks ? input.FillMode ?? QuestionType.FillChips : QuestionType.FillChips;
         IgnoreDiacritics = Type == QuestionType.FillBlanks && FillMode == QuestionType.FillType && input.IgnoreDiacritics;
         SampleAnswer = Type == QuestionType.Essay && !string.IsNullOrWhiteSpace(input.SampleAnswer) ? input.SampleAnswer.Trim() : null;
+        var typedFill = Type == QuestionType.FillBlanks && FillMode == QuestionType.FillType;
+        StemHtml = typedFill && !string.IsNullOrWhiteSpace(input.StemHtml) ? input.StemHtml : null;
+        AudioFile = typedFill ? Clean(input.AudioFile) : null;
         Status = input.Archived ? QuestionStatus.Archived : QuestionStatus.Active;
     }
 

@@ -96,7 +96,15 @@ public static class BankEndpoints
             if (status != 200 || stream is null) return Results.StatusCode(status);
             http.Response.Headers.CacheControl = "private, max-age=3600";
             http.Response.Headers.XContentTypeOptions = "nosniff";
-            return Results.File(stream, contentType);
+            // Audio is served with byte ranges (Safari will not play it otherwise); it is at most 5 MB, so it is read whole to be seekable.
+            if (!contentType.StartsWith("audio/")) return Results.File(stream, contentType);
+            await using (stream)
+            {
+                var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer, http.RequestAborted);
+                buffer.Position = 0;
+                return Results.File(buffer, contentType, enableRangeProcessing: true);
+            }
         });
     }
 
@@ -164,7 +172,7 @@ public static class BankEndpoints
         q.Id, q.Code, q.Type, q.Level, q.PrimarySkillId, q.SecondarySkillIds, q.LessonNo, q.Stem, q.StemImage, stemImageUrl = url?.Invoke(q.StemImage),
         options = q.Options.Select(o => new { o.Key, o.Text, o.Image, imageUrl = url?.Invoke(o.Image) }),
         q.Answer, archived = q.Status == QuestionStatus.Archived, q.Version, q.UpdatedAt, blanks = q.Snapshot().Blanks,
-        q.Points, q.FillMode, q.IgnoreDiacritics, q.SampleAnswer
+        q.Points, q.FillMode, q.IgnoreDiacritics, q.SampleAnswer, q.StemHtml, q.AudioFile
     };
 
     private static object SkillView(Skill s) => new { s.Id, s.Code, s.Name, s.Strand };
@@ -187,6 +195,7 @@ public static class BankEndpoints
                 return new
                 {
                     item.Order, q.QuestionId, q.Code, q.Type, q.Level, q.Stem, stemImageUrl = url(q.StemImage), blanks = q.Blanks, q.Points, q.FillMode, q.IgnoreDiacritics, q.SampleAnswer,
+                    stemHtml = RichStem.Resolve(q.StemHtml, n => url(n)), audioUrl = url(q.AudioFile),
                     options = q.Options.Select(o => new { o.Key, o.Text, o.Image, imageUrl = url(o.Image) }), q.Answer,
                     q.PrimarySkillId, skillCode = codes.GetValueOrDefault(q.PrimarySkillId)
                 };
