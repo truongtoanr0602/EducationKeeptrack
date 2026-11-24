@@ -86,6 +86,11 @@ public static class BankEndpoints
             Respond(await service.ShowResultsAsync(LearningAccess.Owner(http), classId, id, input, http.RequestAborted), d => ExamView(d, tokens, clock)));
         group.MapPost("/exams/{id:guid}/confirm", async (Guid classId, Guid id, ExamVersionInput input, HttpContext http, ExamService service, BankTokens tokens, TimeProvider clock) =>
             Respond(await service.ConfirmAsync(LearningAccess.Owner(http), classId, id, input, http.RequestAborted), d => ExamView(d, tokens, clock)));
+        // Essays are scored by the teacher: the screen reads every essay with its answers, and saves one score at a time.
+        group.MapGet("/exams/{id:guid}/grading", async (Guid classId, Guid id, HttpContext http, ExamService service, BankTokens tokens, TimeProvider clock) =>
+            Respond(await service.DetailAsync(LearningAccess.Owner(http), classId, id, http.RequestAborted), d => GradingView(d, tokens, clock)));
+        group.MapPut("/exams/{id:guid}/seats/{studentId:guid}/grades/{order:int}", async (Guid classId, Guid id, Guid studentId, int order, GradeInput input, HttpContext http, ExamService service) =>
+            Respond(await service.GradeAsync(LearningAccess.Owner(http), classId, id, studentId, order, input, http.RequestAborted), GradedView));
         group.MapPost("/exams/{id:guid}/seats/{studentId:guid}/reset", async (Guid classId, Guid id, Guid studentId, ExamVersionInput input, HttpContext http, ExamService service, BankTokens tokens, TimeProvider clock) =>
             Respond(await service.ResetSeatAsync(LearningAccess.Owner(http), classId, id, studentId, input, http.RequestAborted), d => ExamView(d, tokens, clock)));
 
@@ -179,6 +184,42 @@ public static class BankEndpoints
 
     private static object BlueprintsView(IReadOnlyList<ExamBlueprint> list) => list.Select(x => new { x.Id, x.Name, x.Counts, x.LessonFrom, x.LessonTo, x.SkillIds, x.UpdatedAt });
 
+    private static object GradedView(GradedSeat graded) => new
+    {
+        graded.Seat.StudentId, score = graded.Seat.Score, maxScore = graded.MaxScore, graded.Seat.PendingEssays, correct = graded.Seat.CorrectCount
+    };
+
+    /// <summary>Every essay of the exam with the answers of the students who submitted it, and what has been scored.</summary>
+    private static object GradingView(ExamDetail detail, BankTokens tokens, TimeProvider clock)
+    {
+        var exam = detail.Exam;
+        var url = Urls(detail.Images, tokens, clock);
+        var done = exam.Seats.Where(s => AttemptStatus.IsDone(s.AttemptStatus)).OrderBy(s => s.StudentName, StringComparer.CurrentCultureIgnoreCase).ToList();
+        return new
+        {
+            exam.Id, exam.Title, exam.Status, exam.Version,
+            pending = exam.Seats.Sum(s => s.PendingEssays),
+            essays = exam.Items.Where(x => x.SeatId is null && x.Snapshot.Type == QuestionType.Essay).OrderBy(x => x.Order).Select(item =>
+            {
+                var q = item.Snapshot;
+                return new
+                {
+                    item.Order, q.QuestionId, q.Code, q.Stem, stemImageUrl = url(q.StemImage), q.Points, q.SampleAnswer,
+                    responses = done.Where(s => s.Answers.ContainsKey(item.Order)).Select(s =>
+                    {
+                        var grade = s.Grades.GetValueOrDefault(item.Order);
+                        return new
+                        {
+                            s.StudentId, s.StudentName, answer = s.Answers[item.Order].FirstOrDefault() ?? "",
+                            points = grade?.Points, comment = grade?.Comment, gradedAt = grade?.GradedAt
+                        };
+                    }).ToList()
+                };
+            }).ToList(),
+            students = done.Select(s => new { s.StudentId, s.StudentName, score = s.Score, maxScore = s.MaxScore(exam), s.PendingEssays }).ToList()
+        };
+    }
+
     private static object ExamView(ExamDetail detail, BankTokens tokens, TimeProvider clock)
     {
         var exam = detail.Exam;
@@ -208,7 +249,7 @@ public static class BankEndpoints
                 score = seat.Score, maxScore = seat.MaxScore(exam), seat.PendingEssays,
                 total = exam.ItemsFor(seat).Count, seat.StartedAt, seat.SubmittedAt, seat.Deadline, seat.Locked, seat.FailedTries,
                 skills = AttemptStatus.IsDone(seat.AttemptStatus)
-                    ? seat.SkillBreakdown(exam).Select(x => new { skillId = x.Key, code = codes.GetValueOrDefault(x.Key), x.Value.Tasks, x.Value.Correct })
+                    ? seat.SkillBreakdown(exam).Select(x => new { skillId = x.Key, code = codes.GetValueOrDefault(x.Key), x.Value.Tasks, Correct = x.Value.CorrectEquivalent, x.Value.Earned, x.Value.Max, x.Value.Pending })
                         .OrderBy(x => x.code, StringComparer.OrdinalIgnoreCase).ToList()
                     : null
             })

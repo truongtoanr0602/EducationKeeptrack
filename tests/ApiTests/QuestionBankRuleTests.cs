@@ -183,8 +183,8 @@ public sealed class QuestionBankRuleTests
         Assert.Equal(AttemptStatus.AutoSubmitted, seat.AttemptStatus);
         Assert.Equal(2, seat.CorrectCount);
         var breakdown = seat.SkillBreakdown(exam);
-        Assert.Equal((1, 1), breakdown[E1]);
-        Assert.Equal((2, 1), breakdown[E2]);
+        Assert.Equal(new SkillScore(1, 1m, 1m, 0), breakdown[E1]);
+        Assert.Equal(new SkillScore(2, 1m, 2m, 0), breakdown[E2]);
         Assert.Equal(3, seat.PresentedItems(exam).Select(x => x.Order).Distinct().Count());
         Assert.Equal(400, seat.SaveAnswer(exam, 2, ["A"], DateTimeOffset.UnixEpoch.AddMinutes(32)).Status);
     }

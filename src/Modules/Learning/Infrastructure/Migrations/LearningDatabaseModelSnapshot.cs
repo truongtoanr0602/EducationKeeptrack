@@ -456,6 +456,12 @@ namespace Learning.Infrastructure.Migrations
                     b.Property<bool>("Locked")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ManualJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}");
+
                     b.Property<string>("Nonce")
                         .IsRequired()
                         .HasMaxLength(64)

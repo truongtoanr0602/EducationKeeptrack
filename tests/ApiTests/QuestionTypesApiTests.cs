@@ -138,7 +138,7 @@ public sealed class QuestionTypesApiTests(TestApplication app) : IClassFixture<T
         Assert.Equal(8m, seat.GetProperty("maxScore").GetDecimal());    // 1 + 2 + 3 + 2
         Assert.Equal(2, seat.GetProperty("correct").GetInt32());
         Assert.Equal(1, seat.GetProperty("pendingEssays").GetInt32());
-        Assert.Equal(3, seat.GetProperty("skills").EnumerateArray().Sum(x => x.GetProperty("tasks").GetInt32()));
+        Assert.Equal(4, seat.GetProperty("skills").EnumerateArray().Sum(x => x.GetProperty("tasks").GetInt32()));   // the essay counts as a task, waiting to be scored
 
         exam = await Json(await Put(client, $"{examPath}/show-results", new { show = true, version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
         var released = await Json(await student.GetAsync($"/api/exam-take/{token}/attempt"), HttpStatusCode.OK);
@@ -313,5 +313,91 @@ public sealed class QuestionTypesApiTests(TestApplication app) : IClassFixture<T
         Assert.Equal(4m, byCode["K2"].GetProperty("points").GetDecimal());
         Assert.Equal(["B", "F"], byCode["K3"].GetProperty("answer")[0].EnumerateArray().Select(x => x.GetString()));
         Assert.Equal(0.5m, byCode["K3"].GetProperty("points").GetDecimal());
+    }
+
+    // ---- Grading by the teacher (#116) ----
+
+    [Fact]
+    public async Task The_teacher_scores_an_essay_and_the_total_the_student_page_and_the_confirmation_follow()
+    {
+        var (client, classId, skill, studentId) = await Setup();
+        var essay = await Create(client, classId, new
+        {
+            code = "G1", type = "essay", level = "nhan_biet", primarySkillId = skill, secondarySkillIds = Array.Empty<string>(), stem = "Giải thích",
+            options = Array.Empty<object>(), answer = Array.Empty<string[]>(), sampleAnswer = "mẫu", points = 3, version = 0
+        });
+        var single = await Create(client, classId, new
+        {
+            code = "G2", type = "single_choice", level = "nhan_biet", primarySkillId = skill, secondarySkillIds = Array.Empty<string>(), stem = "1 + 1 = ?",
+            options = Options("1", "2"), answer = new[] { new[] { "B" } }, points = 2, version = 0
+        });
+        var exam = await Json(await Post(client, Learning(classId, "/exams"), new
+        {
+            title = "Chấm tay", counts = new[] { 2, 0, 0, 0 }, skillIds = new[] { skill }, durationMinutes = 30, questionIds = new[] { essay, single }
+        }), HttpStatusCode.Created);
+        var examPath = Learning(classId, $"/exams/{exam.GetProperty("id").GetString()}");
+        exam = await Json(await Post(client, $"{examPath}/open", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+        var token = exam.GetProperty("publicToken").GetString()!;
+        var code = exam.GetProperty("seats").EnumerateArray().Single().GetProperty("code").GetString()!;
+        var order = exam.GetProperty("items").EnumerateArray().ToDictionary(x => x.GetProperty("questionId").GetString()!, x => x.GetProperty("order").GetInt32());
+
+        using var student = app.Client();
+        await Json(await Post(student, $"/api/exam-take/{token}/join", new { studentId, code }), HttpStatusCode.OK);
+        await Json(await Put(student, $"/api/exam-take/{token}/attempt/answers/{order[essay]}", new { values = new[] { "Vì 4 chia hết cho 2." } }), HttpStatusCode.OK);
+        await Json(await Put(student, $"/api/exam-take/{token}/attempt/answers/{order[single]}", new { values = new[] { "B" } }), HttpStatusCode.OK);
+        await Json(await Post(student, $"/api/exam-take/{token}/attempt/submit", new { }), HttpStatusCode.OK);
+        exam = await Json(await client.GetAsync(examPath), HttpStatusCode.OK);
+        exam = await Json(await Post(client, $"{examPath}/close", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+
+        // Before any scoring the essay is waiting, and the results cannot be confirmed.
+        var board = await Json(await client.GetAsync($"{examPath}/grading"), HttpStatusCode.OK);
+        Assert.Equal(1, board.GetProperty("pending").GetInt32());
+        var response = board.GetProperty("essays")[0].GetProperty("responses")[0];
+        Assert.Equal("Vì 4 chia hết cho 2.", response.GetProperty("answer").GetString());
+        Assert.Equal(JsonValueKind.Null, response.GetProperty("points").ValueKind);
+        Assert.Equal("mẫu", board.GetProperty("essays")[0].GetProperty("sampleAnswer").GetString());
+        var early = await Post(client, $"{examPath}/confirm", new { version = exam.GetProperty("version").GetInt32() });
+        Assert.Equal(HttpStatusCode.BadRequest, early.StatusCode);
+        Assert.Contains("chưa chấm", await early.Content.ReadAsStringAsync());
+
+        string Grade(int o) => $"{examPath}/seats/{studentId}/grades/{o}";
+        // Refused: over the points, not a quarter step, a remark too long, a question that is not an essay, an unknown order.
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { points = 3.25 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { points = 2.3 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { points = -1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { points = 1, comment = new string('x', 501) })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[single]), new { points = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Put(client, Grade(99), new { points = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { })).StatusCode);
+
+        var first = await Json(await Put(client, Grade(order[essay]), new { points = 2.5, comment = "Đúng ý, thiếu ví dụ" }), HttpStatusCode.OK);
+        Assert.Equal(4.5m, first.GetProperty("score").GetDecimal());   // 2 for the single choice + 2.5
+        Assert.Equal(5m, first.GetProperty("maxScore").GetDecimal());
+        Assert.Equal(0, first.GetProperty("pendingEssays").GetInt32());
+        var again = await Json(await Put(client, Grade(order[essay]), new { points = 2.75, comment = "Đúng ý, thiếu ví dụ" }), HttpStatusCode.OK);
+        Assert.Equal(4.75m, again.GetProperty("score").GetDecimal());   // scoring again replaces
+        board = await Json(await client.GetAsync($"{examPath}/grading"), HttpStatusCode.OK);
+        Assert.Equal(0, board.GetProperty("pending").GetInt32());
+        Assert.Equal(2.75m, board.GetProperty("essays")[0].GetProperty("responses")[0].GetProperty("points").GetDecimal());
+
+        exam = await Json(await client.GetAsync(examPath), HttpStatusCode.OK);
+        exam = await Json(await Put(client, $"{examPath}/show-results", new { show = true, version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+        var released = await Json(await student.GetAsync($"/api/exam-take/{token}/attempt"), HttpStatusCode.OK);
+        var result = released.GetProperty("result");
+        Assert.Equal(4.75m, result.GetProperty("score").GetDecimal());
+        Assert.Equal(0, result.GetProperty("pendingEssays").GetInt32());
+        var essayItem = result.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("type").GetString() == "essay");
+        Assert.True(essayItem.GetProperty("graded").GetBoolean());
+        Assert.Equal(2.75m, essayItem.GetProperty("score").GetDecimal());
+        Assert.Equal("Đúng ý, thiếu ví dụ", essayItem.GetProperty("comment").GetString());
+
+        exam = await Json(await Post(client, $"{examPath}/confirm", new { version = exam.GetProperty("version").GetInt32() }), HttpStatusCode.OK);
+        Assert.Equal("confirmed", exam.GetProperty("status").GetString());
+        var skills = exam.GetProperty("seats").EnumerateArray().Single().GetProperty("skills").EnumerateArray().Single();
+        Assert.Equal(2, skills.GetProperty("tasks").GetInt32());
+        Assert.Equal(2, skills.GetProperty("correct").GetInt32());       // 4.75 of 5 points over 2 tasks rounds to 2 right questions
+        Assert.Equal(4.75m, skills.GetProperty("earned").GetDecimal());
+        // Once confirmed the scores are final.
+        Assert.Equal(HttpStatusCode.BadRequest, (await Put(client, Grade(order[essay]), new { points = 1 })).StatusCode);
     }
 }

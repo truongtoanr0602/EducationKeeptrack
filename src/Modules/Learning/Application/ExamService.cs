@@ -7,6 +7,8 @@ public record ExamCreateInput(string? Title, int[]? Counts, int? LessonFrom, int
 public record ExamVersionInput(int Version);
 public record ExamSwapInput(int Order, int Version);
 public record ExamShowInput(bool Show, int Version);
+public record GradeInput(decimal? Points, string? Comment);
+public sealed record GradedSeat(ExamSeat Seat, decimal MaxScore);
 
 public sealed record ExamPreview(IReadOnlyList<Question> Questions, IReadOnlyList<Skill> Skills, IReadOnlyList<QuestionImage> Images);
 public sealed record ExamDetail(Exam Exam, IReadOnlyList<Skill> Skills, IReadOnlyList<QuestionImage> Images);
@@ -145,6 +147,18 @@ public sealed class ExamService(IQuestionBankRepository repository, IClassroomLe
         return await SaveAsync(owner, classId, exam, exam.SetShowResults(input.Show, input.Version), ct);
     }
 
+    /// <summary>Scores one essay. Returns the seat so the screen can show its new total.</summary>
+    public async Task<LearningResult<GradedSeat>> GradeAsync(string owner, Guid classId, Guid id, Guid studentId, int order, GradeInput input, CancellationToken ct)
+    {
+        var exam = await repository.FindExamAsync(owner, classId, id, true, ct);
+        if (exam is null) return new(null, 404);
+        var outcome = exam.GradeEssay(studentId, order, input.Points, input.Comment, clock.GetUtcNow());
+        if (outcome.Status != 200) return new(null, outcome.Status, outcome.Errors);
+        if (!await repository.SaveAsync(ct)) return new(null, 409);
+        var seat = exam.Seats.Single(x => x.StudentId == studentId);
+        return new(new GradedSeat(seat, seat.MaxScore(exam)));
+    }
+
     public async Task<LearningResult<ExamDetail>> ResetSeatAsync(string owner, Guid classId, Guid id, Guid studentId, ExamVersionInput input, CancellationToken ct)
     {
         var exam = await repository.FindExamAsync(owner, classId, id, true, ct);
@@ -163,6 +177,8 @@ public sealed class ExamService(IQuestionBankRepository repository, IClassroomLe
         if (exam.Version != input.Version) return new(null, 409);
         if (exam.Status != ExamStatus.Closed || exam.AssessmentId is not { } assessmentId)
             return new(null, 400, new() { ["exam"] = ["Đóng bài trước khi xác nhận kết quả."] });
+        var waiting = exam.Seats.Sum(x => x.PendingEssays);
+        if (waiting > 0) return new(null, 400, new() { ["exam"] = [$"Còn {waiting} bài tự luận chưa chấm. Chấm xong rồi mới xác nhận kết quả."] });
         var assessment = await repository.FindAssessmentAsync(owner, classId, assessmentId, ct);
         var set = await repository.FindSkillSetAsync(owner, classId, assessmentId, ct);
         if (assessment is null || set is null) return new(null, 400, new() { ["exam"] = ["Không tìm thấy bài đánh giá của đề."] });
@@ -174,9 +190,10 @@ public sealed class ExamService(IQuestionBankRepository repository, IClassroomLe
             if (assessment.Submissions.SingleOrDefault(x => x.StudentId == seat.StudentId) is { } submission)
             {
                 var completion = ResultLevels.Nearest(seat.AnsweredCount, total);
+                var rightQuestions = seat.CorrectEquivalent(exam);
                 var result = !did ? new ResultInput("not_done", null, null, submission.Version, true)
-                    : seat.CorrectCount == 0 ? new ResultInput("no_correct", completion, 0, submission.Version, true)
-                    : new ResultInput("assessed", completion, ResultLevels.Nearest(seat.CorrectCount, total), submission.Version, true);
+                    : rightQuestions == 0 ? new ResultInput("no_correct", completion, 0, submission.Version, true)
+                    : new ResultInput("assessed", completion, ResultLevels.Nearest(rightQuestions, total), submission.Version, true);
                 if (submission.Validate(result).Count == 0) submission.Record(result, now);
             }
             var breakdown = seat.SkillBreakdown(exam);
@@ -184,7 +201,7 @@ public sealed class ExamService(IQuestionBankRepository repository, IClassroomLe
             {
                 var row = set.Results.SingleOrDefault(x => x.StudentId == seat.StudentId && x.SkillId == skill.SkillId);
                 if (row is null) continue;
-                var correct = breakdown.TryGetValue(skill.SkillId, out var counts) ? counts.Correct : 0;
+                var correct = breakdown.TryGetValue(skill.SkillId, out var counts) ? counts.CorrectEquivalent : 0;
                 var skillInput = did ? new SkillResultInput(SkillResultStatus.Assessed, correct, null, row.Version, true)
                     : new SkillResultInput(SkillResultStatus.NotDone, null, null, row.Version, true);
                 set.RecordResult(seat.StudentId, skill.SkillId, skillInput, owner, now);

@@ -269,6 +269,8 @@ public sealed class LearningDatabase(DbContextOptions<LearningDatabase> options)
         seat.Property(x => x.Nonce).HasMaxLength(64);
         seat.Property(x => x.AnswersJson).HasColumnType("text");
         seat.Property(x => x.Score).HasColumnType("numeric(7,2)").HasDefaultValue(0m);
+        seat.Property(x => x.ManualJson).HasColumnType("text").HasDefaultValue("{}");
+        seat.Ignore(x => x.Grades);
         seat.Property(x => x.PendingEssays).HasDefaultValue(0);
         seat.Property(x => x.Version).IsConcurrencyToken();
         seat.Ignore(x => x.Answers);
