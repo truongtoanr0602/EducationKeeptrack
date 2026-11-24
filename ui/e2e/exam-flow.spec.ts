@@ -103,6 +103,8 @@ test("teacher imports the template, runs a 4-3-2-1 exam and sees results per ski
   await kid.getByLabel("Mã vào bài", { exact: true }).fill(code);
   await kid.getByRole("button", { name: "Vào làm bài" }).click();
   for (let i = 0; i < 10; i++) {
+    // Wait for the question to be on screen before looking at which kind it is.
+    await expect(kid.locator(".take-number")).toContainText(`Câu ${i + 1}`);
     const choice = kid.locator(".take-options button").first();
     if (await choice.count()) await choice.click();
     else await kid.locator(".take-chips button").first().click();
