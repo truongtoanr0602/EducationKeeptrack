@@ -163,7 +163,8 @@ public static class BankEndpoints
     {
         q.Id, q.Code, q.Type, q.Level, q.PrimarySkillId, q.SecondarySkillIds, q.LessonNo, q.Stem, q.StemImage, stemImageUrl = url?.Invoke(q.StemImage),
         options = q.Options.Select(o => new { o.Key, o.Text, o.Image, imageUrl = url?.Invoke(o.Image) }),
-        q.Answer, archived = q.Status == QuestionStatus.Archived, q.Version, q.UpdatedAt, blanks = Question.CountBlanks(q.Stem)
+        q.Answer, archived = q.Status == QuestionStatus.Archived, q.Version, q.UpdatedAt, blanks = q.Snapshot().Blanks,
+        q.Points, q.FillMode, q.IgnoreDiacritics, q.SampleAnswer
     };
 
     private static object SkillView(Skill s) => new { s.Id, s.Code, s.Name, s.Strand };
@@ -185,7 +186,7 @@ public static class BankEndpoints
                 var q = item.Snapshot;
                 return new
                 {
-                    item.Order, q.QuestionId, q.Code, q.Type, q.Level, q.Stem, stemImageUrl = url(q.StemImage), blanks = q.Blanks,
+                    item.Order, q.QuestionId, q.Code, q.Type, q.Level, q.Stem, stemImageUrl = url(q.StemImage), blanks = q.Blanks, q.Points, q.FillMode, q.IgnoreDiacritics, q.SampleAnswer,
                     options = q.Options.Select(o => new { o.Key, o.Text, o.Image, imageUrl = url(o.Image) }), q.Answer,
                     q.PrimarySkillId, skillCode = codes.GetValueOrDefault(q.PrimarySkillId)
                 };
@@ -195,6 +196,7 @@ public static class BankEndpoints
             seats = exam.Seats.OrderBy(x => x.StudentName).Select(seat => new
             {
                 seat.StudentId, seat.StudentName, seat.Code, seat.AttemptStatus, answered = seat.AnsweredCount, correct = seat.CorrectCount,
+                score = seat.Score, maxScore = seat.MaxScore(exam), seat.PendingEssays,
                 total = exam.ItemsFor(seat).Count, seat.StartedAt, seat.SubmittedAt, seat.Deadline, seat.Locked, seat.FailedTries,
                 skills = AttemptStatus.IsDone(seat.AttemptStatus)
                     ? seat.SkillBreakdown(exam).Select(x => new { skillId = x.Key, code = codes.GetValueOrDefault(x.Key), x.Value.Tasks, x.Value.Correct })

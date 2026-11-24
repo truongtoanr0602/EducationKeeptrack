@@ -225,7 +225,12 @@ public sealed class ExamSeat
     public DateTimeOffset? SubmittedAt { get; private set; }
     public string AnswersJson { get; private set; } = "{}";
     public int AnsweredCount { get; private set; }
+    /// <summary>Questions fully right.</summary>
     public int CorrectCount { get; private set; }
+    /// <summary>Points the computer scored (essays excluded). Set when the attempt is submitted.</summary>
+    public decimal Score { get; private set; }
+    /// <summary>Essays the student answered that the teacher has not scored yet.</summary>
+    public int PendingEssays { get; private set; }
     public int Version { get; private set; } = 1;
     private ExamSeat() { }
     internal ExamSeat(Exam exam, Guid studentId, string name, string code) { ExamId = exam.Id; StudentId = studentId; StudentName = name; Code = code; }
@@ -270,13 +275,30 @@ public sealed class ExamSeat
         if (item is null) return CurriculumOutcome.NotFound;
         var snapshot = item.Snapshot;
         var clean = (values ?? []).Select(x => (x ?? "").Trim()).ToArray();
-        if (clean.Length != snapshot.Blanks || clean.Any(x => x.Length > 100)) return CurriculumOutcome.Invalid("value", "Câu trả lời không hợp lệ.");
+        if (!ValidResponse(snapshot, clean)) return CurriculumOutcome.Invalid("value", "Câu trả lời không hợp lệ.");
         var answers = Answers;
         if (clean.All(x => x.Length == 0)) answers.Remove(order); else answers[order] = clean;
         AnswersJson = JsonSerializer.Serialize(answers, Question.Json);
         AnsweredCount = answers.Count;
         Version++;
         return CurriculumOutcome.Ok;
+    }
+
+    /// <summary>One key per chosen option for multiple choice, one value for single choice and essay, one per blank for a fill-in.</summary>
+    private static bool ValidResponse(QuestionSnapshot question, string[] clean)
+    {
+        switch (question.Type)
+        {
+            case QuestionType.MultiChoice:
+            {
+                var keys = question.Options.Select(o => o.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                return clean.Length <= keys.Count && clean.All(keys.Contains) && clean.Distinct(StringComparer.OrdinalIgnoreCase).Count() == clean.Length;
+            }
+            case QuestionType.Essay:
+                return clean.Length == 1 && clean[0].Length <= Question.EssayLimit;
+            default:
+                return clean.Length == question.Blanks && clean.All(x => x.Length <= 100);
+        }
     }
 
     public CurriculumOutcome SubmitByStudent(Exam exam, DateTimeOffset now)
@@ -293,6 +315,8 @@ public sealed class ExamSeat
         var answers = Answers;
         var items = exam.ItemsFor(this);
         CorrectCount = items.Count(x => answers.TryGetValue(x.Order, out var given) && x.Snapshot.IsCorrect(given));
+        Score = items.Sum(x => answers.TryGetValue(x.Order, out var given) ? x.Snapshot.Score(given) : 0);
+        PendingEssays = items.Count(x => x.Snapshot.Type == QuestionType.Essay && answers.ContainsKey(x.Order));
         AnsweredCount = items.Count(x => answers.ContainsKey(x.Order));
         AttemptStatus = automatic ? Domain.AttemptStatus.AutoSubmitted : Domain.AttemptStatus.Submitted;
         SubmittedAt = now;
@@ -302,14 +326,17 @@ public sealed class ExamSeat
     internal void Reset()
     {
         AttemptStatus = Domain.AttemptStatus.None; StartedAt = null; Deadline = null; SubmittedAt = null;
-        AnswersJson = "{}"; AnsweredCount = 0; CorrectCount = 0; FailedTries = 0; Locked = false; Nonce = ""; Version++;
+        AnswersJson = "{}"; AnsweredCount = 0; CorrectCount = 0; Score = 0; PendingEssays = 0; FailedTries = 0; Locked = false; Nonce = ""; Version++;
     }
 
-    /// <summary>Tasks and right answers per primary skill of a finished attempt.</summary>
+    /// <summary>The most points the attempt can earn: the sum of the points of its items.</summary>
+    public decimal MaxScore(Exam exam) => exam.ItemsFor(this).Sum(x => x.Snapshot.Points);
+
+    /// <summary>Tasks and right answers per primary skill of a finished attempt. Essays join once they are scored (#116).</summary>
     public Dictionary<Guid, (int Tasks, int Correct)> SkillBreakdown(Exam exam)
     {
         var answers = Answers;
-        return exam.ItemsFor(this).GroupBy(x => x.PrimarySkillId).ToDictionary(g => g.Key,
+        return exam.ItemsFor(this).Where(x => QuestionType.AutoGraded(x.Snapshot.Type)).GroupBy(x => x.PrimarySkillId).ToDictionary(g => g.Key,
             g => (g.Count(), g.Count(x => answers.TryGetValue(x.Order, out var given) && x.Snapshot.IsCorrect(given))));
     }
 
