@@ -88,7 +88,13 @@ test("calendar shows the week, marks an unplanned slot and an overdue session, a
     calendar.getByRole("group", { name: "Lịch tháng" }),
   ).toBeVisible();
   await expect(calendar.getByRole("status")).toContainText("quá hạn");
+  // The oldest day needing attention may belong to other classes of the account; it is never later than yesterday.
   await calendar.getByRole("button", { name: "Tới ngày cũ nhất" }).click();
+  const jumped = await calendar
+    .locator('[aria-pressed="true"]')
+    .getAttribute("data-date");
+  expect(jumped! <= yesterday).toBe(true);
+  await calendar.locator(`[data-date="${yesterday}"]`).click();
   await expect(sessions.filter({ hasText: name })).toHaveCount(1);
 
   // Back to the week: the picked day survives the view change.
