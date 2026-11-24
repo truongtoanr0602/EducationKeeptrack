@@ -553,3 +553,18 @@ span.band {
 .take-key {
   color: #444651;
 }
+
+
+/* Student exam page: the kinds added by ADR 0008. */
+.take-points { font-weight: 400; color: #475569; font-size: 0.9em; }
+.take-audio audio { width: 100%; }
+.take-essay { display: grid; gap: 0.35rem; }
+.take-essay textarea { width: 100%; font: inherit; padding: 0.6rem; border: 2px solid #94a3b8; border-radius: 10px; min-height: 9rem; }
+.take-essay textarea:focus { outline: 3px solid #1d4ed8; outline-offset: 1px; }
+.take-options button[role="checkbox"] { position: relative; padding-left: 2.6rem; }
+.take-options button[role="checkbox"]::before {
+  content: ""; position: absolute; left: 0.8rem; top: 50%; width: 1.1rem; height: 1.1rem; margin-top: -0.55rem; border: 2px solid currentColor; border-radius: 4px;
+}
+.take-options button[role="checkbox"][aria-checked="true"]::before { background: currentColor; box-shadow: inset 0 0 0 2px #fff; }
+.take-result li.partial .take-key, .take-result li.pending .take-key { color: #475569; }
+.take-stem.rich-stem .blank-slot { padding: 0; min-width: 0; border: 0; background: none; }
