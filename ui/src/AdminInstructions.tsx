@@ -1,4 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
+import {
+  base64Bytes,
+  ImageRejected,
+  QR_ACCEPT,
+  toPngBase64,
+} from "./png-image";
 import { api, ApiError } from "./api";
 import type { Instructions } from "./admin-api";
 
@@ -30,22 +36,22 @@ export function AdminInstructions({ onExpired }: { onExpired: () => void }) {
         : `data:image/png;base64,${qrChange}`;
   async function pick(file: File | undefined, input: HTMLInputElement) {
     if (!file) return;
-    if (file.type !== "image/png" || file.size > MAX_QR_BYTES) {
-      setError("Chọn ảnh QR dạng PNG, tối đa 80 KB.");
-      input.value = "";
-      return;
-    }
     try {
-      const data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const data = await toPngBase64(file, 768);
+      if (base64Bytes(data) > MAX_QR_BYTES) {
+        setError(
+          "Ảnh QR sau khi đổi sang PNG vượt 80 KB. Chọn ảnh QR nhỏ hơn.",
+        );
+        input.value = "";
+        return;
+      }
       setQrChange(data);
       setError("");
-    } catch {
-      setError("Không thể đọc ảnh.");
+    } catch (error) {
+      setError(
+        error instanceof ImageRejected ? error.message : "Không thể đọc ảnh.",
+      );
+      input.value = "";
     }
   }
   useEffect(() => {
@@ -109,12 +115,12 @@ export function AdminInstructions({ onExpired }: { onExpired: () => void }) {
             />
           </label>
           <label className="full-row">
-            Mã QR chuyển khoản (PNG, tối đa 80 KB)
+            Mã QR chuyển khoản (PNG hoặc JPG, tối đa 80 KB)
             <input
               key={fileKey}
               id="static-qr"
               type="file"
-              accept="image/png"
+              accept={QR_ACCEPT}
               disabled={busy}
               onChange={(e) => void pick(e.target.files?.[0], e.target)}
             />
