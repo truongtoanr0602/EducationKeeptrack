@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  base64Bytes,
+  ImageRejected,
+  QR_ACCEPT,
+  toPngBase64,
+} from "./png-image";
 import { api, ApiError } from "./api";
 import { Popup } from "./ui/popup";
 import { money } from "./tuition-api";
@@ -258,32 +264,34 @@ export function RecipientSettings({
         </small>
         {fieldError("accountName")}
         <label>
-          QR ngân hàng tĩnh (PNG, tối đa 1 MB)
+          QR ngân hàng tĩnh (PNG hoặc JPG, tối đa 1 MB)
           <input
             type="file"
-            accept="image/png"
+            accept={QR_ACCEPT}
             disabled={!canWrite || busy}
             onChange={async (e) => {
-              const file = e.target.files?.[0];
+              const input = e.target;
+              const file = input.files?.[0];
               if (!file) return;
-              if (file.size > 1048576 || file.type !== "image/png") {
-                setError("Chọn ảnh PNG tối đa 1 MB.");
-                e.target.value = "";
-                return;
-              }
               setBusy(true);
               try {
-                const data = await new Promise<string>((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.onload = () =>
-                    resolve(String(reader.result).split(",")[1]);
-                  reader.onerror = reject;
-                  reader.readAsDataURL(file);
-                });
+                const data = await toPngBase64(file);
+                if (base64Bytes(data) > 1048576) {
+                  setError(
+                    "Ảnh sau khi đổi sang PNG vượt 1 MB. Chọn ảnh QR nhỏ hơn.",
+                  );
+                  input.value = "";
+                  return;
+                }
                 setImage(data);
                 setError("");
-              } catch {
-                setError("Không thể đọc ảnh.");
+              } catch (error) {
+                setError(
+                  error instanceof ImageRejected
+                    ? error.message
+                    : "Không thể đọc ảnh.",
+                );
+                input.value = "";
               } finally {
                 setBusy(false);
               }
