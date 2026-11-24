@@ -696,7 +696,9 @@ label.inline input {
 .today-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .today-nav button { min-height: 44px; }
 .today-list, .today-students { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.today-card { border: 1px solid var(--line, #d9dde3); border-radius: 12px; background: #fff; overflow: hidden; }
+/* overflow:hidden would make the card the scroll container of the sticky save bar: the bar then stays above the card's own
+   bottom edge and covers the last student rows. clip rounds the corners without becoming a scroll container. */
+.today-card { border: 1px solid var(--line, #d9dde3); border-radius: 12px; background: #fff; overflow: hidden; overflow: clip; }
 .today-card.status-cancelled { opacity: 0.65; }
 .today-head { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; width: 100%; padding: 14px 16px; min-height: 56px; text-align: left; background: none; border: 0; cursor: pointer; }
 .today-time { font-weight: 700; grid-row: span 2; align-self: center; }
@@ -706,7 +708,7 @@ label.inline input {
 .today-body { padding: 0 16px 16px; display: grid; gap: 10px; }
 .today-student button { display: flex; justify-content: space-between; width: 100%; min-height: 52px; padding: 10px 14px; border-radius: 10px; border: 1px solid #b7e0c4; background: #eaf8ef; cursor: pointer; }
 .today-student.absent button { border-color: #d5d9df; background: #eef0f3; }
-.today-actions { display: flex; gap: 8px; position: sticky; bottom: calc(68px + env(safe-area-inset-bottom)); background: #fff; padding-top: 8px; }
+.today-actions { display: flex; gap: 8px; position: sticky; bottom: calc(var(--bottom-tabs-h, 57px) + 8px + env(safe-area-inset-bottom)); z-index: 2; background: #fff; padding: 8px 0; box-shadow: 0 -6px 8px -6px rgb(15 23 42 / 0.18); }
 .today-actions button { min-height: 48px; flex: 1; }
 @media (min-width: 961px) { .today-actions { bottom: 0; } }
 /* Class attendance save bar: same clearance from the bottom tab bar as "Hôm nay". */
