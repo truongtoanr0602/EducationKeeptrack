@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using EducationKeeptrack.Contracts;
 using EducationKeeptrack.Learning.Domain;
 using EducationKeeptrack.Learning.Infrastructure;
@@ -114,7 +115,13 @@ public sealed class ImportService(IQuestionBankRepository repository, IClassroom
         var issues = new List<ImportIssue>();
         void Issue(int column, string message) => issues.Add(new(ImportSheets.Questions, row.Row, WorkbookFormat.QuestionColumns[column], message));
         var type = QuestionType.Parse(row.Type);
-        if (type is null) Issue(1, "Loại câu là Trắc nghiệm hoặc Điền ô.");
+        if (type is null) Issue(1, "Dạng câu là Trắc nghiệm, Nhiều đáp án, Điền ô, Điền từ hoặc Tự luận.");
+        decimal? points = null;
+        if (row.Points.Length > 0)
+        {
+            if (decimal.TryParse(row.Points.Replace(',', '.'), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsed)) points = parsed;
+            else Issue(16, "Điểm phải là một số, ví dụ 1 hoặc 0,5.");
+        }
         var level = QuestionLevel.Parse(row.Level);
         if (level is null) Issue(2, "Mức độ là Nhận biết, Thông hiểu, Vận dụng hoặc Vận dụng cao.");
         if (!skills.TryGetValue(row.PrimarySkill.Trim(), out var primary)) Issue(3, $"Không có kỹ năng mã \"{row.PrimarySkill}\".");
@@ -124,12 +131,29 @@ public sealed class ImportService(IQuestionBankRepository repository, IClassroom
         if (issues.Count > 0) return (null, issues);
         QuestionOption[] options;
         string[][] answer;
-        if (type == QuestionType.SingleChoice)
+        var stem = row.Stem;
+        string? fillMode = null, sample = null;
+        if (type is QuestionType.SingleChoice or QuestionType.MultiChoice)
         {
-            var letters = new[] { "A", "B", "C", "D" };
-            options = row.Options.Select((text, i) => (text, i)).Where(x => x.text.Trim().Length > 0)
+            string[] letters = ["A", "B", "C", "D", "E", "F"];
+            var limit = type == QuestionType.SingleChoice ? 4 : letters.Length;
+            options = row.Options.Take(limit).Select((text, i) => (text, i)).Where(x => x.text.Trim().Length > 0)
                 .Select(x => IsImage(x.text, out var name) ? new QuestionOption(letters[x.i], "", name) : new QuestionOption(letters[x.i], x.text.Trim(), null)).ToArray();
-            answer = [[row.Answer.Trim()]];
+            answer = type == QuestionType.SingleChoice ? [[row.Answer.Trim()]]
+                : [row.Answer.Split([',', ';'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        }
+        else if (type == QuestionType.Essay)
+        {
+            options = [];
+            answer = [];
+            sample = row.Answer.Trim().Length == 0 ? null : row.Answer.Trim();
+        }
+        else if (TypedBlanks(row.Stem) is { } typed)
+        {
+            if (typed.Mixed) { Issue(6, "Không dùng lẫn [ ] và [đáp án] trong một câu."); return (null, issues); }
+            (stem, answer) = (typed.Stem, typed.Answers);
+            options = [];
+            fillMode = QuestionType.FillType;
         }
         else
         {
@@ -137,31 +161,68 @@ public sealed class ImportService(IQuestionBankRepository repository, IClassroom
             answer = row.Answer.Split(';', StringSplitOptions.TrimEntries).Select(x => x.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).ToArray();
             if (row.Answer.Trim().Length == 0) answer = [];
         }
-        return (new QuestionInput(row.Code, type, level, primary, [.. secondary], row.LessonNo, row.Stem, row.StemImage, options, answer, false, 0), issues);
+        return (new QuestionInput(row.Code, type, level, primary, [.. secondary], row.LessonNo, stem, row.StemImage, options, answer, false, 0, points, fillMode, false, sample), issues);
     }
 
     private static QuestionImportRow ToRow(Question question, IReadOnlyDictionary<Guid, string> codes)
     {
         var options = question.Options;
-        string[] letters = ["", "", "", ""];
+        string[] letters = ["", "", "", "", "", ""];
         string[] chips = [];
-        if (question.Type == QuestionType.SingleChoice)
+        var stem = question.Stem;
+        var label = QuestionType.Labels[question.Type];
+        string answer;
+        if (question.Type is QuestionType.SingleChoice or QuestionType.MultiChoice)
+        {
             foreach (var option in options)
             {
-                var index = "ABCD".IndexOf(option.Key, StringComparison.Ordinal);
+                var index = "ABCDEF".IndexOf(option.Key, StringComparison.Ordinal);
                 if (index >= 0) letters[index] = option.Image is { } image ? $"ảnh: {image}" : option.Text;
             }
-        else chips = options.Select(x => x.Text).ToArray();
-        var answer = string.Join("; ", question.Answer.Select(x => string.Join("/", x)));
-        return new(0, question.Code, QuestionType.Labels[question.Type], QuestionLevel.Labels[question.Level], codes[question.PrimarySkillId],
-            [.. question.SecondarySkillIds.Where(codes.ContainsKey).Select(id => codes[id])], question.LessonNo, question.Stem, question.StemImage, letters, chips, answer);
+            answer = question.Type == QuestionType.MultiChoice ? string.Join(", ", question.Answer.FirstOrDefault() ?? []) : string.Join("; ", question.Answer.Select(x => string.Join("/", x)));
+        }
+        else if (question.Type == QuestionType.Essay) answer = question.SampleAnswer ?? "";
+        else if (question.FillMode == QuestionType.FillType)
+        {
+            stem = Regex.Replace(question.Stem, @"\{\{(\d+)\}\}", m =>
+                int.Parse(m.Groups[1].Value) is var n && n >= 1 && n <= question.Answer.Length ? "[" + string.Join("|", question.Answer[n - 1]) + "]" : m.Value);
+            label = QuestionType.TypedLabel;
+            answer = "";
+        }
+        else
+        {
+            chips = options.Select(x => x.Text).ToArray();
+            answer = string.Join("; ", question.Answer.Select(x => string.Join("/", x)));
+        }
+        return new(0, question.Code, label, QuestionLevel.Labels[question.Level], codes[question.PrimarySkillId],
+            [.. question.SecondarySkillIds.Where(codes.ContainsKey).Select(id => codes[id])], question.LessonNo, stem, question.StemImage, letters, chips, answer,
+            question.Points.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private static IEnumerable<string> ImagesOf(QuestionImportRow row)
     {
         if (row.StemImage is { } stem) yield return stem;
-        if (QuestionType.Parse(row.Type) != QuestionType.SingleChoice) yield break;
+        if (QuestionType.Parse(row.Type) is not (QuestionType.SingleChoice or QuestionType.MultiChoice)) yield break;
         foreach (var option in row.Options) if (IsImage(option, out var name)) yield return name;
+    }
+
+    private static readonly Regex Bracket = new(@"\[([^\[\]]*)\]", RegexOptions.Compiled);
+
+    /// <summary>A fill-in written with answers inside the brackets, [Hà Nội|Ha Noi]: the stem with {{n}} tokens, and the answers of each blank.
+    /// Null when every bracket is empty (a tap-a-button question) or there is none; Mixed when empty and filled brackets are both present.</summary>
+    private static (string Stem, string[][] Answers, bool Mixed)? TypedBlanks(string stem)
+    {
+        var matches = Bracket.Matches(stem);
+        var filled = matches.Count(m => m.Groups[1].Value.Trim().Length > 0);
+        if (filled == 0) return null;
+        if (filled != matches.Count) return ("", [], true);
+        var answers = new List<string[]>();
+        var text = Bracket.Replace(stem, m =>
+        {
+            answers.Add(m.Groups[1].Value.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+            return "{{" + answers.Count + "}}";
+        });
+        return (text, [.. answers], false);
     }
 
     private static bool IsImage(string text, out string name)
@@ -177,7 +238,8 @@ public sealed class ImportService(IQuestionBankRepository repository, IClassroom
     {
         "code" => "Mã câu", "type" => "Loại", "level" => "Mức độ", "primarySkillId" => "Kỹ năng chính", "secondarySkillIds" => "Kỹ năng phụ",
         "lessonNo" => "Buổi", "stem" => "Đề bài", "stemImage" => "Ảnh đề", "answer" => "Đáp án",
-        "options" => type == QuestionType.FillBlanks ? "Các nút để điền" : "Phương án A–D", _ => ""
+        "options" => type == QuestionType.FillBlanks ? "Các nút để điền" : type == QuestionType.MultiChoice ? "Phương án A–F" : "Phương án A–D",
+        "points" => "Điểm", "fillMode" or "ignoreDiacritics" => "Dạng", "sampleAnswer" => "Đáp án", _ => ""
     };
 
     private static int SheetOrder(string sheet) => sheet switch

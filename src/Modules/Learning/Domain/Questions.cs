@@ -46,6 +46,8 @@ public static class QuestionType
     };
     /// <summary>The two ways to fill a blank: tap a button (the original way, blanks written [ ]) or type into the text (blanks {{1}}, {{2}}…).</summary>
     public const string FillChips = "chips", FillType = "type";
+    /// <summary>The workbook calls a fill-in whose blanks are written [answer] "Điền từ" (typed), and one written [ ] "Điền ô" (tap a button).</summary>
+    public const string TypedLabel = "Điền từ";
     /// <summary>Every kind but the essay is scored by the computer; an essay is scored by the teacher.</summary>
     public static bool AutoGraded(string type) => type != Essay;
 
@@ -53,8 +55,10 @@ public static class QuestionType
     {
         var text = QuestionLevel.Normalize(value);
         if (text.Length == 0) return null;
-        if (text is "single choice" or "trac nghiem") return SingleChoice;
-        if (text is "fill blanks" or "dien o" or "dien" or "dien vao cho trong") return FillBlanks;
+        if (text is "single choice" or "trac nghiem" or "mot dap an" or "trac nghiem mot dap an") return SingleChoice;
+        if (text is "multi choice" or "nhieu dap an" or "trac nghiem nhieu dap an") return MultiChoice;
+        if (text is "fill blanks" or "dien o" or "dien" or "dien vao cho trong" or "dien tu") return FillBlanks;
+        if (text is "essay" or "tu luan" or "dien o loi giai" or "loi giai") return Essay;
         return null;
     }
 }
